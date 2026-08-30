@@ -1,0 +1,7 @@
+1. Open the GitHub repository chronological-bible-reading-app.
+2. Click Add file > Upload files.
+3. Open this extracted folder and select/drag ALL contents inside bible_chronology_app into the GitHub upload area. Make sure .github, assets, App.js, package.json, app.json, eas.json, README.md, and .gitignore are included.
+4. Commit directly to the main branch.
+5. Open the Actions tab. The workflow "Build Android APK" should start automatically.
+6. When it finishes successfully, open the run and download the artifact named chronological-bible-reading-apk.
+7. Unzip the artifact to get chronological-bible-reading.apk and install it on Android.

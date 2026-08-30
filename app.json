@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "연대기별 성경통독 일정표",
+    "slug": "chronological-bible-reading-365",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.biblereading.chronological365"
+    },
+    "ios": {
+      "bundleIdentifier": "com.biblereading.chronological365",
+      "supportsTablet": true
+    }
+  }
+}
