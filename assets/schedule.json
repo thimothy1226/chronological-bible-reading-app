@@ -3,2190 +3,7317 @@
     "day": 1,
     "dayLabel": "Day 001",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 1장 ~ 4장"
+    "reading": "창세기 1장~3장",
+    "sourceReading": "Genesis 1-3",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 2,
     "dayLabel": "Day 002",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 5장 ~ 8장"
+    "reading": "창세기 4장~7장",
+    "sourceReading": "Genesis 4-7",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 3,
     "dayLabel": "Day 003",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 9장 ~ 11장"
+    "reading": "창세기 8장~11장",
+    "sourceReading": "Genesis 8-11",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 4,
     "dayLabel": "Day 004",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 1장 ~ 3장"
+    "reading": "욥기 1장~5장",
+    "sourceReading": "Job 1-5",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 5,
     "dayLabel": "Day 005",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 4장 ~ 6장"
+    "reading": "욥기 6장~9장",
+    "sourceReading": "Job 6-9",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 6,
     "dayLabel": "Day 006",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 7장 ~ 9장"
+    "reading": "욥기 10장~13장",
+    "sourceReading": "Job 10-13",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 7,
     "dayLabel": "Day 007",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 10장 ~ 12장"
+    "reading": "욥기 14장~16장",
+    "sourceReading": "Job 14-16",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 8,
     "dayLabel": "Day 008",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 13장 ~ 15장"
+    "reading": "욥기 17장~20장",
+    "sourceReading": "Job 17-20",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 9,
     "dayLabel": "Day 009",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 16장 ~ 18장"
+    "reading": "욥기 21장~23장",
+    "sourceReading": "Job 21-23",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 10,
     "dayLabel": "Day 010",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 19장 ~ 21장"
+    "reading": "욥기 24장~28장",
+    "sourceReading": "Job 24-28",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 28,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 11,
     "dayLabel": "Day 011",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 22장 ~ 24장"
+    "reading": "욥기 29장~31장",
+    "sourceReading": "Job 29-31",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 29,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 12,
     "dayLabel": "Day 012",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 25장 ~ 27장"
+    "reading": "욥기 32장~34장",
+    "sourceReading": "Job 32-34",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 13,
     "dayLabel": "Day 013",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 28장 ~ 30장"
+    "reading": "욥기 35장~37장",
+    "sourceReading": "Job 35-37",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 37,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 14,
     "dayLabel": "Day 014",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 31장 ~ 33장"
+    "reading": "욥기 38장~39장",
+    "sourceReading": "Job 38-39",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 38,
+        "startVerse": null,
+        "endChapter": 39,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 15,
     "dayLabel": "Day 015",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "욥기 34장 ~ 36장"
+    "reading": "욥기 40장~42장",
+    "sourceReading": "Job 40-42",
+    "passages": [
+      {
+        "book": "Job",
+        "bookKo": "욥기",
+        "startChapter": 40,
+        "startVerse": null,
+        "endChapter": 42,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 16,
     "dayLabel": "Day 016",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 12장 ~ 14장"
+    "reading": "창세기 12장~15장",
+    "sourceReading": "Genesis 12-15",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 17,
     "dayLabel": "Day 017",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 15장 ~ 17장"
+    "reading": "창세기 16장~18장",
+    "sourceReading": "Genesis 16-18",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 18,
     "dayLabel": "Day 018",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 18장 ~ 20장"
+    "reading": "창세기 19장~21장",
+    "sourceReading": "Genesis 19-21",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 19,
     "dayLabel": "Day 019",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 21장 ~ 23장"
+    "reading": "창세기 22장~24장",
+    "sourceReading": "Genesis 22-24",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 20,
     "dayLabel": "Day 020",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 24장 ~ 26장"
+    "reading": "창세기 25장~26장",
+    "sourceReading": "Genesis 25-26",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 21,
     "dayLabel": "Day 021",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 27장 ~ 29장"
+    "reading": "창세기 27장~29장",
+    "sourceReading": "Genesis 27-29",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 22,
     "dayLabel": "Day 022",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 30장 ~ 32장"
+    "reading": "창세기 30장~31장",
+    "sourceReading": "Genesis 30-31",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 23,
     "dayLabel": "Day 023",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 33장 ~ 35장"
+    "reading": "창세기 32장~34장",
+    "sourceReading": "Genesis 32-34",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 24,
     "dayLabel": "Day 024",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 36장 ~ 38장"
+    "reading": "창세기 35장~37장",
+    "sourceReading": "Genesis 35-37",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 37,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 25,
     "dayLabel": "Day 025",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 39장 ~ 41장"
+    "reading": "창세기 38장~40장",
+    "sourceReading": "Genesis 38-40",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 38,
+        "startVerse": null,
+        "endChapter": 40,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 26,
     "dayLabel": "Day 026",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 42장 ~ 44장"
+    "reading": "창세기 41장~42장",
+    "sourceReading": "Genesis 41-42",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 41,
+        "startVerse": null,
+        "endChapter": 42,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 27,
     "dayLabel": "Day 027",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 45장 ~ 47장"
+    "reading": "창세기 43장~45장",
+    "sourceReading": "Genesis 43-45",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 43,
+        "startVerse": null,
+        "endChapter": 45,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 28,
     "dayLabel": "Day 028",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 48장 ~ 50장"
+    "reading": "창세기 46장~47장",
+    "sourceReading": "Genesis 46-47",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 46,
+        "startVerse": null,
+        "endChapter": 47,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 29,
     "dayLabel": "Day 029",
     "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 51장 ~ 50장"
+    "reading": "창세기 48장~50장",
+    "sourceReading": "Genesis 48-50",
+    "passages": [
+      {
+        "book": "Genesis",
+        "bookKo": "창세기",
+        "startChapter": 48,
+        "startVerse": null,
+        "endChapter": 50,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 30,
     "dayLabel": "Day 030",
-    "stage": "1단계: 창조와 족장 시대",
-    "reading": "창세기 54장 ~ 50장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 1장~3장",
+    "sourceReading": "Exodus 1-3",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 31,
     "dayLabel": "Day 031",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 1장 ~ 3장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 4장~6장",
+    "sourceReading": "Exodus 4-6",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 32,
     "dayLabel": "Day 032",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 4장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 7장~9장",
+    "sourceReading": "Exodus 7-9",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 33,
     "dayLabel": "Day 033",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 7장 ~ 9장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 10장~12장",
+    "sourceReading": "Exodus 10-12",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 34,
     "dayLabel": "Day 034",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 10장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 13장~15장",
+    "sourceReading": "Exodus 13-15",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 35,
     "dayLabel": "Day 035",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 13장 ~ 15장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 16장~18장",
+    "sourceReading": "Exodus 16-18",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 36,
     "dayLabel": "Day 036",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 16장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 19장~21장",
+    "sourceReading": "Exodus 19-21",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 37,
     "dayLabel": "Day 037",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 19장 ~ 21장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 22장~24장",
+    "sourceReading": "Exodus 22-24",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 38,
     "dayLabel": "Day 038",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 22장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 25장~27장",
+    "sourceReading": "Exodus 25-27",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 39,
     "dayLabel": "Day 039",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 25장 ~ 27장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 28장~29장",
+    "sourceReading": "Exodus 28-29",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 40,
     "dayLabel": "Day 040",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 28장 ~ 30장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 30장~32장",
+    "sourceReading": "Exodus 30-32",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 32,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 41,
     "dayLabel": "Day 041",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 31장 ~ 33장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 33장~35장",
+    "sourceReading": "Exodus 33-35",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 33,
+        "startVerse": null,
+        "endChapter": 35,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 42,
     "dayLabel": "Day 042",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "출애굽기 34장 ~ 36장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 36장~38장",
+    "sourceReading": "Exodus 36-38",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 36,
+        "startVerse": null,
+        "endChapter": 38,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 43,
     "dayLabel": "Day 043",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 1장 ~ 3장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "출애굽기 39장~40장",
+    "sourceReading": "Exodus 39-40",
+    "passages": [
+      {
+        "book": "Exodus",
+        "bookKo": "출애굽기",
+        "startChapter": 39,
+        "startVerse": null,
+        "endChapter": 40,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 44,
     "dayLabel": "Day 044",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 4장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 1장~4장",
+    "sourceReading": "Leviticus 1-4",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 45,
     "dayLabel": "Day 045",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 7장 ~ 9장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 5장~7장",
+    "sourceReading": "Leviticus 5-7",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 46,
     "dayLabel": "Day 046",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 10장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 8장~10장",
+    "sourceReading": "Leviticus 8-10",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 47,
     "dayLabel": "Day 047",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 13장 ~ 15장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 11장~13장",
+    "sourceReading": "Leviticus 11-13",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 48,
     "dayLabel": "Day 048",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 16장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 14장~15장",
+    "sourceReading": "Leviticus 14-15",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 49,
     "dayLabel": "Day 049",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 19장 ~ 21장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 16장~18장",
+    "sourceReading": "Leviticus 16-18",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 50,
     "dayLabel": "Day 050",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 22장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 19장~21장",
+    "sourceReading": "Leviticus 19-21",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 51,
     "dayLabel": "Day 051",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 25장 ~ 27장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 22장~23장",
+    "sourceReading": "Leviticus 22-23",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 52,
     "dayLabel": "Day 052",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "레위기 28장 ~ 27장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 24장~25장",
+    "sourceReading": "Leviticus 24-25",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 53,
     "dayLabel": "Day 053",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 1장 ~ 3장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "레위기 26장~27장",
+    "sourceReading": "Leviticus 26-27",
+    "passages": [
+      {
+        "book": "Leviticus",
+        "bookKo": "레위기",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 54,
     "dayLabel": "Day 054",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 4장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 1장~2장",
+    "sourceReading": "Numbers 1-2",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 55,
     "dayLabel": "Day 055",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 7장 ~ 9장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 3장~4장",
+    "sourceReading": "Numbers 3-4",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 56,
     "dayLabel": "Day 056",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 10장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 5장~6장",
+    "sourceReading": "Numbers 5-6",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 57,
     "dayLabel": "Day 057",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 13장 ~ 15장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 7장",
+    "sourceReading": "Numbers 7",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 58,
     "dayLabel": "Day 058",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 16장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 8장~10장",
+    "sourceReading": "Numbers 8-10",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 59,
     "dayLabel": "Day 059",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 19장 ~ 21장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 11장~13장",
+    "sourceReading": "Numbers 11-13",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 60,
     "dayLabel": "Day 060",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 22장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 14장~15장 · 시편 90장",
+    "sourceReading": "Numbers 14-15, Psalm 90",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 90,
+        "startVerse": null,
+        "endChapter": 90,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 61,
     "dayLabel": "Day 061",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 25장 ~ 27장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 16장~17장",
+    "sourceReading": "Numbers 16-17",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 62,
     "dayLabel": "Day 062",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 28장 ~ 30장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 18장~20장",
+    "sourceReading": "Numbers 18-20",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 63,
     "dayLabel": "Day 063",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 31장 ~ 33장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 21장~22장",
+    "sourceReading": "Numbers 21-22",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 64,
     "dayLabel": "Day 064",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 34장 ~ 36장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 23장~25장",
+    "sourceReading": "Numbers 23-25",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 65,
     "dayLabel": "Day 065",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "민수기 37장 ~ 36장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 26장~27장",
+    "sourceReading": "Numbers 26-27",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 66,
     "dayLabel": "Day 066",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 1장 ~ 3장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 28장~30장",
+    "sourceReading": "Numbers 28-30",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 30,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 67,
     "dayLabel": "Day 067",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 4장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 31장~32장",
+    "sourceReading": "Numbers 31-32",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 31,
+        "startVerse": null,
+        "endChapter": 32,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 68,
     "dayLabel": "Day 068",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 7장 ~ 9장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 33장~34장",
+    "sourceReading": "Numbers 33-34",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 33,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 69,
     "dayLabel": "Day 069",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 10장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "민수기 35장~36장",
+    "sourceReading": "Numbers 35-36",
+    "passages": [
+      {
+        "book": "Numbers",
+        "bookKo": "민수기",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 36,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 70,
     "dayLabel": "Day 070",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 13장 ~ 15장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 1장~2장",
+    "sourceReading": "Deuteronomy 1-2",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 71,
     "dayLabel": "Day 071",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 16장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 3장~4장",
+    "sourceReading": "Deuteronomy 3-4",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 72,
     "dayLabel": "Day 072",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 19장 ~ 21장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 5장~7장",
+    "sourceReading": "Deuteronomy 5-7",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 73,
     "dayLabel": "Day 073",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 22장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 8장~10장",
+    "sourceReading": "Deuteronomy 8-10",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 74,
     "dayLabel": "Day 074",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 25장 ~ 27장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 11장~13장",
+    "sourceReading": "Deuteronomy 11-13",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 75,
     "dayLabel": "Day 075",
-    "stage": "2단계: 출애굽과 광야 훈련",
-    "reading": "신명기 28장 ~ 30장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 14장~16장",
+    "sourceReading": "Deuteronomy 14-16",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 76,
     "dayLabel": "Day 076",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 1장 ~ 3장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 17장~20장",
+    "sourceReading": "Deuteronomy 17-20",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 77,
     "dayLabel": "Day 077",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 4장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 21장~23장",
+    "sourceReading": "Deuteronomy 21-23",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 78,
     "dayLabel": "Day 078",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 7장 ~ 9장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 24장~27장",
+    "sourceReading": "Deuteronomy 24-27",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 79,
     "dayLabel": "Day 079",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 10장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 28장~29장",
+    "sourceReading": "Deuteronomy 28-29",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 80,
     "dayLabel": "Day 080",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 13장 ~ 15장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 30장~31장",
+    "sourceReading": "Deuteronomy 30-31",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 81,
     "dayLabel": "Day 081",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 16장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "신명기 32장~34장 · 시편 91장",
+    "sourceReading": "Deuteronomy 32-34, Psalm 91",
+    "passages": [
+      {
+        "book": "Deuteronomy",
+        "bookKo": "신명기",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 91,
+        "startVerse": null,
+        "endChapter": 91,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 82,
     "dayLabel": "Day 082",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 19장 ~ 21장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 1장~4장",
+    "sourceReading": "Joshua 1-4",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 83,
     "dayLabel": "Day 083",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 22장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 5장~8장",
+    "sourceReading": "Joshua 5-8",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 84,
     "dayLabel": "Day 084",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 25장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 9장~11장",
+    "sourceReading": "Joshua 9-11",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 85,
     "dayLabel": "Day 085",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "여호수아 28장 ~ 24장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 12장~15장",
+    "sourceReading": "Joshua 12-15",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 86,
     "dayLabel": "Day 086",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 1장 ~ 2장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 16장~18장",
+    "sourceReading": "Joshua 16-18",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 87,
     "dayLabel": "Day 087",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 3장 ~ 4장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 19장~21장",
+    "sourceReading": "Joshua 19-21",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 88,
     "dayLabel": "Day 088",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 5장 ~ 6장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "여호수아 22장~24장",
+    "sourceReading": "Joshua 22-24",
+    "passages": [
+      {
+        "book": "Joshua",
+        "bookKo": "여호수아",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 89,
     "dayLabel": "Day 089",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 7장 ~ 8장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 1장~2장",
+    "sourceReading": "Judges 1-2",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 90,
     "dayLabel": "Day 090",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 9장 ~ 10장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 3장~5장",
+    "sourceReading": "Judges 3-5",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 91,
     "dayLabel": "Day 091",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 11장 ~ 12장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 6장~7장",
+    "sourceReading": "Judges 6-7",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 92,
     "dayLabel": "Day 092",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 13장 ~ 14장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 8장~9장",
+    "sourceReading": "Judges 8-9",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 93,
     "dayLabel": "Day 093",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 15장 ~ 16장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 10장~12장",
+    "sourceReading": "Judges 10-12",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 94,
     "dayLabel": "Day 094",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 17장 ~ 18장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 13장~15장",
+    "sourceReading": "Judges 13-15",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 95,
     "dayLabel": "Day 095",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "사사기 19장 ~ 20장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 16장~18장",
+    "sourceReading": "Judges 16-18",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 96,
     "dayLabel": "Day 096",
-    "stage": "3단계: 가나안 정복과 사사 시대",
-    "reading": "룻기 1장 ~ 4장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "사사기 19장~21장",
+    "sourceReading": "Judges 19-21",
+    "passages": [
+      {
+        "book": "Judges",
+        "bookKo": "사사기",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 97,
     "dayLabel": "Day 097",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 1장 ~ 2장"
+    "stage": "2단계: 출애굽과 가나안 정착",
+    "reading": "룻기 1장~4장",
+    "sourceReading": "Ruth 1-4",
+    "passages": [
+      {
+        "book": "Ruth",
+        "bookKo": "룻기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 98,
     "dayLabel": "Day 098",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 3장 ~ 4장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 1장~3장",
+    "sourceReading": "1 Samuel 1-3",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 99,
     "dayLabel": "Day 099",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 5장 ~ 6장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 4장~8장",
+    "sourceReading": "1 Samuel 4-8",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 100,
     "dayLabel": "Day 100",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 7장 ~ 8장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 9장~12장",
+    "sourceReading": "1 Samuel 9-12",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 101,
     "dayLabel": "Day 101",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 9장 ~ 10장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 13장~14장",
+    "sourceReading": "1 Samuel 13-14",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 102,
     "dayLabel": "Day 102",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 11장 ~ 12장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 15장~17장",
+    "sourceReading": "1 Samuel 15-17",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 103,
     "dayLabel": "Day 103",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 13장 ~ 14장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 11장 · 사무엘상 18장~20장 · 시편 59장",
+    "sourceReading": "Psalm 11, 1 Samuel 18-20, Psalm 59",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      },
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 59,
+        "startVerse": null,
+        "endChapter": 59,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 104,
     "dayLabel": "Day 104",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 15장 ~ 16장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 21장~24장",
+    "sourceReading": "1 Samuel 21-24",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 105,
     "dayLabel": "Day 105",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 17장 ~ 18장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 7장 · 시편 27장 · 시편 31장 · 시편 34장 · 시편 52장",
+    "sourceReading": "Psalm 7, Psalm 27, Psalm 31, Psalm 34, Psalm 52",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 31,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 34,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 52,
+        "startVerse": null,
+        "endChapter": 52,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 106,
     "dayLabel": "Day 106",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 19장 ~ 20장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 56장 · 시편 120장 · 시편 140장~142장",
+    "sourceReading": "Psalm 56, Psalm 120, Psalm 140-142",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 56,
+        "startVerse": null,
+        "endChapter": 56,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 120,
+        "startVerse": null,
+        "endChapter": 120,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 140,
+        "startVerse": null,
+        "endChapter": 142,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 107,
     "dayLabel": "Day 107",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 21장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘상 25장~27장",
+    "sourceReading": "1 Samuel 25-27",
+    "passages": [
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 108,
     "dayLabel": "Day 108",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 23장 ~ 24장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 17장 · 시편 35장 · 시편 54장 · 시편 63장",
+    "sourceReading": "Psalm 17, Psalm 35, Psalm 54, Psalm 63",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 35,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 54,
+        "startVerse": null,
+        "endChapter": 54,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 63,
+        "startVerse": null,
+        "endChapter": 63,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 109,
     "dayLabel": "Day 109",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 25장 ~ 26장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 18장 · 사무엘상 28장~31장",
+    "sourceReading": "Psalm 18, 1 Samuel 28-31",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      },
+      {
+        "book": "1 Samuel",
+        "bookKo": "사무엘상",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 110,
     "dayLabel": "Day 110",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘상 27장 ~ 28장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 121장 · 시편 123장~125장 · 시편 128장~130장",
+    "sourceReading": "Psalm 121, Psalm 123-125, Psalm 128-130",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 121,
+        "startVerse": null,
+        "endChapter": 121,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 123,
+        "startVerse": null,
+        "endChapter": 125,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 128,
+        "startVerse": null,
+        "endChapter": 130,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 111,
     "dayLabel": "Day 111",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 1편 ~ 5편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 1장~4장",
+    "sourceReading": "2 Samuel 1-4",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 112,
     "dayLabel": "Day 112",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 6편 ~ 10편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 6장 · 시편 8장~10장 · 시편 14장 · 시편 16장 · 시편 19장 · 시편 21장",
+    "sourceReading": "Psalm 6, Psalm 8-10, Psalm 14, Psalm 16, Psalm 19, Psalm 21",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 113,
     "dayLabel": "Day 113",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 11편 ~ 15편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 1장~2장",
+    "sourceReading": "1 Chronicles 1-2",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 114,
     "dayLabel": "Day 114",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 16편 ~ 20편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 43장~45장 · 시편 49장 · 시편 84장~85장 · 시편 87장",
+    "sourceReading": "Psalm 43-45, Psalm 49, Psalm 84-85, Psalm 87",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 43,
+        "startVerse": null,
+        "endChapter": 45,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 49,
+        "startVerse": null,
+        "endChapter": 49,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 84,
+        "startVerse": null,
+        "endChapter": 85,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 87,
+        "startVerse": null,
+        "endChapter": 87,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 115,
     "dayLabel": "Day 115",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 21편 ~ 25편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 3장~5장",
+    "sourceReading": "1 Chronicles 3-5",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 116,
     "dayLabel": "Day 116",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 26편 ~ 30편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 73장 · 시편 77장~78장",
+    "sourceReading": "Psalm 73, Psalm 77-78",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 73,
+        "startVerse": null,
+        "endChapter": 73,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 77,
+        "startVerse": null,
+        "endChapter": 78,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 117,
     "dayLabel": "Day 117",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 31편 ~ 35편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 6장",
+    "sourceReading": "1 Chronicles 6",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 118,
     "dayLabel": "Day 118",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 36편 ~ 40편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 81장 · 시편 88장 · 시편 92장~93장",
+    "sourceReading": "Psalm 81, Psalm 88, Psalm 92-93",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 81,
+        "startVerse": null,
+        "endChapter": 81,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 88,
+        "startVerse": null,
+        "endChapter": 88,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 92,
+        "startVerse": null,
+        "endChapter": 93,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 119,
     "dayLabel": "Day 119",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 41편 ~ 45편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 7장~10장",
+    "sourceReading": "1 Chronicles 7-10",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 120,
     "dayLabel": "Day 120",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 46편 ~ 50편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 102장~104장",
+    "sourceReading": "Psalm 102-104",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 102,
+        "startVerse": null,
+        "endChapter": 104,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 121,
     "dayLabel": "Day 121",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 51편 ~ 55편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 5장 1절~10절 · 역대상 11장~12장",
+    "sourceReading": "2 Samuel 5:1-10, 1 Chronicles 11-12",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 5,
+        "startVerse": 1,
+        "endChapter": 5,
+        "endVerse": 10
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 122,
     "dayLabel": "Day 122",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 56편 ~ 60편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 133장",
+    "sourceReading": "Psalm 133",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 133,
+        "startVerse": null,
+        "endChapter": 133,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 123,
     "dayLabel": "Day 123",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 61편 ~ 65편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 106장~107장",
+    "sourceReading": "Psalm 106-107",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 106,
+        "startVerse": null,
+        "endChapter": 107,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 124,
     "dayLabel": "Day 124",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 66편 ~ 70편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 5장 11절~6장 23절 · 역대상 13장~16장",
+    "sourceReading": "2 Samuel 5:11-6:23, 1 Chronicles 13-16",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 5,
+        "startVerse": 11,
+        "endChapter": 6,
+        "endVerse": 23
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 125,
     "dayLabel": "Day 125",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 71편 ~ 75편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 1장~2장 · 시편 15장 · 시편 22장~24장 · 시편 47장 · 시편 68장",
+    "sourceReading": "Psalm 1-2, Psalm 15, Psalm 22-24, Psalm 47, Psalm 68",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 47,
+        "startVerse": null,
+        "endChapter": 47,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 68,
+        "startVerse": null,
+        "endChapter": 68,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 126,
     "dayLabel": "Day 126",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 76편 ~ 80편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 89장 · 시편 96장 · 시편 100장 · 시편 101장 · 시편 105장 · 시편 132장",
+    "sourceReading": "Psalm 89, Psalm 96, Psalm 100, Psalm 101, Psalm 105, Psalm 132",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 89,
+        "startVerse": null,
+        "endChapter": 89,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 96,
+        "startVerse": null,
+        "endChapter": 96,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 100,
+        "startVerse": null,
+        "endChapter": 100,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 101,
+        "startVerse": null,
+        "endChapter": 101,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 105,
+        "startVerse": null,
+        "endChapter": 105,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 132,
+        "startVerse": null,
+        "endChapter": 132,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 127,
     "dayLabel": "Day 127",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 81편 ~ 85편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 7장 · 역대상 17장",
+    "sourceReading": "2 Samuel 7, 1 Chronicles 17",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 128,
     "dayLabel": "Day 128",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 86편 ~ 90편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 25장 · 시편 29장 · 시편 33장 · 시편 36장 · 시편 39장",
+    "sourceReading": "Psalm 25, Psalm 29, Psalm 33, Psalm 36, Psalm 39",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 29,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 33,
+        "startVerse": null,
+        "endChapter": 33,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 36,
+        "startVerse": null,
+        "endChapter": 36,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 39,
+        "startVerse": null,
+        "endChapter": 39,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 129,
     "dayLabel": "Day 129",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 91편 ~ 95편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 8장~9장 · 역대상 18장",
+    "sourceReading": "2 Samuel 8-9, 1 Chronicles 18",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 130,
     "dayLabel": "Day 130",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 96편 ~ 100편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 50장 · 시편 53장 · 시편 60장 · 시편 75장",
+    "sourceReading": "Psalm 50, Psalm 53, Psalm 60, Psalm 75",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 50,
+        "startVerse": null,
+        "endChapter": 50,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 53,
+        "startVerse": null,
+        "endChapter": 53,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 60,
+        "startVerse": null,
+        "endChapter": 60,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 75,
+        "startVerse": null,
+        "endChapter": 75,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 131,
     "dayLabel": "Day 131",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 1장 ~ 2장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 10장 · 역대상 19장 · 시편 20장",
+    "sourceReading": "2 Samuel 10, 1 Chronicles 19, Psalm 20",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 132,
     "dayLabel": "Day 132",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 3장 ~ 4장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 65장~67장 · 시편 69장~70장",
+    "sourceReading": "Psalm 65-67, Psalm 69-70",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 65,
+        "startVerse": null,
+        "endChapter": 67,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 69,
+        "startVerse": null,
+        "endChapter": 70,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 133,
     "dayLabel": "Day 133",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 5장 ~ 6장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 11장~12장 · 역대상 20장",
+    "sourceReading": "2 Samuel 11-12, 1 Chronicles 20",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      },
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 20,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 134,
     "dayLabel": "Day 134",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 7장 ~ 8장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 32장 · 시편 51장 · 시편 86장 · 시편 122장",
+    "sourceReading": "Psalm 32, Psalm 51, Psalm 86, Psalm 122",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 32,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 51,
+        "startVerse": null,
+        "endChapter": 51,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 86,
+        "startVerse": null,
+        "endChapter": 86,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 122,
+        "startVerse": null,
+        "endChapter": 122,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 135,
     "dayLabel": "Day 135",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 9장 ~ 10장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 13장~15장",
+    "sourceReading": "2 Samuel 13-15",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 136,
     "dayLabel": "Day 136",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 11장 ~ 12장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 3장~4장 · 시편 12장~13장 · 시편 28장 · 시편 55장",
+    "sourceReading": "Psalm 3-4, Psalm 12-13, Psalm 28, Psalm 55",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 28,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 55,
+        "startVerse": null,
+        "endChapter": 55,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 137,
     "dayLabel": "Day 137",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 13장 ~ 14장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 16장~18장",
+    "sourceReading": "2 Samuel 16-18",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 138,
     "dayLabel": "Day 138",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 15장 ~ 16장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 26장 · 시편 40장 · 시편 58장 · 시편 61장~62장 · 시편 64장",
+    "sourceReading": "Psalm 26, Psalm 40, Psalm 58, Psalm 61-62, Psalm 64",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 40,
+        "startVerse": null,
+        "endChapter": 40,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 58,
+        "startVerse": null,
+        "endChapter": 58,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 61,
+        "startVerse": null,
+        "endChapter": 62,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 64,
+        "startVerse": null,
+        "endChapter": 64,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 139,
     "dayLabel": "Day 139",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 17장 ~ 18장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 19장~21장",
+    "sourceReading": "2 Samuel 19-21",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 140,
     "dayLabel": "Day 140",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 19장 ~ 20장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 5장 · 시편 38장 · 시편 41장~42장",
+    "sourceReading": "Psalm 5, Psalm 38, Psalm 41-42",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 38,
+        "startVerse": null,
+        "endChapter": 38,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 41,
+        "startVerse": null,
+        "endChapter": 42,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 141,
     "dayLabel": "Day 141",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 21장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "사무엘하 22장~23장 · 시편 57장",
+    "sourceReading": "2 Samuel 22-23, Psalm 57",
+    "passages": [
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 57,
+        "startVerse": null,
+        "endChapter": 57,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 142,
     "dayLabel": "Day 142",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "사무엘하 23장 ~ 24장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 95장 · 시편 97장~99장",
+    "sourceReading": "Psalm 95, Psalm 97-99",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 95,
+        "startVerse": null,
+        "endChapter": 95,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 97,
+        "startVerse": null,
+        "endChapter": 99,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 143,
     "dayLabel": "Day 143",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 101편 ~ 105편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 21장~22장 · 사무엘하 24장 · 시편 30장",
+    "sourceReading": "1 Chronicles 21-22, 2 Samuel 24, Psalm 30",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 21,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      },
+      {
+        "book": "2 Samuel",
+        "bookKo": "사무엘하",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 30,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 144,
     "dayLabel": "Day 144",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 106편 ~ 110편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 108장~110장",
+    "sourceReading": "Psalm 108-110",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 108,
+        "startVerse": null,
+        "endChapter": 110,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 145,
     "dayLabel": "Day 145",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 111편 ~ 115편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 23장~25장",
+    "sourceReading": "1 Chronicles 23-25",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 146,
     "dayLabel": "Day 146",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 116편 ~ 120편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 131장 · 시편 138장~139장 · 시편 143장~145장",
+    "sourceReading": "Psalm 131, Psalm 138-139, Psalm 143-145",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 131,
+        "startVerse": null,
+        "endChapter": 131,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 138,
+        "startVerse": null,
+        "endChapter": 139,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 143,
+        "startVerse": null,
+        "endChapter": 145,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 147,
     "dayLabel": "Day 147",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 121편 ~ 125편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대상 26장~29장 · 시편 127장",
+    "sourceReading": "1 Chronicles 26-29, Psalm 127",
+    "passages": [
+      {
+        "book": "1 Chronicles",
+        "bookKo": "역대상",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 127,
+        "startVerse": null,
+        "endChapter": 127,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 148,
     "dayLabel": "Day 148",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 126편 ~ 130편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 111장~118장",
+    "sourceReading": "Psalm 111-118",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 111,
+        "startVerse": null,
+        "endChapter": 118,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 149,
     "dayLabel": "Day 149",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 131편 ~ 135편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기상 1장~2장 · 시편 37장 · 시편 71장 · 시편 94장",
+    "sourceReading": "1 Kings 1-2, Psalm 37, Psalm 71, Psalm 94",
+    "passages": [
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 37,
+        "startVerse": null,
+        "endChapter": 37,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 71,
+        "startVerse": null,
+        "endChapter": 71,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 94,
+        "startVerse": null,
+        "endChapter": 94,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 150,
     "dayLabel": "Day 150",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 136편 ~ 140편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 119장 1절~88절",
+    "sourceReading": "Psalm 119:1-88",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 119,
+        "startVerse": 1,
+        "endChapter": 119,
+        "endVerse": 88
+      }
+    ]
   },
   {
     "day": 151,
     "dayLabel": "Day 151",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 141편 ~ 145편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 1장 · 열왕기상 3장~4장 · 시편 72장",
+    "sourceReading": "2 Chronicles 1, 1 Kings 3-4, Psalm 72",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 72,
+        "startVerse": null,
+        "endChapter": 72,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 152,
     "dayLabel": "Day 152",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "시편 146편 ~ 150편"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 119장 89절~176절",
+    "sourceReading": "Psalm 119:89-176",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 119,
+        "startVerse": 89,
+        "endChapter": 119,
+        "endVerse": 176
+      }
+    ]
   },
   {
     "day": 153,
     "dayLabel": "Day 153",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 1장 ~ 2장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "아가 1장~8장",
+    "sourceReading": "Song of Solomon 1-8",
+    "passages": [
+      {
+        "book": "Song of Solomon",
+        "bookKo": "아가",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 154,
     "dayLabel": "Day 154",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 3장 ~ 4장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 1장~3장",
+    "sourceReading": "Proverbs 1-3",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 155,
     "dayLabel": "Day 155",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 5장 ~ 6장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 4장~6장",
+    "sourceReading": "Proverbs 4-6",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 156,
     "dayLabel": "Day 156",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 7장 ~ 8장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 7장~9장",
+    "sourceReading": "Proverbs 7-9",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 157,
     "dayLabel": "Day 157",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 9장 ~ 10장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 10장~12장",
+    "sourceReading": "Proverbs 10-12",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 158,
     "dayLabel": "Day 158",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 11장 ~ 11장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 13장~15장",
+    "sourceReading": "Proverbs 13-15",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 159,
     "dayLabel": "Day 159",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 13장 ~ 11장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 16장~18장",
+    "sourceReading": "Proverbs 16-18",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 160,
     "dayLabel": "Day 160",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "열왕기상 15장 ~ 11장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 19장~21장",
+    "sourceReading": "Proverbs 19-21",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 161,
     "dayLabel": "Day 161",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 1장 ~ 3장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 22장~24장",
+    "sourceReading": "Proverbs 22-24",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 162,
     "dayLabel": "Day 162",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 4장 ~ 6장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 2장~3장 · 열왕기상 5장~6장",
+    "sourceReading": "2 Chronicles 2-3, 1 Kings 5-6",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 2,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 163,
     "dayLabel": "Day 163",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 7장 ~ 9장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 4장 · 열왕기상 7장",
+    "sourceReading": "2 Chronicles 4, 1 Kings 7",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 164,
     "dayLabel": "Day 164",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 10장 ~ 12장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 5장 · 열왕기상 8장",
+    "sourceReading": "2 Chronicles 5, 1 Kings 8",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 165,
     "dayLabel": "Day 165",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 13장 ~ 15장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 6장~7장 · 시편 136장",
+    "sourceReading": "2 Chronicles 6-7, Psalm 136",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 136,
+        "startVerse": null,
+        "endChapter": 136,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 166,
     "dayLabel": "Day 166",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 16장 ~ 18장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "시편 134장 · 시편 146장~150장",
+    "sourceReading": "Psalm 134, Psalm 146-150",
+    "passages": [
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 134,
+        "startVerse": null,
+        "endChapter": 134,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 146,
+        "startVerse": null,
+        "endChapter": 150,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 167,
     "dayLabel": "Day 167",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 19장 ~ 21장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 8장 · 열왕기상 9장",
+    "sourceReading": "2 Chronicles 8, 1 Kings 9",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 168,
     "dayLabel": "Day 168",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 22장 ~ 24장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 25장~26장",
+    "sourceReading": "Proverbs 25-26",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 169,
     "dayLabel": "Day 169",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 25장 ~ 27장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 27장~29장",
+    "sourceReading": "Proverbs 27-29",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 170,
     "dayLabel": "Day 170",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "잠언 28장 ~ 30장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "전도서 1장~6장",
+    "sourceReading": "Ecclesiastes 1-6",
+    "passages": [
+      {
+        "book": "Ecclesiastes",
+        "bookKo": "전도서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 171,
     "dayLabel": "Day 171",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "전도서 1장 ~ 6장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "전도서 7장~12장",
+    "sourceReading": "Ecclesiastes 7-12",
+    "passages": [
+      {
+        "book": "Ecclesiastes",
+        "bookKo": "전도서",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 172,
     "dayLabel": "Day 172",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "전도서 7장 ~ 12장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 9장 · 열왕기상 10장~11장",
+    "sourceReading": "2 Chronicles 9, 1 Kings 10-11",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 173,
     "dayLabel": "Day 173",
-    "stage": "4단계: 통일왕국과 문학서",
-    "reading": "아가 1장 ~ 8장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "잠언 30장~31장",
+    "sourceReading": "Proverbs 30-31",
+    "passages": [
+      {
+        "book": "Proverbs",
+        "bookKo": "잠언",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 174,
     "dayLabel": "Day 174",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 12장 ~ 13장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기상 12장~14장",
+    "sourceReading": "1 Kings 12-14",
+    "passages": [
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 175,
     "dayLabel": "Day 175",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 14장 ~ 15장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 10장~12장",
+    "sourceReading": "2 Chronicles 10-12",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 176,
     "dayLabel": "Day 176",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 16장 ~ 17장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 13장~16장 · 열왕기상 15장 1절~24절",
+    "sourceReading": "2 Chronicles 13-16, 1 Kings 15:1-24",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 15,
+        "startVerse": 1,
+        "endChapter": 15,
+        "endVerse": 24
+      }
+    ]
   },
   {
     "day": 177,
     "dayLabel": "Day 177",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 18장 ~ 19장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기상 15장 25절~16장 34절 · 역대하 17장",
+    "sourceReading": "1 Kings 15:25-16:34, 2 Chronicles 17",
+    "passages": [
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 15,
+        "startVerse": 25,
+        "endChapter": 16,
+        "endVerse": 34
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 178,
     "dayLabel": "Day 178",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 20장 ~ 21장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기상 17장~19장",
+    "sourceReading": "1 Kings 17-19",
+    "passages": [
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 179,
     "dayLabel": "Day 179",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 22장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기상 20장~21장",
+    "sourceReading": "1 Kings 20-21",
+    "passages": [
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 180,
     "dayLabel": "Day 180",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 24장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 18장 · 열왕기상 22장",
+    "sourceReading": "2 Chronicles 18, 1 Kings 22",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      },
+      {
+        "book": "1 Kings",
+        "bookKo": "열왕기상",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 181,
     "dayLabel": "Day 181",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 26장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "역대하 19장~23장",
+    "sourceReading": "2 Chronicles 19-23",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 182,
     "dayLabel": "Day 182",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 28장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "오바댜 1장 · 시편 82장~83장",
+    "sourceReading": "Obadiah 1, Psalm 82-83",
+    "passages": [
+      {
+        "book": "Obadiah",
+        "bookKo": "오바댜",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 82,
+        "startVerse": null,
+        "endChapter": 83,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 183,
     "dayLabel": "Day 183",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 30장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 1장~4장",
+    "sourceReading": "2 Kings 1-4",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 184,
     "dayLabel": "Day 184",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 32장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 5장~8장",
+    "sourceReading": "2 Kings 5-8",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 185,
     "dayLabel": "Day 185",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 34장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 9장~11장",
+    "sourceReading": "2 Kings 9-11",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 186,
     "dayLabel": "Day 186",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 36장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 12장~13장 · 역대하 24장",
+    "sourceReading": "2 Kings 12-13, 2 Chronicles 24",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 187,
     "dayLabel": "Day 187",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 38장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 14장 · 역대하 25장",
+    "sourceReading": "2 Kings 14, 2 Chronicles 25",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 188,
     "dayLabel": "Day 188",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 40장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "요나 1장~4장",
+    "sourceReading": "Jonah 1-4",
+    "passages": [
+      {
+        "book": "Jonah",
+        "bookKo": "요나",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 189,
     "dayLabel": "Day 189",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 42장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "열왕기하 15장 · 역대하 26장",
+    "sourceReading": "2 Kings 15, 2 Chronicles 26",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 190,
     "dayLabel": "Day 190",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기상 44장 ~ 22장"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "이사야 1장~4장",
+    "sourceReading": "Isaiah 1-4",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 191,
     "dayLabel": "Day 191",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 191)"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "이사야 5장~8장",
+    "sourceReading": "Isaiah 5-8",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 192,
     "dayLabel": "Day 192",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 192)"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "아모스 1장~5장",
+    "sourceReading": "Amos 1-5",
+    "passages": [
+      {
+        "book": "Amos",
+        "bookKo": "아모스",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 193,
     "dayLabel": "Day 193",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 193)"
+    "stage": "3단계: 사사 시대와 통일왕국",
+    "reading": "아모스 6장~9장",
+    "sourceReading": "Amos 6-9",
+    "passages": [
+      {
+        "book": "Amos",
+        "bookKo": "아모스",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 194,
     "dayLabel": "Day 194",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 194)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 9장~12장 · 역대하 27장",
+    "sourceReading": "Isaiah 9-12, 2 Chronicles 27",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 195,
     "dayLabel": "Day 195",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 195)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "미가 1장~7장",
+    "sourceReading": "Micah 1-7",
+    "passages": [
+      {
+        "book": "Micah",
+        "bookKo": "미가",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 196,
     "dayLabel": "Day 196",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 196)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 16장~17장 · 역대하 28장",
+    "sourceReading": "2 Kings 16-17, 2 Chronicles 28",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 28,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 197,
     "dayLabel": "Day 197",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 197)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 13장~17장",
+    "sourceReading": "Isaiah 13-17",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 198,
     "dayLabel": "Day 198",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 198)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 18장~22장",
+    "sourceReading": "Isaiah 18-22",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 199,
     "dayLabel": "Day 199",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 199)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 23장~27장",
+    "sourceReading": "Isaiah 23-27",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 200,
     "dayLabel": "Day 200",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 200)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 18장 1절~8절 · 역대하 29장~31장 · 시편 48장",
+    "sourceReading": "2 Kings 18:1-8, 2 Chronicles 29-31, Psalm 48",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 18,
+        "startVerse": 1,
+        "endChapter": 18,
+        "endVerse": 8
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 29,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 48,
+        "startVerse": null,
+        "endChapter": 48,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 201,
     "dayLabel": "Day 201",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 201)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "호세아 1장~7장",
+    "sourceReading": "Hosea 1-7",
+    "passages": [
+      {
+        "book": "Hosea",
+        "bookKo": "호세아",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 202,
     "dayLabel": "Day 202",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 202)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "호세아 8장~14장",
+    "sourceReading": "Hosea 8-14",
+    "passages": [
+      {
+        "book": "Hosea",
+        "bookKo": "호세아",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 203,
     "dayLabel": "Day 203",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 203)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 28장~30장",
+    "sourceReading": "Isaiah 28-30",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 30,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 204,
     "dayLabel": "Day 204",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 204)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 31장~34장",
+    "sourceReading": "Isaiah 31-34",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 31,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 205,
     "dayLabel": "Day 205",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 205)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 35장~36장",
+    "sourceReading": "Isaiah 35-36",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 36,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 206,
     "dayLabel": "Day 206",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 206)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 37장~39장 · 시편 76장",
+    "sourceReading": "Isaiah 37-39, Psalm 76",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 37,
+        "startVerse": null,
+        "endChapter": 39,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 76,
+        "startVerse": null,
+        "endChapter": 76,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 207,
     "dayLabel": "Day 207",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 207)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 40장~43장",
+    "sourceReading": "Isaiah 40-43",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 40,
+        "startVerse": null,
+        "endChapter": 43,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 208,
     "dayLabel": "Day 208",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 208)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 44장~48장",
+    "sourceReading": "Isaiah 44-48",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 44,
+        "startVerse": null,
+        "endChapter": 48,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 209,
     "dayLabel": "Day 209",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 209)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 18장 9절~19장 37절 · 시편 46장 · 시편 80장 · 시편 135장",
+    "sourceReading": "2 Kings 18:9-19:37, Psalm 46, Psalm 80, Psalm 135",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 18,
+        "startVerse": 9,
+        "endChapter": 19,
+        "endVerse": 37
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 46,
+        "startVerse": null,
+        "endChapter": 46,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 80,
+        "startVerse": null,
+        "endChapter": 80,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 135,
+        "startVerse": null,
+        "endChapter": 135,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 210,
     "dayLabel": "Day 210",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "호세아/아모스 선지서 분량 읽기 (Day 210)"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 49장~53장",
+    "sourceReading": "Isaiah 49-53",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 49,
+        "startVerse": null,
+        "endChapter": 53,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 211,
     "dayLabel": "Day 211",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 1장 ~ 2장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 54장~58장",
+    "sourceReading": "Isaiah 54-58",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 54,
+        "startVerse": null,
+        "endChapter": 58,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 212,
     "dayLabel": "Day 212",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 3장 ~ 4장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 59장~63장",
+    "sourceReading": "Isaiah 59-63",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 59,
+        "startVerse": null,
+        "endChapter": 63,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 213,
     "dayLabel": "Day 213",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 5장 ~ 6장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "이사야 64장~66장",
+    "sourceReading": "Isaiah 64-66",
+    "passages": [
+      {
+        "book": "Isaiah",
+        "bookKo": "이사야",
+        "startChapter": 64,
+        "startVerse": null,
+        "endChapter": 66,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 214,
     "dayLabel": "Day 214",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 7장 ~ 8장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 20장~21장",
+    "sourceReading": "2 Kings 20-21",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 215,
     "dayLabel": "Day 215",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 9장 ~ 10장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "역대하 32장~33장",
+    "sourceReading": "2 Chronicles 32-33",
+    "passages": [
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 33,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 216,
     "dayLabel": "Day 216",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 11장 ~ 12장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "나훔 1장~3장",
+    "sourceReading": "Nahum 1-3",
+    "passages": [
+      {
+        "book": "Nahum",
+        "bookKo": "나훔",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 217,
     "dayLabel": "Day 217",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 13장 ~ 14장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 22장~23장 · 역대하 34장~35장",
+    "sourceReading": "2 Kings 22-23, 2 Chronicles 34-35",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 34,
+        "startVerse": null,
+        "endChapter": 35,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 218,
     "dayLabel": "Day 218",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 15장 ~ 16장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "스바냐 1장~3장",
+    "sourceReading": "Zephaniah 1-3",
+    "passages": [
+      {
+        "book": "Zephaniah",
+        "bookKo": "스바냐",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 219,
     "dayLabel": "Day 219",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 17장 ~ 18장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 1장~3장",
+    "sourceReading": "Jeremiah 1-3",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 220,
     "dayLabel": "Day 220",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 19장 ~ 20장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 4장~6장",
+    "sourceReading": "Jeremiah 4-6",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 221,
     "dayLabel": "Day 221",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 21장 ~ 22장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 7장~9장",
+    "sourceReading": "Jeremiah 7-9",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 222,
     "dayLabel": "Day 222",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 23장 ~ 24장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 10장~13장",
+    "sourceReading": "Jeremiah 10-13",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 223,
     "dayLabel": "Day 223",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 25장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 14장~17장",
+    "sourceReading": "Jeremiah 14-17",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 224,
     "dayLabel": "Day 224",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 27장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 18장~22장",
+    "sourceReading": "Jeremiah 18-22",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 225,
     "dayLabel": "Day 225",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 29장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 23장~25장",
+    "sourceReading": "Jeremiah 23-25",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 226,
     "dayLabel": "Day 226",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 31장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 26장~29장",
+    "sourceReading": "Jeremiah 26-29",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 29,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 227,
     "dayLabel": "Day 227",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 33장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 30장~31장",
+    "sourceReading": "Jeremiah 30-31",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 30,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 228,
     "dayLabel": "Day 228",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 35장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 32장~34장",
+    "sourceReading": "Jeremiah 32-34",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 229,
     "dayLabel": "Day 229",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 37장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 35장~37장",
+    "sourceReading": "Jeremiah 35-37",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 37,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 230,
     "dayLabel": "Day 230",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "열왕기하 39장 ~ 25장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "예레미야 38장~40장 · 시편 74장 · 시편 79장",
+    "sourceReading": "Jeremiah 38-40, Psalm 74, Psalm 79",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 38,
+        "startVerse": null,
+        "endChapter": 40,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 74,
+        "startVerse": null,
+        "endChapter": 74,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 79,
+        "startVerse": null,
+        "endChapter": 79,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 231,
     "dayLabel": "Day 231",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 1장 ~ 2장"
+    "stage": "4단계: 분열왕국과 선지자들",
+    "reading": "열왕기하 24장~25장 · 역대하 36장",
+    "sourceReading": "2 Kings 24-25, 2 Chronicles 36",
+    "passages": [
+      {
+        "book": "2 Kings",
+        "bookKo": "열왕기하",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      },
+      {
+        "book": "2 Chronicles",
+        "bookKo": "역대하",
+        "startChapter": 36,
+        "startVerse": null,
+        "endChapter": 36,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 232,
     "dayLabel": "Day 232",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 3장 ~ 4장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "하박국 1장~3장",
+    "sourceReading": "Habakkuk 1-3",
+    "passages": [
+      {
+        "book": "Habakkuk",
+        "bookKo": "하박국",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 233,
     "dayLabel": "Day 233",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 5장 ~ 6장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야 41장~45장",
+    "sourceReading": "Jeremiah 41-45",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 41,
+        "startVerse": null,
+        "endChapter": 45,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 234,
     "dayLabel": "Day 234",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 7장 ~ 8장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야 46장~48장",
+    "sourceReading": "Jeremiah 46-48",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 46,
+        "startVerse": null,
+        "endChapter": 48,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 235,
     "dayLabel": "Day 235",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 9장 ~ 10장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야 49장~50장",
+    "sourceReading": "Jeremiah 49-50",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 49,
+        "startVerse": null,
+        "endChapter": 50,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 236,
     "dayLabel": "Day 236",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 11장 ~ 12장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야 51장~52장",
+    "sourceReading": "Jeremiah 51-52",
+    "passages": [
+      {
+        "book": "Jeremiah",
+        "bookKo": "예레미야",
+        "startChapter": 51,
+        "startVerse": null,
+        "endChapter": 52,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 237,
     "dayLabel": "Day 237",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 13장 ~ 14장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야애가 1장 1절~3장 36절",
+    "sourceReading": "Lamentations 1:1-3:36",
+    "passages": [
+      {
+        "book": "Lamentations",
+        "bookKo": "예레미야애가",
+        "startChapter": 1,
+        "startVerse": 1,
+        "endChapter": 3,
+        "endVerse": 36
+      }
+    ]
   },
   {
     "day": 238,
     "dayLabel": "Day 238",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 15장 ~ 16장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "예레미야애가 3장 37절~5장 22절",
+    "sourceReading": "Lamentations 3:37-5:22",
+    "passages": [
+      {
+        "book": "Lamentations",
+        "bookKo": "예레미야애가",
+        "startChapter": 3,
+        "startVerse": 37,
+        "endChapter": 5,
+        "endVerse": 22
+      }
+    ]
   },
   {
     "day": 239,
     "dayLabel": "Day 239",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 17장 ~ 18장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 1장~4장",
+    "sourceReading": "Ezekiel 1-4",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 240,
     "dayLabel": "Day 240",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 19장 ~ 20장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 5장~8장",
+    "sourceReading": "Ezekiel 5-8",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 241,
     "dayLabel": "Day 241",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 21장 ~ 22장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 9장~12장",
+    "sourceReading": "Ezekiel 9-12",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 242,
     "dayLabel": "Day 242",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 23장 ~ 24장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 13장~15장",
+    "sourceReading": "Ezekiel 13-15",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 243,
     "dayLabel": "Day 243",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 25장 ~ 26장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 16장~17장",
+    "sourceReading": "Ezekiel 16-17",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 244,
     "dayLabel": "Day 244",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 27장 ~ 28장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 18장~19장",
+    "sourceReading": "Ezekiel 18-19",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 245,
     "dayLabel": "Day 245",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 29장 ~ 30장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 20장~21장",
+    "sourceReading": "Ezekiel 20-21",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 246,
     "dayLabel": "Day 246",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 31장 ~ 32장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 22장~23장",
+    "sourceReading": "Ezekiel 22-23",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 247,
     "dayLabel": "Day 247",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 33장 ~ 34장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 24장~27장",
+    "sourceReading": "Ezekiel 24-27",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 248,
     "dayLabel": "Day 248",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 35장 ~ 36장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 28장~31장",
+    "sourceReading": "Ezekiel 28-31",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 31,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 249,
     "dayLabel": "Day 249",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 37장 ~ 38장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 32장~34장",
+    "sourceReading": "Ezekiel 32-34",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 32,
+        "startVerse": null,
+        "endChapter": 34,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 250,
     "dayLabel": "Day 250",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 39장 ~ 40장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 35장~37장",
+    "sourceReading": "Ezekiel 35-37",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 35,
+        "startVerse": null,
+        "endChapter": 37,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 251,
     "dayLabel": "Day 251",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 41장 ~ 42장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 38장~39장",
+    "sourceReading": "Ezekiel 38-39",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 38,
+        "startVerse": null,
+        "endChapter": 39,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 252,
     "dayLabel": "Day 252",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 43장 ~ 44장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 40장~41장",
+    "sourceReading": "Ezekiel 40-41",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 40,
+        "startVerse": null,
+        "endChapter": 41,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 253,
     "dayLabel": "Day 253",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 45장 ~ 46장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 42장~43장",
+    "sourceReading": "Ezekiel 42-43",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 42,
+        "startVerse": null,
+        "endChapter": 43,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 254,
     "dayLabel": "Day 254",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 47장 ~ 48장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 44장~45장",
+    "sourceReading": "Ezekiel 44-45",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 44,
+        "startVerse": null,
+        "endChapter": 45,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 255,
     "dayLabel": "Day 255",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 49장 ~ 50장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스겔 46장~48장",
+    "sourceReading": "Ezekiel 46-48",
+    "passages": [
+      {
+        "book": "Ezekiel",
+        "bookKo": "에스겔",
+        "startChapter": 46,
+        "startVerse": null,
+        "endChapter": 48,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 256,
     "dayLabel": "Day 256",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 51장 ~ 52장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "요엘 1장~3장",
+    "sourceReading": "Joel 1-3",
+    "passages": [
+      {
+        "book": "Joel",
+        "bookKo": "요엘",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 257,
     "dayLabel": "Day 257",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 53장 ~ 54장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "다니엘 1장~3장",
+    "sourceReading": "Daniel 1-3",
+    "passages": [
+      {
+        "book": "Daniel",
+        "bookKo": "다니엘",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 258,
     "dayLabel": "Day 258",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 55장 ~ 56장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "다니엘 4장~6장",
+    "sourceReading": "Daniel 4-6",
+    "passages": [
+      {
+        "book": "Daniel",
+        "bookKo": "다니엘",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 259,
     "dayLabel": "Day 259",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 57장 ~ 58장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "다니엘 7장~9장",
+    "sourceReading": "Daniel 7-9",
+    "passages": [
+      {
+        "book": "Daniel",
+        "bookKo": "다니엘",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 260,
     "dayLabel": "Day 260",
-    "stage": "5단계: 분열왕국과 선지자들",
-    "reading": "이사야 59장 ~ 60장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "다니엘 10장~12장",
+    "sourceReading": "Daniel 10-12",
+    "passages": [
+      {
+        "book": "Daniel",
+        "bookKo": "다니엘",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 261,
     "dayLabel": "Day 261",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 1장 ~ 3장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스라 1장~3장",
+    "sourceReading": "Ezra 1-3",
+    "passages": [
+      {
+        "book": "Ezra",
+        "bookKo": "에스라",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 262,
     "dayLabel": "Day 262",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 4장 ~ 6장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스라 4장~6장 · 시편 137장",
+    "sourceReading": "Ezra 4-6, Psalm 137",
+    "passages": [
+      {
+        "book": "Ezra",
+        "bookKo": "에스라",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 137,
+        "startVerse": null,
+        "endChapter": 137,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 263,
     "dayLabel": "Day 263",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 7장 ~ 9장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "학개 1장~2장",
+    "sourceReading": "Haggai 1-2",
+    "passages": [
+      {
+        "book": "Haggai",
+        "bookKo": "학개",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 264,
     "dayLabel": "Day 264",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 10장 ~ 12장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "스가랴 1장~7장",
+    "sourceReading": "Zechariah 1-7",
+    "passages": [
+      {
+        "book": "Zechariah",
+        "bookKo": "스가랴",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 265,
     "dayLabel": "Day 265",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 13장 ~ 15장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "스가랴 8장~14장",
+    "sourceReading": "Zechariah 8-14",
+    "passages": [
+      {
+        "book": "Zechariah",
+        "bookKo": "스가랴",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 266,
     "dayLabel": "Day 266",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 16장 ~ 18장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스더 1장~5장",
+    "sourceReading": "Esther 1-5",
+    "passages": [
+      {
+        "book": "Esther",
+        "bookKo": "에스더",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 267,
     "dayLabel": "Day 267",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 19장 ~ 21장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스더 6장~10장",
+    "sourceReading": "Esther 6-10",
+    "passages": [
+      {
+        "book": "Esther",
+        "bookKo": "에스더",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 268,
     "dayLabel": "Day 268",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 22장 ~ 24장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "에스라 7장~10장",
+    "sourceReading": "Ezra 7-10",
+    "passages": [
+      {
+        "book": "Ezra",
+        "bookKo": "에스라",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 269,
     "dayLabel": "Day 269",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 25장 ~ 27장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "느헤미야 1장~5장",
+    "sourceReading": "Nehemiah 1-5",
+    "passages": [
+      {
+        "book": "Nehemiah",
+        "bookKo": "느헤미야",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 270,
     "dayLabel": "Day 270",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 28장 ~ 30장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "느헤미야 6장~7장",
+    "sourceReading": "Nehemiah 6-7",
+    "passages": [
+      {
+        "book": "Nehemiah",
+        "bookKo": "느헤미야",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 271,
     "dayLabel": "Day 271",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 31장 ~ 33장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "느헤미야 8장~10장",
+    "sourceReading": "Nehemiah 8-10",
+    "passages": [
+      {
+        "book": "Nehemiah",
+        "bookKo": "느헤미야",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 272,
     "dayLabel": "Day 272",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 34장 ~ 36장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "느헤미야 11장~13장 · 시편 126장",
+    "sourceReading": "Nehemiah 11-13, Psalm 126",
+    "passages": [
+      {
+        "book": "Nehemiah",
+        "bookKo": "느헤미야",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      },
+      {
+        "book": "Psalm",
+        "bookKo": "시편",
+        "startChapter": 126,
+        "startVerse": null,
+        "endChapter": 126,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 273,
     "dayLabel": "Day 273",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 37장 ~ 39장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "말라기 1장~4장",
+    "sourceReading": "Malachi 1-4",
+    "passages": [
+      {
+        "book": "Malachi",
+        "bookKo": "말라기",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 274,
     "dayLabel": "Day 274",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 40장 ~ 42장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "누가복음 1장 · 요한복음 1장 1절~14절",
+    "sourceReading": "Luke 1, John 1:1-14",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 1,
+        "startVerse": 1,
+        "endChapter": 1,
+        "endVerse": 14
+      }
+    ]
   },
   {
     "day": 275,
     "dayLabel": "Day 275",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 43장 ~ 45장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마태복음 1장 · 누가복음 2장 1절~38절",
+    "sourceReading": "Matthew 1, Luke 2:1-38",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 2,
+        "startVerse": 1,
+        "endChapter": 2,
+        "endVerse": 38
+      }
+    ]
   },
   {
     "day": 276,
     "dayLabel": "Day 276",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 46장 ~ 48장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마태복음 2장 · 누가복음 2장 39절~52절",
+    "sourceReading": "Matthew 2, Luke 2:39-52",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 2,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 2,
+        "startVerse": 39,
+        "endChapter": 2,
+        "endVerse": 52
+      }
+    ]
   },
   {
     "day": 277,
     "dayLabel": "Day 277",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 49장 ~ 51장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마가복음 1장 · 누가복음 3장 · 마태복음 3장",
+    "sourceReading": "Mark 1, Luke 3, Matthew 3",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 278,
     "dayLabel": "Day 278",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 52장 ~ 52장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "요한복음 1장 15절~51절 · 마태복음 4장 · 누가복음 4장~5장",
+    "sourceReading": "John 1:15-51, Matthew 4, Luke 4-5",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 1,
+        "startVerse": 15,
+        "endChapter": 1,
+        "endVerse": 51
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 279,
     "dayLabel": "Day 279",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 55장 ~ 52장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "요한복음 2장~4장",
+    "sourceReading": "John 2-4",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 2,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 280,
     "dayLabel": "Day 280",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "예레미야 58장 ~ 52장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마가복음 2장",
+    "sourceReading": "Mark 2",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 2,
+        "startVerse": null,
+        "endChapter": 2,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 281,
     "dayLabel": "Day 281",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 1장 ~ 3장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "요한복음 5장",
+    "sourceReading": "John 5",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 282,
     "dayLabel": "Day 282",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 4장 ~ 6장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마가복음 3장 · 누가복음 6장 · 마태복음 12장 1절~21절",
+    "sourceReading": "Mark 3, Luke 6, Matthew 12:1-21",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 3,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 12,
+        "startVerse": 1,
+        "endChapter": 12,
+        "endVerse": 21
+      }
+    ]
   },
   {
     "day": 283,
     "dayLabel": "Day 283",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 7장 ~ 9장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마태복음 5장~7장",
+    "sourceReading": "Matthew 5-7",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 284,
     "dayLabel": "Day 284",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 10장 ~ 12장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "누가복음 7장 · 마태복음 8장 1절~13절",
+    "sourceReading": "Luke 7, Matthew 8:1-13",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 8,
+        "startVerse": 1,
+        "endChapter": 8,
+        "endVerse": 13
+      }
+    ]
   },
   {
     "day": 285,
     "dayLabel": "Day 285",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 13장 ~ 15장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "마태복음 11장",
+    "sourceReading": "Matthew 11",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 286,
     "dayLabel": "Day 286",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 16장 ~ 18장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "누가복음 11장 · 마태복음 12장 22절~50절",
+    "sourceReading": "Luke 11, Matthew 12:22-50",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 12,
+        "startVerse": 22,
+        "endChapter": 12,
+        "endVerse": 50
+      }
+    ]
   },
   {
     "day": 287,
     "dayLabel": "Day 287",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 19장 ~ 21장"
+    "stage": "5단계: 포로기와 귀환",
+    "reading": "누가복음 8장 · 마태복음 13장",
+    "sourceReading": "Luke 8, Matthew 13",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 288,
     "dayLabel": "Day 288",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 22장 ~ 24장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 4장~5장 · 마태복음 8장 14절~34절",
+    "sourceReading": "Mark 4-5, Matthew 8:14-34",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 8,
+        "startVerse": 14,
+        "endChapter": 8,
+        "endVerse": 34
+      }
+    ]
   },
   {
     "day": 289,
     "dayLabel": "Day 289",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 25장 ~ 27장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마태복음 9장~10장",
+    "sourceReading": "Matthew 9-10",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 290,
     "dayLabel": "Day 290",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 28장 ~ 30장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 6장 · 누가복음 9장 1절~17절 · 마태복음 14장",
+    "sourceReading": "Mark 6, Luke 9:1-17, Matthew 14",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 9,
+        "startVerse": 1,
+        "endChapter": 9,
+        "endVerse": 17
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 291,
     "dayLabel": "Day 291",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 31장 ~ 33장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 6장",
+    "sourceReading": "John 6",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 292,
     "dayLabel": "Day 292",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 34장 ~ 36장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 7장 · 마태복음 15장",
+    "sourceReading": "Mark 7, Matthew 15",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 293,
     "dayLabel": "Day 293",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 37장 ~ 39장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 8장 · 누가복음 9장 18절~27절 · 마태복음 16장",
+    "sourceReading": "Mark 8, Luke 9:18-27, Matthew 16",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 9,
+        "startVerse": 18,
+        "endChapter": 9,
+        "endVerse": 27
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 294,
     "dayLabel": "Day 294",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 40장 ~ 42장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 9장 · 누가복음 9장 28절~62절 · 마태복음 17장",
+    "sourceReading": "Mark 9, Luke 9:28-62, Matthew 17",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 9,
+        "startVerse": 28,
+        "endChapter": 9,
+        "endVerse": 62
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 17,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 295,
     "dayLabel": "Day 295",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 43장 ~ 45장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마태복음 18장",
+    "sourceReading": "Matthew 18",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 296,
     "dayLabel": "Day 296",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 46장 ~ 48장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 7장~8장",
+    "sourceReading": "John 7-8",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 297,
     "dayLabel": "Day 297",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 49장 ~ 48장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 9장 1절~10장 21절",
+    "sourceReading": "John 9:1-10:21",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 9,
+        "startVerse": 1,
+        "endChapter": 10,
+        "endVerse": 21
+      }
+    ]
   },
   {
     "day": 298,
     "dayLabel": "Day 298",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 52장 ~ 48장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 10장 22절~42절 · 누가복음 10장~11장",
+    "sourceReading": "John 10:22-42, Luke 10-11",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 10,
+        "startVerse": 22,
+        "endChapter": 10,
+        "endVerse": 42
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 299,
     "dayLabel": "Day 299",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 55장 ~ 48장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 12장~13장",
+    "sourceReading": "Luke 12-13",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 300,
     "dayLabel": "Day 300",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "에스겔 58장 ~ 48장"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 14장~15장",
+    "sourceReading": "Luke 14-15",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 301,
     "dayLabel": "Day 301",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 301)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 16장 1절~17장 10절",
+    "sourceReading": "Luke 16:1-17:10",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 16,
+        "startVerse": 1,
+        "endChapter": 17,
+        "endVerse": 10
+      }
+    ]
   },
   {
     "day": 302,
     "dayLabel": "Day 302",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 302)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 11장",
+    "sourceReading": "John 11",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 303,
     "dayLabel": "Day 303",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 303)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 17장 11절~18장 14절",
+    "sourceReading": "Luke 17:11-18:14",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 17,
+        "startVerse": 11,
+        "endChapter": 18,
+        "endVerse": 14
+      }
+    ]
   },
   {
     "day": 304,
     "dayLabel": "Day 304",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 304)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 10장 · 마태복음 19장",
+    "sourceReading": "Mark 10, Matthew 19",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 305,
     "dayLabel": "Day 305",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 305)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마태복음 20장~21장",
+    "sourceReading": "Matthew 20-21",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 306,
     "dayLabel": "Day 306",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 306)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 18장 15절~19장 48절",
+    "sourceReading": "Luke 18:15-19:48",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 18,
+        "startVerse": 15,
+        "endChapter": 19,
+        "endVerse": 48
+      }
+    ]
   },
   {
     "day": 307,
     "dayLabel": "Day 307",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 307)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 11장 · 요한복음 12장",
+    "sourceReading": "Mark 11, John 12",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      },
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 308,
     "dayLabel": "Day 308",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 308)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 12장 · 마태복음 22장",
+    "sourceReading": "Mark 12, Matthew 22",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 309,
     "dayLabel": "Day 309",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 309)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "누가복음 20장~21장 · 마태복음 23장",
+    "sourceReading": "Luke 20-21, Matthew 23",
+    "passages": [
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 310,
     "dayLabel": "Day 310",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 310)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 13장",
+    "sourceReading": "Mark 13",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 311,
     "dayLabel": "Day 311",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 311)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마태복음 24장",
+    "sourceReading": "Matthew 24",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 312,
     "dayLabel": "Day 312",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 312)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마태복음 25장",
+    "sourceReading": "Matthew 25",
+    "passages": [
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 25,
+        "startVerse": null,
+        "endChapter": 25,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 313,
     "dayLabel": "Day 313",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 313)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 14장 · 마태복음 26장",
+    "sourceReading": "Mark 14, Matthew 26",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 26,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 314,
     "dayLabel": "Day 314",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 314)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 13장 · 누가복음 22장",
+    "sourceReading": "John 13, Luke 22",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 22,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 315,
     "dayLabel": "Day 315",
-    "stage": "6단계: 바벨론 포로기와 귀환",
-    "reading": "다니엘/에스라/느헤미야 분량 읽기 (Day 315)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 14장~17장",
+    "sourceReading": "John 14-17",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 17,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 316,
     "dayLabel": "Day 316",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 316)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 15장 · 마태복음 27장",
+    "sourceReading": "Mark 15, Matthew 27",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 15,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 27,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 317,
     "dayLabel": "Day 317",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 317)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 18장~19장 · 누가복음 23장",
+    "sourceReading": "John 18-19, Luke 23",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 18,
+        "startVerse": null,
+        "endChapter": 19,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 23,
+        "startVerse": null,
+        "endChapter": 23,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 318,
     "dayLabel": "Day 318",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 318)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "마가복음 16장 · 마태복음 28장",
+    "sourceReading": "Mark 16, Matthew 28",
+    "passages": [
+      {
+        "book": "Mark",
+        "bookKo": "마가복음",
+        "startChapter": 16,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      },
+      {
+        "book": "Matthew",
+        "bookKo": "마태복음",
+        "startChapter": 28,
+        "startVerse": null,
+        "endChapter": 28,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 319,
     "dayLabel": "Day 319",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 319)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "요한복음 20장~21장 · 누가복음 24장",
+    "sourceReading": "John 20-21, Luke 24",
+    "passages": [
+      {
+        "book": "John",
+        "bookKo": "요한복음",
+        "startChapter": 20,
+        "startVerse": null,
+        "endChapter": 21,
+        "endVerse": null
+      },
+      {
+        "book": "Luke",
+        "bookKo": "누가복음",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 24,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 320,
     "dayLabel": "Day 320",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 320)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 1장~3장",
+    "sourceReading": "Acts 1-3",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 321,
     "dayLabel": "Day 321",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 321)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 4장~6장",
+    "sourceReading": "Acts 4-6",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 322,
     "dayLabel": "Day 322",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 322)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 7장~8장",
+    "sourceReading": "Acts 7-8",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 323,
     "dayLabel": "Day 323",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 323)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 9장~10장",
+    "sourceReading": "Acts 9-10",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 324,
     "dayLabel": "Day 324",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 324)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 11장~12장",
+    "sourceReading": "Acts 11-12",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 12,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 325,
     "dayLabel": "Day 325",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 325)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 13장~14장",
+    "sourceReading": "Acts 13-14",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 13,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 326,
     "dayLabel": "Day 326",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 326)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "야고보서 1장~5장",
+    "sourceReading": "James 1-5",
+    "passages": [
+      {
+        "book": "James",
+        "bookKo": "야고보서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 327,
     "dayLabel": "Day 327",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 327)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 15장~16장",
+    "sourceReading": "Acts 15-16",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 328,
     "dayLabel": "Day 328",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 328)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "갈라디아서 1장~3장",
+    "sourceReading": "Galatians 1-3",
+    "passages": [
+      {
+        "book": "Galatians",
+        "bookKo": "갈라디아서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 329,
     "dayLabel": "Day 329",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 329)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "갈라디아서 4장~6장",
+    "sourceReading": "Galatians 4-6",
+    "passages": [
+      {
+        "book": "Galatians",
+        "bookKo": "갈라디아서",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 330,
     "dayLabel": "Day 330",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 330)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 17장 1절~18장 18절",
+    "sourceReading": "Acts 17:1-18:18",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 17,
+        "startVerse": 1,
+        "endChapter": 18,
+        "endVerse": 18
+      }
+    ]
   },
   {
     "day": 331,
     "dayLabel": "Day 331",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 331)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "데살로니가전서 1장~5장 · 데살로니가후서 1장~3장",
+    "sourceReading": "1 Thessalonians 1-5, 2 Thessalonians 1-3",
+    "passages": [
+      {
+        "book": "1 Thessalonians",
+        "bookKo": "데살로니가전서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      },
+      {
+        "book": "2 Thessalonians",
+        "bookKo": "데살로니가후서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 332,
     "dayLabel": "Day 332",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 332)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "사도행전 18장 19절~19장 41절",
+    "sourceReading": "Acts 18:19-19:41",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 18,
+        "startVerse": 19,
+        "endChapter": 19,
+        "endVerse": 41
+      }
+    ]
   },
   {
     "day": 333,
     "dayLabel": "Day 333",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 333)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "고린도전서 1장~4장",
+    "sourceReading": "1 Corinthians 1-4",
+    "passages": [
+      {
+        "book": "1 Corinthians",
+        "bookKo": "고린도전서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 334,
     "dayLabel": "Day 334",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 334)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "고린도전서 5장~8장",
+    "sourceReading": "1 Corinthians 5-8",
+    "passages": [
+      {
+        "book": "1 Corinthians",
+        "bookKo": "고린도전서",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 8,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 335,
     "dayLabel": "Day 335",
-    "stage": "7단계: 예수 그리스도의 생애",
-    "reading": "사복음서(마태/마가/누가/요한) 통합 연대기 읽기 (Day 335)"
+    "stage": "6단계: 예수님의 생애",
+    "reading": "고린도전서 9장~11장",
+    "sourceReading": "1 Corinthians 9-11",
+    "passages": [
+      {
+        "book": "1 Corinthians",
+        "bookKo": "고린도전서",
+        "startChapter": 9,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 336,
     "dayLabel": "Day 336",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 336)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "고린도전서 12장~14장",
+    "sourceReading": "1 Corinthians 12-14",
+    "passages": [
+      {
+        "book": "1 Corinthians",
+        "bookKo": "고린도전서",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 14,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 337,
     "dayLabel": "Day 337",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 337)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "고린도전서 15장~16장",
+    "sourceReading": "1 Corinthians 15-16",
+    "passages": [
+      {
+        "book": "1 Corinthians",
+        "bookKo": "고린도전서",
+        "startChapter": 15,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 338,
     "dayLabel": "Day 338",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 338)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "고린도후서 1장~4장",
+    "sourceReading": "2 Corinthians 1-4",
+    "passages": [
+      {
+        "book": "2 Corinthians",
+        "bookKo": "고린도후서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 339,
     "dayLabel": "Day 339",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 339)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "고린도후서 5장~9장",
+    "sourceReading": "2 Corinthians 5-9",
+    "passages": [
+      {
+        "book": "2 Corinthians",
+        "bookKo": "고린도후서",
+        "startChapter": 5,
+        "startVerse": null,
+        "endChapter": 9,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 340,
     "dayLabel": "Day 340",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 340)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "고린도후서 10장~13장",
+    "sourceReading": "2 Corinthians 10-13",
+    "passages": [
+      {
+        "book": "2 Corinthians",
+        "bookKo": "고린도후서",
+        "startChapter": 10,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 341,
     "dayLabel": "Day 341",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 341)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "로마서 1장~3장 · 사도행전 20장 1절~3절",
+    "sourceReading": "Romans 1-3, Acts 20:1-3",
+    "passages": [
+      {
+        "book": "Romans",
+        "bookKo": "로마서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      },
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 20,
+        "startVerse": 1,
+        "endChapter": 20,
+        "endVerse": 3
+      }
+    ]
   },
   {
     "day": 342,
     "dayLabel": "Day 342",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 342)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "로마서 4장~7장",
+    "sourceReading": "Romans 4-7",
+    "passages": [
+      {
+        "book": "Romans",
+        "bookKo": "로마서",
+        "startChapter": 4,
+        "startVerse": null,
+        "endChapter": 7,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 343,
     "dayLabel": "Day 343",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 343)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "로마서 8장~10장",
+    "sourceReading": "Romans 8-10",
+    "passages": [
+      {
+        "book": "Romans",
+        "bookKo": "로마서",
+        "startChapter": 8,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 344,
     "dayLabel": "Day 344",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 344)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "로마서 11장~13장",
+    "sourceReading": "Romans 11-13",
+    "passages": [
+      {
+        "book": "Romans",
+        "bookKo": "로마서",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 345,
     "dayLabel": "Day 345",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 345)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "로마서 14장~16장",
+    "sourceReading": "Romans 14-16",
+    "passages": [
+      {
+        "book": "Romans",
+        "bookKo": "로마서",
+        "startChapter": 14,
+        "startVerse": null,
+        "endChapter": 16,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 346,
     "dayLabel": "Day 346",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 346)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "사도행전 20장 4절~23장 35절",
+    "sourceReading": "Acts 20:4-23:35",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 20,
+        "startVerse": 4,
+        "endChapter": 23,
+        "endVerse": 35
+      }
+    ]
   },
   {
     "day": 347,
     "dayLabel": "Day 347",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 347)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "사도행전 24장~26장",
+    "sourceReading": "Acts 24-26",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 24,
+        "startVerse": null,
+        "endChapter": 26,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 348,
     "dayLabel": "Day 348",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 348)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "사도행전 27장~28장",
+    "sourceReading": "Acts 27-28",
+    "passages": [
+      {
+        "book": "Acts",
+        "bookKo": "사도행전",
+        "startChapter": 27,
+        "startVerse": null,
+        "endChapter": 28,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 349,
     "dayLabel": "Day 349",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 349)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "빌레몬서 1장 · 골로새서 1장~4장",
+    "sourceReading": "Philemon 1, Colossians 1-4",
+    "passages": [
+      {
+        "book": "Philemon",
+        "bookKo": "빌레몬서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "Colossians",
+        "bookKo": "골로새서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 350,
     "dayLabel": "Day 350",
-    "stage": "7단계: 초대교회와 바울서신",
-    "reading": "사도행전 및 바울서신 연대기 배치 읽기 (Day 350)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "에베소서 1장~6장",
+    "sourceReading": "Ephesians 1-6",
+    "passages": [
+      {
+        "book": "Ephesians",
+        "bookKo": "에베소서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 351,
     "dayLabel": "Day 351",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 351)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "빌립보서 1장~4장",
+    "sourceReading": "Philippians 1-4",
+    "passages": [
+      {
+        "book": "Philippians",
+        "bookKo": "빌립보서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 352,
     "dayLabel": "Day 352",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 352)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "디모데전서 1장~6장",
+    "sourceReading": "1 Timothy 1-6",
+    "passages": [
+      {
+        "book": "1 Timothy",
+        "bookKo": "디모데전서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 353,
     "dayLabel": "Day 353",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 353)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "디도서 1장~3장",
+    "sourceReading": "Titus 1-3",
+    "passages": [
+      {
+        "book": "Titus",
+        "bookKo": "디도서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 354,
     "dayLabel": "Day 354",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 354)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "베드로전서 1장~5장",
+    "sourceReading": "1 Peter 1-5",
+    "passages": [
+      {
+        "book": "1 Peter",
+        "bookKo": "베드로전서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 355,
     "dayLabel": "Day 355",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 355)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "히브리서 1장~6장",
+    "sourceReading": "Hebrews 1-6",
+    "passages": [
+      {
+        "book": "Hebrews",
+        "bookKo": "히브리서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 6,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 356,
     "dayLabel": "Day 356",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 356)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "히브리서 7장~10장",
+    "sourceReading": "Hebrews 7-10",
+    "passages": [
+      {
+        "book": "Hebrews",
+        "bookKo": "히브리서",
+        "startChapter": 7,
+        "startVerse": null,
+        "endChapter": 10,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 357,
     "dayLabel": "Day 357",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 357)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "히브리서 11장~13장",
+    "sourceReading": "Hebrews 11-13",
+    "passages": [
+      {
+        "book": "Hebrews",
+        "bookKo": "히브리서",
+        "startChapter": 11,
+        "startVerse": null,
+        "endChapter": 13,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 358,
     "dayLabel": "Day 358",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 358)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "디모데후서 1장~4장",
+    "sourceReading": "2 Timothy 1-4",
+    "passages": [
+      {
+        "book": "2 Timothy",
+        "bookKo": "디모데후서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 4,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 359,
     "dayLabel": "Day 359",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 359)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "유다서 1장 · 베드로후서 1장~3장",
+    "sourceReading": "Jude 1, 2 Peter 1-3",
+    "passages": [
+      {
+        "book": "Jude",
+        "bookKo": "유다서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "2 Peter",
+        "bookKo": "베드로후서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 3,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 360,
     "dayLabel": "Day 360",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 360)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한일서 1장~5장",
+    "sourceReading": "1 John 1-5",
+    "passages": [
+      {
+        "book": "1 John",
+        "bookKo": "요한일서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 361,
     "dayLabel": "Day 361",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 361)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한이서 1장 · 요한삼서 1장",
+    "sourceReading": "2 John 1, 3 John 1",
+    "passages": [
+      {
+        "book": "2 John",
+        "bookKo": "요한이서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      },
+      {
+        "book": "3 John",
+        "bookKo": "요한삼서",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 1,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 362,
     "dayLabel": "Day 362",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 362)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한계시록 1장~5장",
+    "sourceReading": "Revelation 1-5",
+    "passages": [
+      {
+        "book": "Revelation",
+        "bookKo": "요한계시록",
+        "startChapter": 1,
+        "startVerse": null,
+        "endChapter": 5,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 363,
     "dayLabel": "Day 363",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 363)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한계시록 6장~11장",
+    "sourceReading": "Revelation 6-11",
+    "passages": [
+      {
+        "book": "Revelation",
+        "bookKo": "요한계시록",
+        "startChapter": 6,
+        "startVerse": null,
+        "endChapter": 11,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 364,
     "dayLabel": "Day 364",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 364)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한계시록 12장~18장",
+    "sourceReading": "Revelation 12-18",
+    "passages": [
+      {
+        "book": "Revelation",
+        "bookKo": "요한계시록",
+        "startChapter": 12,
+        "startVerse": null,
+        "endChapter": 18,
+        "endVerse": null
+      }
+    ]
   },
   {
     "day": 365,
     "dayLabel": "Day 365",
-    "stage": "7단계: 박해 시대와 신약의 완성",
-    "reading": "일반서신 및 요한계시록 마무리 (Day 365)"
+    "stage": "7단계: 초대교회와 신약의 완성",
+    "reading": "요한계시록 19장~22장",
+    "sourceReading": "Revelation 19-22",
+    "passages": [
+      {
+        "book": "Revelation",
+        "bookKo": "요한계시록",
+        "startChapter": 19,
+        "startVerse": null,
+        "endChapter": 22,
+        "endVerse": null
+      }
+    ]
   }
 ]

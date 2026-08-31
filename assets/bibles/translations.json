@@ -1,0 +1,11 @@
+[
+  {
+    "id": "KRV",
+    "name": "개역한글",
+    "shortName": "개역한글",
+    "language": "ko",
+    "dataFile": "krv.json",
+    "enabled": true,
+    "copyright": "성경전서 개역한글판 (1961). 본문 동일성 유지 및 출처 표시."
+  }
+]
