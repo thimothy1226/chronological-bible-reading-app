@@ -16,6 +16,30 @@ const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 
 const BIBLE_DATA = { KRV: krv };
 
+const BOOK_NAME_KO = {
+  Genesis: '창세기', Exodus: '출애굽기', Leviticus: '레위기', Numbers: '민수기', Deuteronomy: '신명기',
+  Joshua: '여호수아', Judges: '사사기', Ruth: '룻기', '1 Samuel': '사무엘상', '2 Samuel': '사무엘하',
+  '1 Kings': '열왕기상', '2 Kings': '열왕기하', '1 Chronicles': '역대상', '2 Chronicles': '역대하', Ezra: '에스라',
+  Nehemiah: '느헤미야', Esther: '에스더', Job: '욥기', Psalms: '시편', Psalm: '시편', Proverbs: '잠언',
+  Ecclesiastes: '전도서', 'Song of Solomon': '아가', 'Song of Songs': '아가', Isaiah: '이사야', Jeremiah: '예레미야',
+  Lamentations: '예레미야애가', Ezekiel: '에스겔', Daniel: '다니엘', Hosea: '호세아', Joel: '요엘', Amos: '아모스',
+  Obadiah: '오바댜', Jonah: '요나', Micah: '미가', Nahum: '나훔', Habakkuk: '하박국', Zephaniah: '스바냐',
+  Haggai: '학개', Zechariah: '스가랴', Malachi: '말라기', Matthew: '마태복음', Mark: '마가복음', Luke: '누가복음',
+  John: '요한복음', Acts: '사도행전', Romans: '로마서', '1 Corinthians': '고린도전서', '2 Corinthians': '고린도후서',
+  Galatians: '갈라디아서', Ephesians: '에베소서', Philippians: '빌립보서', Colossians: '골로새서',
+  '1 Thessalonians': '데살로니가전서', '2 Thessalonians': '데살로니가후서', '1 Timothy': '디모데전서', '2 Timothy': '디모데후서',
+  Titus: '디도서', Philemon: '빌레몬서', Hebrews: '히브리서', James: '야고보서', '1 Peter': '베드로전서',
+  '2 Peter': '베드로후서', '1 John': '요한일서', '2 John': '요한이서', '3 John': '요한삼서', Jude: '유다서', Revelation: '요한계시록',
+};
+
+function getKoreanBookName(book) {
+  if (!book) return '';
+  const direct = book.koreanTitle || (BOOK_NAME_KO[book.title] ? null : book.title);
+  if (direct && /[가-힣]/.test(direct)) return direct;
+  const raw = book.book || book.name || book.title || '';
+  return BOOK_NAME_KO[raw] || book.koreanTitle || book.title || book.name || book.book || '';
+}
+
 const formatKoreanDateTime = (date = new Date()) => {
   try {
     return new Intl.DateTimeFormat('ko-KR', {
@@ -102,6 +126,7 @@ export default function App() {
   const [readerContext, setReaderContext] = useState(null);
   const [readerReturnScreen, setReaderReturnScreen] = useState('today');
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
+  const [indexPicker, setIndexPicker] = useState(null);
   const [selectedBookIndex, setSelectedBookIndex] = useState(0);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [selectedVerse, setSelectedVerse] = useState(1);
@@ -145,7 +170,7 @@ export default function App() {
     schedule
       .filter((i) => completions[String(i.day)]?.dates?.length)
       .map((i) => ({ ...i, completion: completions[String(i.day)] }))
-      .sort((a, b) => b.day - a.day)
+      .sort((a, b) => a.day - b.day)
   ), [completions]);
 
   const bibleBooks = useMemo(() => normalizeBooks(BIBLE_DATA[translationId]), [translationId]);
@@ -233,7 +258,7 @@ export default function App() {
 
   const openChapterReader = () => {
     if (!selectedBook) return;
-    const bookKo = selectedBook.koreanTitle || selectedBook.title || selectedBook.name || selectedBook.book;
+    const bookKo = getKoreanBookName(selectedBook);
     setReaderReturnScreen('bibleIndex');
     setReaderContext({
       type: 'chapter',
@@ -252,7 +277,7 @@ export default function App() {
     setScreen(destination);
   };
 
-  const completeDay = async (day, advanceIfCurrent = false) => {
+  const completeDay = async (day, advanceIfCurrent = false, destination = 'today') => {
     const key = String(day);
     const completedAt = formatKoreanDateTime();
     const existing = completions[key] || { active: false, dates: [] };
@@ -268,6 +293,7 @@ export default function App() {
     let nextDay = currentDay;
     if (advanceIfCurrent && day === currentDay && currentDay < schedule.length) nextDay = currentDay + 1;
 
+    if (screen === 'reader') await saveCurrentPosition();
     await AsyncStorage.multiSet([
       [COMPLETIONS_KEY, JSON.stringify(next)],
       [CURRENT_DAY_KEY, String(nextDay)],
@@ -275,18 +301,25 @@ export default function App() {
     setCompletions(next);
     setCurrentDay(nextDay);
 
-    if (advanceIfCurrent && day === currentDay) {
-      if (day === schedule.length) {
-        Alert.alert('통독 완료', '365일 연대기별 성경통독 일정을 모두 완료했습니다.');
-      } else {
-        setDisplayDay(nextDay);
+    const item = schedule[day - 1];
+    const finish = () => {
+      if (advanceIfCurrent && day === currentDay) {
+        if (day < schedule.length) setDisplayDay(nextDay);
+        setScreen('today');
+        return;
       }
-      setScreen('today');
-    } else if (readerReturnScreen === 'records') {
-      setScreen('records');
-    } else {
-      setScreen('today');
-    }
+      setScreen(destination === 'records' ? 'records' : 'today');
+    };
+
+    const extra = day === schedule.length && advanceIfCurrent
+      ? '\n\n365일 연대기별 성경통독 일정을 모두 완료했습니다!'
+      : '';
+    Alert.alert(
+      '축하합니다 🎉',
+      `${item?.dayLabel || ''} · ${item?.reading || ''}\n성경읽기에 성공하셨습니다.!${extra}`,
+      [{ text: '닫기', onPress: finish }],
+      { cancelable: false },
+    );
   };
 
   const cancelCompletion = (day) => {
@@ -428,7 +461,7 @@ export default function App() {
           </View>
           {readerContext.type === 'day' && (
             <TouchableOpacity
-              onPress={() => completeDay(dayItem.day, isCurrentReaderDay)}
+              onPress={() => completeDay(dayItem.day, isCurrentReaderDay, readerReturnScreen)}
               style={styles.completeButton}
             >
               <Text style={styles.completeButtonText}>
@@ -481,9 +514,9 @@ export default function App() {
                 <Text style={styles.tapHint}>본문 읽기 ›</Text>
               </TouchableOpacity>
               <View style={styles.noteBox}>
-                <Text style={styles.noteText}>Day 번호를 누르면 지나간 일정을 불러올 수 있습니다. 지난 일정을 완료해도 오늘 일정은 뒤로 돌아가지 않습니다.</Text>
+                <Text style={styles.noteText}>Day 번호를 누르면 원하는 일정을 불러올 수 있습니다. 다른 일정을 완료해도 오늘 일정은 뒤로 돌아가지 않습니다.</Text>
               </View>
-              <TouchableOpacity onPress={() => completeDay(displayDay, displayDay === currentDay)} style={styles.completeButton}>
+              <TouchableOpacity onPress={() => completeDay(displayDay, displayDay === currentDay, 'today')} style={styles.completeButton}>
                 <Text style={styles.completeButtonText}>{displayDay === currentDay ? '✓ 오늘 통독 완료' : '✓ 선택한 일정 완료'}</Text>
               </TouchableOpacity>
             </View>
@@ -533,35 +566,19 @@ export default function App() {
               <TouchableOpacity onPress={cycleTranslation} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
-            <Text style={styles.indexLabel}>1. 성경 책 선택</Text>
-            <View style={styles.bookGrid}>
-              {bibleBooks.map((book, idx) => {
-                const name = book.koreanTitle || book.title || book.name || book.book;
-                return (
-                  <TouchableOpacity key={`${book.book || name}-${idx}`} onPress={() => { setSelectedBookIndex(idx); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.bookChip, selectedBookIndex === idx && styles.bookChipActive]}>
-                    <Text style={[styles.bookChipText, selectedBookIndex === idx && styles.bookChipTextActive]}>{name}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={styles.indexLabel}>2. 장 선택</Text>
-            <View style={styles.numberGrid}>
-              {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => (
-                <TouchableOpacity key={`c-${n}`} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.numberChip, selectedChapter === n && styles.numberChipActive]}>
-                  <Text style={[styles.numberChipText, selectedChapter === n && styles.numberChipTextActive]}>{n}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.indexLabel}>3. 절 선택</Text>
-            <View style={styles.numberGrid}>
-              {Array.from({ length: verseCount }, (_, i) => i + 1).map((n) => (
-                <TouchableOpacity key={`v-${n}`} onPress={() => setSelectedVerse(n)} style={[styles.numberChip, selectedVerse === n && styles.numberChipActive]}>
-                  <Text style={[styles.numberChipText, selectedVerse === n && styles.numberChipTextActive]}>{n}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={styles.indexLabel}>책 · 장 · 절 선택</Text>
+            <TouchableOpacity onPress={() => setIndexPicker('book')} style={styles.dropdownButton}>
+              <Text style={styles.dropdownLabel}>성경책</Text>
+              <Text style={styles.dropdownValue}>{getKoreanBookName(selectedBook)}  ▼</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIndexPicker('chapter')} style={styles.dropdownButton}>
+              <Text style={styles.dropdownLabel}>장</Text>
+              <Text style={styles.dropdownValue}>{selectedChapter}장  ▼</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIndexPicker('verse')} style={styles.dropdownButton}>
+              <Text style={styles.dropdownLabel}>절</Text>
+              <Text style={styles.dropdownValue}>{selectedVerse}절  ▼</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity onPress={openChapterReader} style={styles.completeButton}>
               <Text style={styles.completeButtonText}>본문 보기</Text>
@@ -571,18 +588,58 @@ export default function App() {
         )}
       </View>
 
+      <Modal visible={!!indexPicker} transparent animationType="fade" onRequestClose={() => setIndexPicker(null)}>
+        <View style={styles.pickerBackdrop}>
+          <View style={styles.pickerCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>{indexPicker === 'book' ? '성경책 선택' : indexPicker === 'chapter' ? '장 선택' : '절 선택'}</Text>
+                <Text style={styles.modalSubtitle}>원하는 항목을 눌러 선택해 주세요.</Text>
+              </View>
+              <TouchableOpacity onPress={() => setIndexPicker(null)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
+            </View>
+            <FlatList
+              data={indexPicker === 'book'
+                ? bibleBooks.map((book, idx) => ({ key: `book-${idx}`, label: getKoreanBookName(book), value: idx }))
+                : indexPicker === 'chapter'
+                  ? Array.from({ length: chapterCount }, (_, i) => ({ key: `chapter-${i + 1}`, label: `${i + 1}장`, value: i + 1 }))
+                  : Array.from({ length: verseCount }, (_, i) => ({ key: `verse-${i + 1}`, label: `${i + 1}절`, value: i + 1 }))}
+              keyExtractor={(item) => item.key}
+              contentContainerStyle={styles.pickerList}
+              renderItem={({ item }) => {
+                const selected = indexPicker === 'book' ? selectedBookIndex === item.value : indexPicker === 'chapter' ? selectedChapter === item.value : selectedVerse === item.value;
+                return (
+                  <TouchableOpacity
+                    style={[styles.pickerOption, selected && styles.pickerOptionActive]}
+                    onPress={() => {
+                      if (indexPicker === 'book') { setSelectedBookIndex(item.value); setSelectedChapter(1); setSelectedVerse(1); }
+                      else if (indexPicker === 'chapter') { setSelectedChapter(item.value); setSelectedVerse(1); }
+                      else setSelectedVerse(item.value);
+                      setIndexPicker(null);
+                    }}
+                  >
+                    <Text style={[styles.pickerOptionText, selected && styles.pickerOptionTextActive]}>{item.label}</Text>
+                    {selected ? <Text style={styles.pickerCheck}>✓</Text> : null}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={dayPickerOpen} transparent animationType="slide" onRequestClose={() => setDayPickerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <View><Text style={styles.modalTitle}>지나간 일정 선택</Text><Text style={styles.modalSubtitle}>Day 001부터 현재 Day까지 선택할 수 있습니다.</Text></View>
+              <View><Text style={styles.modalTitle}>일정 선택</Text><Text style={styles.modalSubtitle}>Day 001부터 Day 365까지 선택할 수 있습니다. 오늘 일정은 그대로 유지됩니다.</Text></View>
               <TouchableOpacity onPress={() => setDayPickerOpen(false)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
             </View>
             <FlatList
-              data={schedule.slice(0, currentDay)}
+              data={schedule}
               keyExtractor={(i) => String(i.day)}
               contentContainerStyle={styles.dayList}
-              initialScrollIndex={Math.max(0, Math.min(currentDay - 1, schedule.slice(0, currentDay).length - 1))}
+              initialScrollIndex={Math.max(0, Math.min(currentDay - 1, schedule.length - 1))}
               getItemLayout={(_, index) => ({ length: 68, offset: 68 * index, index })}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => chooseDay(item.day)} style={[styles.dayPickerRow, item.day === displayDay && styles.dayPickerRowActive]}>
@@ -621,5 +678,7 @@ const styles = StyleSheet.create({
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
   readerContent: { padding: 20, paddingBottom: 40 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { backgroundColor: '#F7F0DF', borderRadius: 8, paddingHorizontal: 4 },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
+  dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
+  pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 });
