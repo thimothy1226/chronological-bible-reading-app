@@ -22,3 +22,7 @@ GitHub Actions > Build Android APK > Run workflow
 
 빌드 과정에서 `scripts/fetch-bible.mjs`가 공개 개역한글 JSON 데이터를 내려받아
 `assets/bibles/krv.json`을 생성한 뒤 Release APK에 포함합니다.
+
+
+## v3 업데이트
+완료 취소/재완료 기록, 지난 Day 선택, 읽던 위치 복원, 성경보기 색인(책/장/절 선택)을 추가했습니다.

@@ -1,7 +1,18 @@
-1. Open the GitHub repository chronological-bible-reading-app.
-2. Click Add file > Upload files.
-3. Open this extracted folder and select/drag ALL contents inside bible_chronology_app into the GitHub upload area. Make sure .github, assets, App.js, package.json, app.json, eas.json, README.md, and .gitignore are included.
-4. Commit directly to the main branch.
-5. Open the Actions tab. The workflow "Build Android APK" should start automatically.
-6. When it finishes successfully, open the run and download the artifact named chronological-bible-reading-apk.
-7. Unzip the artifact to get chronological-bible-reading.apk and install it on Android.
+연대기별 성경통독 일정표 v3 업데이트
+
+1. 이 ZIP 파일의 압축을 풉니다.
+2. GitHub 저장소의 기존 파일 위에 같은 이름으로 업로드/교체합니다.
+3. 특히 .github/workflows/build-apk.yml 파일도 반드시 교체합니다.
+4. assets/bibles/krv.json 파일은 ZIP 안에 없습니다. GitHub Actions가 빌드할 때 자동 다운로드합니다.
+5. GitHub Actions > Build Android APK > Run workflow 실행.
+6. 성공 후 Artifacts에서 chronological-bible-reading-v3-release-apk 다운로드.
+
+v3 주요 기능
+- 완료 기록 항목별 완료 취소
+- 취소된 기록은 옅은 색으로 표시 + 본문 읽기 버튼
+- 다시 완료하면 완료 날짜 이력을 추가 저장
+- Day 배지를 눌러 지난 일정 선택 가능 (현재 Day 진행은 유지)
+- 성경 본문 이전/홈 버튼
+- 읽던 스크롤 위치 저장 및 복원
+- 홈 상단 '성경보기' 탭
+- 성경 66권 색인 > 책/장/절 선택 > 해당 장 전체 읽기
