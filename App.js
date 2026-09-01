@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, BackHandler, FlatList, Modal, Platform, SafeAreaView, ScrollView, StatusBar,
-  StyleSheet, Text, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
@@ -13,6 +14,7 @@ const COMPLETIONS_KEY = '@chronological_bible/completions';
 const TRANSLATION_KEY = '@chronological_bible/translation';
 const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
+const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 
 const BIBLE_DATA = { KRV: krv };
 
@@ -31,6 +33,23 @@ const BOOK_NAME_KO = {
   Titus: '디도서', Philemon: '빌레몬서', Hebrews: '히브리서', James: '야고보서', '1 Peter': '베드로전서',
   '2 Peter': '베드로후서', '1 John': '요한일서', '2 John': '요한이서', '3 John': '요한삼서', Jude: '유다서', Revelation: '요한계시록',
 };
+
+const BIBLE_BOOKS = [
+  ['Genesis','창세기','구약'], ['Exodus','출애굽기','구약'], ['Leviticus','레위기','구약'], ['Numbers','민수기','구약'], ['Deuteronomy','신명기','구약'],
+  ['Joshua','여호수아','구약'], ['Judges','사사기','구약'], ['Ruth','룻기','구약'], ['1 Samuel','사무엘상','구약'], ['2 Samuel','사무엘하','구약'],
+  ['1 Kings','열왕기상','구약'], ['2 Kings','열왕기하','구약'], ['1 Chronicles','역대상','구약'], ['2 Chronicles','역대하','구약'], ['Ezra','에스라','구약'],
+  ['Nehemiah','느헤미야','구약'], ['Esther','에스더','구약'], ['Job','욥기','구약'], ['Psalms','시편','구약'], ['Proverbs','잠언','구약'],
+  ['Ecclesiastes','전도서','구약'], ['Song of Solomon','아가','구약'], ['Isaiah','이사야','구약'], ['Jeremiah','예레미야','구약'], ['Lamentations','예레미야애가','구약'],
+  ['Ezekiel','에스겔','구약'], ['Daniel','다니엘','구약'], ['Hosea','호세아','구약'], ['Joel','요엘','구약'], ['Amos','아모스','구약'],
+  ['Obadiah','오바댜','구약'], ['Jonah','요나','구약'], ['Micah','미가','구약'], ['Nahum','나훔','구약'], ['Habakkuk','하박국','구약'],
+  ['Zephaniah','스바냐','구약'], ['Haggai','학개','구약'], ['Zechariah','스가랴','구약'], ['Malachi','말라기','구약'],
+  ['Matthew','마태복음','신약'], ['Mark','마가복음','신약'], ['Luke','누가복음','신약'], ['John','요한복음','신약'], ['Acts','사도행전','신약'],
+  ['Romans','로마서','신약'], ['1 Corinthians','고린도전서','신약'], ['2 Corinthians','고린도후서','신약'], ['Galatians','갈라디아서','신약'], ['Ephesians','에베소서','신약'],
+  ['Philippians','빌립보서','신약'], ['Colossians','골로새서','신약'], ['1 Thessalonians','데살로니가전서','신약'], ['2 Thessalonians','데살로니가후서','신약'],
+  ['1 Timothy','디모데전서','신약'], ['2 Timothy','디모데후서','신약'], ['Titus','디도서','신약'], ['Philemon','빌레몬서','신약'], ['Hebrews','히브리서','신약'],
+  ['James','야고보서','신약'], ['1 Peter','베드로전서','신약'], ['2 Peter','베드로후서','신약'], ['1 John','요한일서','신약'], ['2 John','요한이서','신약'],
+  ['3 John','요한삼서','신약'], ['Jude','유다서','신약'], ['Revelation','요한계시록','신약'],
+].map(([book, ko, testament], index) => ({ book, ko, testament, index }));
 
 function getKoreanBookName(book) {
   if (!book) return '';
@@ -126,11 +145,16 @@ export default function App() {
   const [readerContext, setReaderContext] = useState(null);
   const [readerReturnScreen, setReaderReturnScreen] = useState('today');
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
-  const [indexPicker, setIndexPicker] = useState(null);
-  const [selectedBookIndex, setSelectedBookIndex] = useState(0);
+  const [testament, setTestament] = useState('구약');
+  const [selectedBookKey, setSelectedBookKey] = useState('Genesis');
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [selectedVerse, setSelectedVerse] = useState(1);
   const [loaded, setLoaded] = useState(false);
+  const [selectedVerses, setSelectedVerses] = useState([]);
+  const [verseNotes, setVerseNotes] = useState({});
+  const [noteModal, setNoteModal] = useState(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [completionModal, setCompletionModal] = useState(null);
 
   const readerRef = useRef(null);
   const lastScrollY = useRef(0);
@@ -141,7 +165,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -154,6 +178,7 @@ export default function App() {
         const f = Number(saved[FONT_SIZE_KEY] || 19);
         setFontSize(Number.isFinite(f) ? Math.min(30, Math.max(15, f)) : 19);
         setReaderPositions(saved[READER_POSITIONS_KEY] ? JSON.parse(saved[READER_POSITIONS_KEY]) : {});
+        setVerseNotes(saved[VERSE_NOTES_KEY] ? JSON.parse(saved[VERSE_NOTES_KEY]) : {});
       } finally {
         setLoaded(true);
       }
@@ -174,14 +199,20 @@ export default function App() {
   ), [completions]);
 
   const bibleBooks = useMemo(() => normalizeBooks(BIBLE_DATA[translationId]), [translationId]);
-  const selectedBook = bibleBooks[selectedBookIndex] || bibleBooks[0];
+  const canonicalBooks = useMemo(() => BIBLE_BOOKS.map((meta) => ({
+    ...meta,
+    data: getBook(BIBLE_DATA[translationId], meta.book, meta.ko),
+  })).filter((x) => x.data), [translationId]);
+  const testamentBooks = canonicalBooks.filter((x) => x.testament === testament);
+  const selectedBookMeta = canonicalBooks.find((x) => x.book === selectedBookKey) || canonicalBooks[0];
+  const selectedBook = selectedBookMeta?.data;
   const chapterCount = selectedBook?.chapters?.length || 1;
   const selectedChapterData = (selectedBook?.chapters || []).find((c) => Number(c.chapter) === selectedChapter) || selectedBook?.chapters?.[0];
   const verseCount = selectedChapterData?.verses?.length || 1;
 
   useEffect(() => {
     if (selectedChapter > chapterCount) setSelectedChapter(1);
-  }, [selectedBookIndex, chapterCount, selectedChapter]);
+  }, [selectedBookKey, chapterCount, selectedChapter]);
 
   useEffect(() => {
     if (selectedVerse > verseCount) setSelectedVerse(1);
@@ -249,6 +280,7 @@ export default function App() {
   };
 
   const openDayReader = (day, returnTo = 'today') => {
+    setSelectedVerses([]);
     setReaderReturnScreen(returnTo);
     setReaderContext({ type: 'day', day });
     restoredKey.current = null;
@@ -257,12 +289,13 @@ export default function App() {
   };
 
   const openChapterReader = () => {
+    setSelectedVerses([]);
     if (!selectedBook) return;
-    const bookKo = getKoreanBookName(selectedBook);
+    const bookKo = selectedBookMeta?.ko || getKoreanBookName(selectedBook);
     setReaderReturnScreen('bibleIndex');
     setReaderContext({
       type: 'chapter',
-      book: selectedBook.book || selectedBook.name,
+      book: selectedBookMeta?.book || selectedBook.book || selectedBook.name,
       bookKo,
       chapter: selectedChapter,
       verse: selectedVerse,
@@ -273,6 +306,7 @@ export default function App() {
   };
 
   const closeReader = async (destination = readerReturnScreen) => {
+    setSelectedVerses([]);
     await saveCurrentPosition();
     setScreen(destination);
   };
@@ -302,24 +336,25 @@ export default function App() {
     setCurrentDay(nextDay);
 
     const item = schedule[day - 1];
-    const finish = () => {
-      if (advanceIfCurrent && day === currentDay) {
-        if (day < schedule.length) setDisplayDay(nextDay);
-        setScreen('today');
-        return;
-      }
-      setScreen(destination === 'records' ? 'records' : 'today');
-    };
+    setCompletionModal({
+      item,
+      nextDay,
+      advanceIfCurrent: advanceIfCurrent && day === currentDay,
+      destination,
+      finalDay: day === schedule.length && advanceIfCurrent,
+    });
+  };
 
-    const extra = day === schedule.length && advanceIfCurrent
-      ? '\n\n365일 연대기별 성경통독 일정을 모두 완료했습니다!'
-      : '';
-    Alert.alert(
-      '축하합니다 🎉',
-      `${item?.dayLabel || ''} · ${item?.reading || ''}\n성경읽기에 성공하셨습니다.!${extra}`,
-      [{ text: '닫기', onPress: finish }],
-      { cancelable: false },
-    );
+  const closeCompletionModal = () => {
+    const info = completionModal;
+    setCompletionModal(null);
+    if (!info) return;
+    if (info.advanceIfCurrent) {
+      if (info.item?.day < schedule.length) setDisplayDay(info.nextDay);
+      setScreen('today');
+      return;
+    }
+    setScreen(info.destination === 'records' ? 'records' : 'today');
   };
 
   const cancelCompletion = (day) => {
@@ -343,6 +378,63 @@ export default function App() {
         },
       ],
     );
+  };
+
+  const verseKey = (v) => `${translationId}:${v.bookKo}:${v.chapter}:${v.verse}`;
+
+  const toggleVerseSelection = (v) => {
+    const key = verseKey(v);
+    setSelectedVerses((prev) => prev.some((x) => x.key === key)
+      ? prev.filter((x) => x.key !== key)
+      : [...prev, { ...v, key }]);
+  };
+
+  const copySelectedVerses = async () => {
+    if (!selectedVerses.length) return;
+    const text = selectedVerses
+      .map((v) => `${v.bookKo} ${v.chapter}:${v.verse} ${v.text}`)
+      .join('\n');
+    await Clipboard.setStringAsync(text);
+    Alert.alert('복사 완료', `${selectedVerses.length}개 절을 복사했습니다.`);
+  };
+
+  const openNoteForVerse = (v) => {
+    const key = verseKey(v);
+    setNoteDraft(verseNotes[key] || '');
+    setNoteModal({ keys: [key], label: `${v.bookKo} ${v.chapter}:${v.verse}` });
+  };
+
+  const openNoteForSelection = () => {
+    if (!selectedVerses.length) return;
+    const keys = selectedVerses.map((v) => v.key);
+    const existing = keys.map((k) => verseNotes[k]).find(Boolean) || '';
+    const first = selectedVerses[0];
+    const last = selectedVerses[selectedVerses.length - 1];
+    setNoteDraft(existing);
+    setNoteModal({ keys, label: selectedVerses.length === 1 ? `${first.bookKo} ${first.chapter}:${first.verse}` : `${first.bookKo} ${first.chapter}:${first.verse} ~ ${last.chapter}:${last.verse}` });
+  };
+
+  const saveNote = async () => {
+    if (!noteModal) return;
+    const next = { ...verseNotes };
+    noteModal.keys.forEach((key) => {
+      if (noteDraft.trim()) next[key] = noteDraft.trim();
+      else delete next[key];
+    });
+    setVerseNotes(next);
+    await AsyncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    setNoteModal(null);
+    setNoteDraft('');
+  };
+
+  const deleteNote = async () => {
+    if (!noteModal) return;
+    const next = { ...verseNotes };
+    noteModal.keys.forEach((key) => delete next[key]);
+    setVerseNotes(next);
+    await AsyncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    setNoteModal(null);
+    setNoteDraft('');
   };
 
   const changeFont = async (delta) => {
@@ -414,6 +506,14 @@ export default function App() {
             <TouchableOpacity onPress={() => changeFont(2)} style={styles.fontButton}><Text style={styles.fontButtonText}>A+</Text></TouchableOpacity>
           </View>
         </View>
+        {selectedVerses.length > 0 && (
+          <View style={styles.selectionBar}>
+            <Text style={styles.selectionCount}>{selectedVerses.length}절 선택</Text>
+            <TouchableOpacity onPress={copySelectedVerses} style={styles.selectionAction}><Text style={styles.selectionActionText}>복사</Text></TouchableOpacity>
+            <TouchableOpacity onPress={openNoteForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>메모</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedVerses([])} style={styles.selectionClear}><Text style={styles.selectionClearText}>해제</Text></TouchableOpacity>
+          </View>
+        )}
         <ScrollView
           ref={readerRef}
           contentContainerStyle={styles.readerContent}
@@ -445,12 +545,20 @@ export default function App() {
                         }, 180);
                       }
                     }}
-                    style={isTargetVerse ? styles.targetVerseWrap : null}
+                    style={[isTargetVerse && styles.targetVerseWrap, selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
                     {showChapter && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
-                    <Text style={[styles.verseText, { fontSize, lineHeight: Math.round(fontSize * 1.7) }]}>
-                      <Text style={styles.verseNumber}>{v.verse} </Text>{v.text}
-                    </Text>
+                    <TouchableOpacity
+                      activeOpacity={0.75}
+                      onLongPress={() => toggleVerseSelection(v)}
+                      onPress={() => { if (selectedVerses.length) toggleVerseSelection(v); }}
+                      delayLongPress={450}
+                    >
+                      <Text style={[styles.verseText, { fontSize, lineHeight: Math.round(fontSize * 1.7) }]}>
+                        <Text style={styles.verseNumber}>{v.verse} </Text>{v.text}
+                        {verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 );
               })}
@@ -560,70 +668,86 @@ export default function App() {
             />
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.indexWrap}>
+          <View style={styles.indexWrapFlex}>
             <View style={styles.indexHeaderRow}>
-              <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>책 · 장 · 절을 선택한 뒤 본문을 읽습니다.</Text></View>
+              <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장 · 절을 선택합니다.</Text></View>
               <TouchableOpacity onPress={cycleTranslation} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
-            <Text style={styles.indexLabel}>책 · 장 · 절 선택</Text>
-            <TouchableOpacity onPress={() => setIndexPicker('book')} style={styles.dropdownButton}>
-              <Text style={styles.dropdownLabel}>성경책</Text>
-              <Text style={styles.dropdownValue}>{getKoreanBookName(selectedBook)}  ▼</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIndexPicker('chapter')} style={styles.dropdownButton}>
-              <Text style={styles.dropdownLabel}>장</Text>
-              <Text style={styles.dropdownValue}>{selectedChapter}장  ▼</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIndexPicker('verse')} style={styles.dropdownButton}>
-              <Text style={styles.dropdownLabel}>절</Text>
-              <Text style={styles.dropdownValue}>{selectedVerse}절  ▼</Text>
-            </TouchableOpacity>
+            <View style={styles.testamentTabs}>
+              {['구약','신약'].map((t) => <TouchableOpacity key={t} onPress={() => {
+                setTestament(t);
+                const first = canonicalBooks.find((x) => x.testament === t);
+                if (first) { setSelectedBookKey(first.book); setSelectedChapter(1); setSelectedVerse(1); }
+              }} style={[styles.testamentTab, testament === t && styles.testamentTabActive]}><Text style={[styles.testamentText, testament === t && styles.testamentTextActive]}>{t}</Text></TouchableOpacity>)}
+            </View>
 
-            <TouchableOpacity onPress={openChapterReader} style={styles.completeButton}>
-              <Text style={styles.completeButtonText}>본문 보기</Text>
-            </TouchableOpacity>
-            <Text style={styles.indexHint}>선택한 절 위치에서 열리며, 해당 장 전체를 위아래로 읽을 수 있습니다.</Text>
-          </ScrollView>
+            <View style={styles.bibleSelectorColumns}>
+              <View style={[styles.selectorColumn, styles.bookColumn]}>
+                <Text style={styles.selectorTitle}>성경책</Text>
+                <ScrollView>
+                  {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onPress={() => { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
+                </ScrollView>
+              </View>
+              <View style={styles.selectorColumn}>
+                <Text style={styles.selectorTitle}>장</Text>
+                <ScrollView>
+                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.selectorRow, selectedChapter === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedChapter === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
+                </ScrollView>
+              </View>
+              <View style={styles.selectorColumn}>
+                <Text style={styles.selectorTitle}>절</Text>
+                <ScrollView>
+                  {Array.from({ length: verseCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => setSelectedVerse(n)} style={[styles.selectorRow, selectedVerse === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedVerse === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
+                </ScrollView>
+              </View>
+            </View>
+            <TouchableOpacity onPress={openChapterReader} style={[styles.completeButton, styles.indexOpenButton]}><Text style={styles.completeButtonText}>본문 보기</Text></TouchableOpacity>
+          </View>
         )}
       </View>
 
-      <Modal visible={!!indexPicker} transparent animationType="fade" onRequestClose={() => setIndexPicker(null)}>
-        <View style={styles.pickerBackdrop}>
-          <View style={styles.pickerCard}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>{indexPicker === 'book' ? '성경책 선택' : indexPicker === 'chapter' ? '장 선택' : '절 선택'}</Text>
-                <Text style={styles.modalSubtitle}>원하는 항목을 눌러 선택해 주세요.</Text>
-              </View>
-              <TouchableOpacity onPress={() => setIndexPicker(null)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
+      <Modal visible={!!completionModal} transparent animationType="fade" onRequestClose={() => {}}>
+        <View style={styles.celebrateBackdrop}>
+          <View style={styles.celebrateCard}>
+            <Text style={styles.confetti}>🎉 ✨ 🎊</Text>
+            <Text style={styles.celebrateTitle}>축하합니다 🎉</Text>
+            <View style={styles.celebrateSummary}>
+              <Text style={styles.celebrateSmall}>오늘 읽은 내용</Text>
+              <View style={styles.celebrateDayBadge}><Text style={styles.celebrateDayText}>{completionModal?.item?.dayLabel}</Text></View>
+              <Text style={styles.celebrateStage}>{completionModal?.item?.stage}</Text>
+              <View style={styles.celebrateDivider} />
+              <Text style={styles.celebrateSmall}>오늘 읽을 말씀</Text>
+              <Text style={styles.celebrateReading}>{completionModal?.item?.reading}</Text>
             </View>
-            <FlatList
-              data={indexPicker === 'book'
-                ? bibleBooks.map((book, idx) => ({ key: `book-${idx}`, label: getKoreanBookName(book), value: idx }))
-                : indexPicker === 'chapter'
-                  ? Array.from({ length: chapterCount }, (_, i) => ({ key: `chapter-${i + 1}`, label: `${i + 1}장`, value: i + 1 }))
-                  : Array.from({ length: verseCount }, (_, i) => ({ key: `verse-${i + 1}`, label: `${i + 1}절`, value: i + 1 }))}
-              keyExtractor={(item) => item.key}
-              contentContainerStyle={styles.pickerList}
-              renderItem={({ item }) => {
-                const selected = indexPicker === 'book' ? selectedBookIndex === item.value : indexPicker === 'chapter' ? selectedChapter === item.value : selectedVerse === item.value;
-                return (
-                  <TouchableOpacity
-                    style={[styles.pickerOption, selected && styles.pickerOptionActive]}
-                    onPress={() => {
-                      if (indexPicker === 'book') { setSelectedBookIndex(item.value); setSelectedChapter(1); setSelectedVerse(1); }
-                      else if (indexPicker === 'chapter') { setSelectedChapter(item.value); setSelectedVerse(1); }
-                      else setSelectedVerse(item.value);
-                      setIndexPicker(null);
-                    }}
-                  >
-                    <Text style={[styles.pickerOptionText, selected && styles.pickerOptionTextActive]}>{item.label}</Text>
-                    {selected ? <Text style={styles.pickerCheck}>✓</Text> : null}
-                  </TouchableOpacity>
-                );
-              }}
+            <Text style={styles.celebrateSuccess}>성경읽기에 성공하셨습니다.!!!</Text>
+            {completionModal?.finalDay ? <Text style={styles.finalCongrats}>365일 연대기별 성경통독 일정을 모두 완료했습니다!</Text> : null}
+            <TouchableOpacity onPress={closeCompletionModal} style={styles.celebrateButton}><Text style={styles.celebrateButtonText}>확인</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!noteModal} transparent animationType="fade" onRequestClose={() => setNoteModal(null)}>
+        <View style={styles.noteModalBackdrop}>
+          <View style={styles.postIt}>
+            <Text style={styles.postItTitle}>📝 말씀 메모</Text>
+            <Text style={styles.postItVerse}>{noteModal?.label}</Text>
+            <TextInput
+              value={noteDraft}
+              onChangeText={setNoteDraft}
+              multiline
+              autoFocus
+              placeholder="이 말씀에 대한 생각이나 묵상을 적어 주세요."
+              placeholderTextColor="#9B8D62"
+              style={styles.noteInput}
             />
+            <View style={styles.noteButtons}>
+              {noteModal?.keys?.some((k) => verseNotes[k]) ? <TouchableOpacity onPress={deleteNote} style={styles.noteDelete}><Text style={styles.noteDeleteText}>삭제</Text></TouchableOpacity> : <View />}
+              <View style={styles.noteRightButtons}>
+                <TouchableOpacity onPress={() => setNoteModal(null)} style={styles.noteCancel}><Text style={styles.noteCancelText}>취소</Text></TouchableOpacity>
+                <TouchableOpacity onPress={saveNote} style={styles.noteSave}><Text style={styles.noteSaveText}>저장</Text></TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
@@ -681,4 +805,10 @@ const styles = StyleSheet.create({
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
+
+  selectionBar: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', gap: 8 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#E8EEF7', borderRadius: 9, paddingHorizontal: 5 }, noteMark: { fontSize: 13 },
+  indexWrapFlex: { flex: 1, padding: 22, paddingBottom: 18 }, testamentTabs: { flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 12 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { flex: 1, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 46, justifyContent: 'center', paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#84BCE3' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 15 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { marginTop: 12 },
+  noteModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, postIt: { width: '100%', backgroundColor: '#FFF2A8', borderRadius: 18, padding: 20, elevation: 8 }, postItTitle: { fontSize: 20, fontWeight: '900', color: '#554716' }, postItVerse: { marginTop: 5, marginBottom: 13, color: '#786725', fontWeight: '800' }, noteInput: { minHeight: 170, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.42)', borderRadius: 12, padding: 14, color: '#413913', fontSize: 16, lineHeight: 24 }, noteButtons: { marginTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, noteRightButtons: { flexDirection: 'row', gap: 8 }, noteDelete: { paddingHorizontal: 12, paddingVertical: 10 }, noteDeleteText: { color: '#A04B3C', fontWeight: '900' }, noteCancel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E8D989' }, noteCancelText: { color: '#5A4D1E', fontWeight: '900' }, noteSave: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, backgroundColor: '#17223B' }, noteSaveText: { color: '#FFF', fontWeight: '900' },
+
+  celebrateBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center', padding: 20 }, celebrateCard: { width: '100%', backgroundColor: '#FFFEFB', borderRadius: 24, padding: 22, alignItems: 'center' }, confetti: { fontSize: 30, marginBottom: 4 }, celebrateTitle: { fontSize: 30, fontWeight: '900', color: '#17223B', marginBottom: 18 }, celebrateSummary: { width: '100%', backgroundColor: '#FBF7EF', borderWidth: 1, borderColor: '#EADDBE', borderRadius: 18, padding: 18 }, celebrateSmall: { fontSize: 13, fontWeight: '800', color: '#747C86', marginBottom: 8 }, celebrateDayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, celebrateDayText: { color: '#FFF', fontWeight: '900' }, celebrateStage: { fontSize: 16, lineHeight: 23, fontWeight: '900', color: '#8B6B35' }, celebrateDivider: { height: 1, backgroundColor: '#E8DDC6', marginVertical: 14 }, celebrateReading: { fontSize: 23, lineHeight: 32, fontWeight: '900', color: '#17223B' }, celebrateSuccess: { marginTop: 18, fontSize: 19, lineHeight: 28, fontWeight: '900', color: '#17223B', textAlign: 'center' }, finalCongrats: { marginTop: 8, fontSize: 13, lineHeight: 20, color: '#8B6B35', fontWeight: '800', textAlign: 'center' }, celebrateButton: { width: '100%', marginTop: 18, backgroundColor: '#173C70', borderRadius: 14, paddingVertical: 15, alignItems: 'center' }, celebrateButtonText: { color: '#FFF', fontSize: 17, fontWeight: '900' },
 });
