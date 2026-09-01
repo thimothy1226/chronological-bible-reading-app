@@ -4,7 +4,6 @@ import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Clipboard from 'expo-clipboard';
 import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
@@ -112,6 +111,16 @@ function getVersesForPassage(data, passage) {
   return result;
 }
 
+function safeParseJson(raw, fallback = {}) {
+  if (!raw) return fallback;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function migrateCompletions(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
@@ -172,13 +181,16 @@ export default function App() {
         const safeDay = Number.isFinite(d) && d >= 1 && d <= 365 ? d : 1;
         setCurrentDay(safeDay);
         setDisplayDay(safeDay);
-        const migrated = migrateCompletions(saved[COMPLETIONS_KEY] ? JSON.parse(saved[COMPLETIONS_KEY]) : {});
+        const migrated = migrateCompletions(safeParseJson(saved[COMPLETIONS_KEY], {}));
         setCompletions(migrated);
         setTranslationId(saved[TRANSLATION_KEY] || 'KRV');
         const f = Number(saved[FONT_SIZE_KEY] || 19);
         setFontSize(Number.isFinite(f) ? Math.min(30, Math.max(15, f)) : 19);
-        setReaderPositions(saved[READER_POSITIONS_KEY] ? JSON.parse(saved[READER_POSITIONS_KEY]) : {});
-        setVerseNotes(saved[VERSE_NOTES_KEY] ? JSON.parse(saved[VERSE_NOTES_KEY]) : {});
+        setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
+        setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
+      } catch (error) {
+        // 저장 데이터 일부가 손상되어도 앱 자체는 실행되도록 기본값으로 복구합니다.
+        console.warn('Saved data load failed:', error);
       } finally {
         setLoaded(true);
       }
@@ -394,8 +406,15 @@ export default function App() {
     const text = selectedVerses
       .map((v) => `${v.bookKo} ${v.chapter}:${v.verse} ${v.text}`)
       .join('\n');
-    await Clipboard.setStringAsync(text);
-    Alert.alert('복사 완료', `${selectedVerses.length}개 절을 복사했습니다.`);
+    try {
+      // 앱 시작 시 Clipboard 모듈을 즉시 불러오지 않고, 실제 복사할 때만 불러옵니다.
+      // 이렇게 하면 복사 기능에 문제가 생겨도 앱 전체가 실행되지 않는 일을 막을 수 있습니다.
+      const Clipboard = require('expo-clipboard');
+      await Clipboard.setStringAsync(text);
+      Alert.alert('복사 완료', `${selectedVerses.length}개 절을 복사했습니다.`);
+    } catch (error) {
+      Alert.alert('복사 오류', '복사 기능을 불러오지 못했습니다. 앱을 다시 설치한 뒤 한 번 더 시도해 주세요.');
+    }
   };
 
   const openNoteForVerse = (v) => {
