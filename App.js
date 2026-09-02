@@ -26,10 +26,10 @@ const BIBLE_DATA = { KRV: krv };
 
 const friendlyBdfName = (baseName) => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
-  if (/nkjv/i.test(compact)) return 'NKJV (개인 파일)';
-  if (/kkjv/i.test(compact)) return '한글킹제임스 (개인 파일)';
-  if (/hkjv/i.test(compact)) return '킹제임스 흠정역 (개인 파일)';
-  return `${compact || 'BDF 번역본'} (개인 파일)`;
+  if (/nkjv/i.test(compact)) return 'NKJV';
+  if (/kkjv/i.test(compact)) return '한글킹제임스';
+  if (/hkjv/i.test(compact)) return '킹제임스 흠정역';
+  return compact || 'BDF 번역본';
 };
 
 function decodeBdfBytes(bytes) {
@@ -240,6 +240,7 @@ export default function App() {
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
+  const [translationPickerOpen, setTranslationPickerOpen] = useState(false);
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -275,7 +276,7 @@ export default function App() {
             const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
             if (!storedFile.exists) continue;
             loadedBibles[info.id] = JSON.parse(await storedFile.text());
-            validImported.push(info);
+            validImported.push({ ...info, name: String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '') });
           } catch (error) {
             console.warn('Imported Bible load failed:', info?.id, error);
           }
@@ -655,6 +656,62 @@ export default function App() {
     await AsyncStorage.setItem(TRANSLATION_KEY, next.id);
   };
 
+  const chooseTranslation = async (id) => {
+    setTranslationId(id);
+    setTranslationPickerOpen(false);
+    await AsyncStorage.setItem(TRANSLATION_KEY, id);
+    const targetBooks = BIBLE_BOOKS.map((meta) => ({
+      ...meta,
+      data: getBook(allBibleData[id], meta.book, meta.ko),
+    })).filter((item) => item.data);
+    const currentExists = targetBooks.some((item) => item.book === selectedBookKey);
+    if (!currentExists && targetBooks[0]) {
+      const first = targetBooks[0];
+      setTestament(first.testament);
+      setSelectedBookKey(first.book);
+      setSelectedChapter(1);
+      setSelectedVerse(1);
+      if (screen === 'reader' && readerContext?.type === 'chapter') {
+        setReaderContext({ type: 'chapter', book: first.book, bookKo: first.ko, chapter: 1, verse: 1 });
+        restoredKey.current = null;
+        pendingTargetY.current = 0;
+      }
+    }
+  };
+
+  const TranslationPicker = () => (
+    <Modal visible={translationPickerOpen} transparent animationType="fade" onRequestClose={() => setTranslationPickerOpen(false)}>
+      <TouchableOpacity activeOpacity={1} onPress={() => setTranslationPickerOpen(false)} style={styles.pickerBackdrop}>
+        <View style={styles.translationPickerCard} onStartShouldSetResponder={() => true}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>성경 번역본 선택</Text>
+              <Text style={styles.modalSubtitle}>읽으려는 번역본을 눌러 주세요.</Text>
+            </View>
+            <TouchableOpacity onPress={() => setTranslationPickerOpen(false)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
+          </View>
+          <FlatList
+            data={availableTranslations.filter((item) => item.enabled)}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.translationPickerList}
+            renderItem={({ item }) => {
+              const active = item.id === translationId;
+              return (
+                <TouchableOpacity onPress={() => chooseTranslation(item.id)} style={[styles.translationPickerRow, active && styles.translationPickerRowActive]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.translationPickerName, active && styles.translationPickerNameActive]}>{item.name}</Text>
+                    {item.sourceFiles ? <Text style={[styles.translationPickerMeta, active && styles.translationPickerMetaActive]}>{item.sourceFiles}개 BDF 파일 · {(item.verseCount || 0).toLocaleString()}절</Text> : <Text style={[styles.translationPickerMeta, active && styles.translationPickerMetaActive]}>기본 번역본</Text>}
+                  </View>
+                  <Text style={[styles.translationPickerCheck, active && styles.translationPickerCheckActive]}>{active ? '✓' : ''}</Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   const importBibleFolder = async () => {
     if (Platform.OS !== 'android') {
       Alert.alert('안내', '현재 BDF 폴더 등록은 안드로이드에서 사용할 수 있습니다.');
@@ -900,7 +957,7 @@ export default function App() {
           </TouchableOpacity>
         </View>
         <View style={styles.readerTools}>
-          <TouchableOpacity onPress={cycleTranslation} style={styles.translationButton}>
+          <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}>
             <Text style={styles.translationText}>번역본: {selectedTranslation.name} ▼</Text>
           </TouchableOpacity>
           <View style={styles.fontTools}>
@@ -972,7 +1029,7 @@ export default function App() {
             </View>
           ))}
           <View style={styles.sourceBox}>
-            <Text style={styles.sourceText}>성경전서 개역한글판 (1961) · 본문 출처 표시 및 동일성 유지</Text>
+            <Text style={styles.sourceText}>{translationId === 'KRV' ? '성경전서 개역한글판 (1961) · 본문 출처 표시 및 동일성 유지' : `${selectedTranslation.name} · 이 휴대폰에 개인 등록된 번역본`}</Text>
           </View>
           {readerContext.type === 'day' && (
             <TouchableOpacity
@@ -997,6 +1054,8 @@ export default function App() {
             </TouchableOpacity>
           </View>
         )}
+
+        <TranslationPicker />
 
         <Modal visible={!!noteModal} transparent animationType="fade" onRequestClose={() => setNoteModal(null)}>
           <View style={styles.noteModalBackdrop}>
@@ -1169,7 +1228,7 @@ export default function App() {
           <View style={styles.indexWrapFlex}>
             <View style={styles.indexHeaderRow}>
               <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장 · 절을 선택합니다.</Text></View>
-              <TouchableOpacity onPress={cycleTranslation} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
             <View style={styles.testamentTabs}>
@@ -1204,6 +1263,8 @@ export default function App() {
           </View>
         )}
       </View>
+
+      <TranslationPicker />
 
       <Modal visible={!!completionModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.celebrateBackdrop}>
@@ -1333,6 +1394,16 @@ const styles = StyleSheet.create({
   chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 48 : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterNavCurrent: { minWidth: 88, textAlign: 'center', color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
+  translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
+  translationPickerList: { padding: 13, paddingBottom: 20 },
+  translationPickerRow: { minHeight: 64, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 13, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center' },
+  translationPickerRowActive: { backgroundColor: '#17223B' },
+  translationPickerName: { fontSize: 16, fontWeight: '900', color: '#283245' },
+  translationPickerNameActive: { color: '#FFF' },
+  translationPickerMeta: { marginTop: 4, fontSize: 11, fontWeight: '700', color: '#858B94' },
+  translationPickerMetaActive: { color: '#D9DEE8' },
+  translationPickerCheck: { width: 28, textAlign: 'center', fontSize: 20, fontWeight: '900', color: '#B28A48' },
+  translationPickerCheckActive: { color: '#E6C77F' },
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
