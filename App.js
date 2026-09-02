@@ -52,14 +52,29 @@ const BIBLE_DATA = { KRV: krv };
 
 const friendlyBdfName = (baseName, hasKorean = false) => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
-  if (/korktv/i.test(compact) || /^ktv$/i.test(compact)) return '바른성경';
-  if (/nkrv|gaeyukgaejung/i.test(compact)) return '개역개정';
-  if (/krv|gaeyukhangul/i.test(compact)) return '개역한글';
+  if (hasKorean) {
+    if (/kchktv/i.test(compact)) return '바른성경 국한문';
+    if (/kchnkrv/i.test(compact)) return '개역개정 국한문';
+    if (/kchhrv/i.test(compact)) return '개역한글 국한문';
+    if (/hchv/i.test(compact)) return '개역 국한문';
+    if (/korktv/i.test(compact) || /^ktv$/i.test(compact)) return '바른성경';
+    if (/nkrv|gaeyukgaejung/i.test(compact)) return '개역개정';
+    if (/hrv|krv|gaeyukhangul/i.test(compact)) return '개역한글';
+    if (/knrsv|kornewstandard|saebeonyeok/i.test(compact)) return '새번역';
+    if (/nkcb|commonrevised/i.test(compact)) return '공동번역 개정판';
+    if (/kcb|commontranslation/i.test(compact)) return '공동번역';
+    if (/kkjv|koreankingjames/i.test(compact)) return '한글킹제임스';
+    if (/hkjv|heumjeong/i.test(compact)) return '킹제임스 흠정역';
+    if (/klb|livingbible/i.test(compact)) return '현대인의 성경';
+    if (/tkv|todaykorean/i.test(compact)) return '현대어성경';
+    if (/dob|woorimal/i.test(compact)) return '우리말성경';
+    if (/easy/i.test(compact)) return '쉬운성경';
+    if (/cath|catholic/i.test(compact)) return '가톨릭성경';
+    if (/kmsg|message/i.test(compact)) return '한글 메시지성경';
+    if (/[가-힣]/.test(baseName) && !/^한글\s*성경\s*\(/i.test(baseName)) return baseName.trim();
+    return compact.replace(/^한글성경/i, '') || compact || 'BDF';
+  }
   if (/nkjv/i.test(compact)) return 'NKJV';
-  if (/kkjv/i.test(compact)) return '한글킹제임스';
-  if (/hkjv/i.test(compact)) return '킹제임스 흠정역';
-  if (hasKorean && /[가-힣]/.test(baseName)) return baseName.trim();
-  if (hasKorean && !/[가-힣]/.test(compact)) return `한글 성경 (${compact})`;
   return compact || 'BDF 번역본';
 };
 
@@ -698,17 +713,21 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || !['reader', 'homologiaReader', 'notice'].includes(screen)) return undefined;
+    if (Platform.OS !== 'android' || !['reader', 'homologiaReader', 'notice', 'settings'].includes(screen)) return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen === 'homologiaReader') setScreen('homologia');
       else if (screen === 'notice' && selectedNoticePost) setSelectedNoticePost(null);
       else if (screen === 'notice' && noticeCategory) setNoticeCategory(null);
       else if (screen === 'notice') return false;
+      else if (screen === 'settings') {
+        setDisplayDay(currentDay);
+        setScreen('today');
+      }
       else closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
       return true;
     });
     return () => subscription.remove();
-  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost]);
+  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost, currentDay]);
 
   const completeDay = async (day, advanceIfCurrent = false, destination = 'today') => {
     const key = String(day);
