@@ -13,26 +13,29 @@ import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
 import { initializeApp } from 'firebase/app';
 import {
-  getReactNativePersistence, initializeAuth, onAuthStateChanged,
-  signInWithEmailAndPassword, signOut,
+  createUserWithEmailAndPassword, getReactNativePersistence, inMemoryPersistence,
+  initializeAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getFirestore, onSnapshot,
-  serverTimestamp, updateDoc,
+  addDoc, collection, deleteDoc, doc, getDoc, getFirestore, onSnapshot,
+  serverTimestamp, setDoc, updateDoc,
 } from 'firebase/firestore';
 
-const firebaseApp = initializeApp({
+const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDjboFxfiXUBNVGiT-ecGhyc5_tH_vpq04',
   authDomain: 'gfc-bible-reading.firebaseapp.com',
   projectId: 'gfc-bible-reading',
   storageBucket: 'gfc-bible-reading.firebasestorage.app',
   messagingSenderId: '444394059472',
   appId: '1:444394059472:web:d2eb2dba7a9de7264bd0d5',
-});
+};
+const firebaseApp = initializeApp(FIREBASE_CONFIG);
 const firebaseAuth = initializeAuth(firebaseApp, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 const firestore = getFirestore(firebaseApp);
+const adminCreatorApp = initializeApp(FIREBASE_CONFIG, 'adminCreator');
+const adminCreatorAuth = initializeAuth(adminCreatorApp, { persistence: inMemoryPersistence });
 const ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
@@ -47,11 +50,14 @@ const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 
 const BIBLE_DATA = { KRV: krv };
 
-const friendlyBdfName = (baseName) => {
+const friendlyBdfName = (baseName, hasKorean = false) => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
+  if (/nkrv|gaeyukgaejung/i.test(compact)) return '개역개정';
+  if (/krv|gaeyukhangul/i.test(compact)) return '개역한글';
   if (/nkjv/i.test(compact)) return 'NKJV';
   if (/kkjv/i.test(compact)) return '한글킹제임스';
   if (/hkjv/i.test(compact)) return '킹제임스 흠정역';
+  if (hasKorean && !/[가-힣]/.test(compact)) return `한글 성경 (${compact})`;
   return compact || 'BDF 번역본';
 };
 
@@ -265,10 +271,12 @@ export default function App() {
   const [importingBible, setImportingBible] = useState(false);
   const [translationPickerOpen, setTranslationPickerOpen] = useState(false);
   const [noticeCategory, setNoticeCategory] = useState(null);
+  const [selectedNoticePost, setSelectedNoticePost] = useState(null);
   const [communityPosts, setCommunityPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [postsError, setPostsError] = useState('');
   const [adminUser, setAdminUser] = useState(null);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [adminLoginOpen, setAdminLoginOpen] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -276,6 +284,10 @@ export default function App() {
   const [postEditor, setPostEditor] = useState(null);
   const [postTitle, setPostTitle] = useState('');
   const [postBody, setPostBody] = useState('');
+  const [registeredTranslationsOpen, setRegisteredTranslationsOpen] = useState(false);
+  const [adminRegisterOpen, setAdminRegisterOpen] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -283,9 +295,28 @@ export default function App() {
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
 
-  const isAdmin = adminUser?.uid === ADMIN_UID;
+  const isAdmin = !!adminUser && adminAuthorized;
 
-  useEffect(() => onAuthStateChanged(firebaseAuth, setAdminUser), []);
+  useEffect(() => onAuthStateChanged(firebaseAuth, async (user) => {
+    setAdminUser(user);
+    if (!user) {
+      setAdminAuthorized(false);
+      return;
+    }
+    if (user.uid === ADMIN_UID) {
+      setAdminAuthorized(true);
+      return;
+    }
+    try {
+      const adminRecord = await getDoc(doc(firestore, 'admins', user.uid));
+      setAdminAuthorized(adminRecord.exists());
+      if (!adminRecord.exists()) await signOut(firebaseAuth);
+    } catch (error) {
+      console.warn('Admin permission check failed:', error);
+      setAdminAuthorized(false);
+      await signOut(firebaseAuth).catch(() => {});
+    }
+  }), []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(firestore, 'communityPosts'), (snapshot) => {
@@ -551,11 +582,14 @@ export default function App() {
     setAdminBusy(true);
     try {
       const credential = await signInWithEmailAndPassword(firebaseAuth, adminEmail.trim(), adminPassword);
-      if (credential.user.uid !== ADMIN_UID) {
+      const allowed = credential.user.uid === ADMIN_UID
+        || (await getDoc(doc(firestore, 'admins', credential.user.uid))).exists();
+      if (!allowed) {
         await signOut(firebaseAuth);
         Alert.alert('권한 없음', '등록된 관리자 계정이 아닙니다.');
         return;
       }
+      setAdminAuthorized(true);
       setAdminPassword('');
       setAdminLoginOpen(false);
       Alert.alert('로그인 완료', '이제 GFC 소식과 중보기도 글을 관리할 수 있습니다.');
@@ -572,6 +606,37 @@ export default function App() {
       { text: '취소', style: 'cancel' },
       { text: '로그아웃', onPress: () => signOut(firebaseAuth).catch(() => {}) },
     ]);
+  };
+
+  const registerNewAdmin = async () => {
+    if (!isAdmin) return;
+    if (!newAdminEmail.trim() || newAdminPassword.length < 6) {
+      Alert.alert('입력 확인', '이메일과 6자리 이상의 임시 비밀번호를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const credential = await createUserWithEmailAndPassword(
+        adminCreatorAuth, newAdminEmail.trim(), newAdminPassword,
+      );
+      await setDoc(doc(firestore, 'admins', credential.user.uid), {
+        uid: credential.user.uid,
+        email: newAdminEmail.trim(),
+        createdBy: adminUser.uid,
+        createdAt: serverTimestamp(),
+      });
+      await signOut(adminCreatorAuth).catch(() => {});
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      setAdminRegisterOpen(false);
+      Alert.alert('관리자 등록 완료', '새 관리자가 입력한 이메일과 비밀번호로 로그인할 수 있습니다.');
+    } catch (error) {
+      console.warn('Admin registration failed:', error);
+      const duplicate = String(error?.code || '').includes('email-already-in-use');
+      Alert.alert('등록 실패', duplicate ? '이미 사용 중인 이메일입니다.' : '관리자를 등록하지 못했습니다. 입력 내용을 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
   };
 
   const openPostEditor = (post = null) => {
@@ -627,14 +692,17 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || !['reader', 'homologiaReader'].includes(screen)) return undefined;
+    if (Platform.OS !== 'android' || !['reader', 'homologiaReader', 'notice'].includes(screen)) return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen === 'homologiaReader') setScreen('homologia');
+      else if (screen === 'notice' && selectedNoticePost) setSelectedNoticePost(null);
+      else if (screen === 'notice' && noticeCategory) setNoticeCategory(null);
+      else if (screen === 'notice') return false;
       else closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
       return true;
     });
     return () => subscription.remove();
-  }, [screen, readerKey, readerPositions, readerContext?.type]);
+  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost]);
 
   const completeDay = async (day, advanceIfCurrent = false, destination = 'today') => {
     const key = String(day);
@@ -885,12 +953,13 @@ export default function App() {
         files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         const parsed = parseBdfFiles(files);
         if (!parsed.books.length) continue;
+        const hasKorean = parsed.books.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
         const id = `CUSTOM_${base.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
         const fileName = `${id}.json`;
         const storedFile = new File(importsDirectory, fileName);
         storedFile.create({ overwrite: true, intermediates: true });
         storedFile.write(JSON.stringify({ books: parsed.books }));
-        const info = { id, name: friendlyBdfName(base), fileName, sourceFiles: files.length, verseCount: parsed.verseCount };
+        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount };
         nextBibles[id] = { books: parsed.books };
         nextTranslations = [...nextTranslations.filter((item) => item.id !== id), info];
         summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절`);
@@ -1245,7 +1314,20 @@ export default function App() {
         </View>
 
         {screen === 'notice' ? (
-          noticeCategory ? (
+          selectedNoticePost ? (
+            <ScrollView contentContainerStyle={styles.noticeDetailScreen}>
+              <TouchableOpacity onPress={() => setSelectedNoticePost(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ {noticeCategory === 'news' ? 'GFC 소식' : '중보기도'}</Text></TouchableOpacity>
+              <View style={styles.noticePostCard}>
+                <Text style={styles.noticePostTitle}>{selectedNoticePost.title}</Text>
+                <Text style={styles.noticePostDate}>{selectedNoticePost.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
+                <Text style={styles.noticePostBody}>{selectedNoticePost.body}</Text>
+                {isAdmin && <View style={styles.noticePostActions}>
+                  <TouchableOpacity onPress={() => openPostEditor(selectedNoticePost)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => { removeCommunityPost(selectedNoticePost); setSelectedNoticePost(null); }} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
+                </View>}
+              </View>
+            </ScrollView>
+          ) : noticeCategory ? (
             <View style={styles.noticeListScreen}>
               <View style={styles.noticeListHeader}>
                 <TouchableOpacity onPress={() => setNoticeCategory(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ 공지사항</Text></TouchableOpacity>
@@ -1259,15 +1341,10 @@ export default function App() {
                   contentContainerStyle={styles.noticeListContent}
                   ListEmptyComponent={<View style={styles.noticeEmptyCard}><Text style={styles.noticeEmptyTitle}>아직 등록된 글이 없습니다.</Text><Text style={styles.placeholderText}>{isAdmin ? '오른쪽 위의 글쓰기 버튼으로 첫 글을 등록해 주세요.' : '새로운 글이 등록되면 이곳에 표시됩니다.'}</Text></View>}
                   renderItem={({ item }) => (
-                    <View style={styles.noticePostCard}>
-                      <Text style={styles.noticePostTitle}>{item.title}</Text>
-                      <Text style={styles.noticePostDate}>{item.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
-                      <Text style={styles.noticePostBody}>{item.body}</Text>
-                      {isAdmin && <View style={styles.noticePostActions}>
-                        <TouchableOpacity onPress={() => openPostEditor(item)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={() => removeCommunityPost(item)} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
-                      </View>}
-                    </View>
+                    <TouchableOpacity onPress={() => setSelectedNoticePost(item)} style={styles.noticeTitleRow}>
+                      <Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticeTitleRowText}>{item.title}</Text>
+                      <Text style={styles.noticeTitleArrow}>›</Text>
+                    </TouchableOpacity>
                   )}
                 />
               )}
@@ -1277,8 +1354,18 @@ export default function App() {
               <Text style={styles.placeholderTitle}>공지사항</Text>
               <Text style={styles.placeholderText}>확인할 메뉴를 선택해 주세요.</Text>
               <View style={styles.noticeMenuButtons}>
-                <TouchableOpacity onPress={() => setNoticeCategory('news')} style={styles.noticeMenuButton}><Text style={styles.noticeMenuIcon}>📢</Text><Text style={styles.noticeMenuTitle}>GFC 소식</Text><Text style={styles.noticeMenuDescription}>교회와 공동체의 새로운 소식을 확인합니다.</Text></TouchableOpacity>
-                <TouchableOpacity onPress={() => setNoticeCategory('prayer')} style={styles.noticeMenuButton}><Text style={styles.noticeMenuIcon}>🙏</Text><Text style={styles.noticeMenuTitle}>중보기도</Text><Text style={styles.noticeMenuDescription}>함께 기도할 제목을 확인합니다.</Text></TouchableOpacity>
+                {[{ key: 'news', icon: '📢', title: 'GFC 소식' }, { key: 'prayer', icon: '🙏', title: '중보기도' }].map((menu) => {
+                  const previewPosts = communityPosts.filter((post) => post.category === menu.key).slice(0, 5);
+                  return <View key={menu.key} style={styles.noticeMenuButton}>
+                    <TouchableOpacity onPress={() => setNoticeCategory(menu.key)} style={styles.noticeMenuHeading}>
+                      <Text style={styles.noticeMenuIcon}>{menu.icon}</Text><Text style={styles.noticeMenuTitle}>{menu.title}</Text>
+                    </TouchableOpacity>
+                    <View style={styles.noticePreviewList}>
+                      {previewPosts.length ? previewPosts.map((post) => <TouchableOpacity key={post.id} onPress={() => { setNoticeCategory(menu.key); setSelectedNoticePost(post); }} style={styles.noticePreviewRow}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticePreviewTitle}>• {post.title}</Text></TouchableOpacity>) : <Text style={styles.noticePreviewEmpty}>등록된 글이 없습니다.</Text>}
+                    </View>
+                    <TouchableOpacity onPress={() => setNoticeCategory(menu.key)}><Text style={styles.noticeMoreText}>전체보기 ›</Text></TouchableOpacity>
+                  </View>;
+                })}
               </View>
             </View>
           )
@@ -1310,9 +1397,11 @@ export default function App() {
               </TouchableOpacity>
               <Text style={styles.privateImportNotice}>APK와 GitHub에는 개인 번역본이 포함되지 않으며 인터넷 연결 없이 사용합니다.</Text>
             </View>
-            {customTranslations.length > 0 && (
+            {customTranslations.length > 0 && <TouchableOpacity onPress={() => setRegisteredTranslationsOpen((value) => !value)} style={styles.registeredTranslationsButton}>
+              <Text style={styles.registeredTranslationsButtonText}>등록된 번역본 보기 ({customTranslations.length})</Text><Text style={styles.registeredTranslationsArrow}>{registeredTranslationsOpen ? '▲' : '▼'}</Text>
+            </TouchableOpacity>}
+            {customTranslations.length > 0 && registeredTranslationsOpen && (
               <View style={styles.importedList}>
-                <Text style={styles.settingsSectionTitle}>등록된 번역본</Text>
                 {customTranslations.map((item) => (
                   <View key={item.id} style={styles.importedBibleRow}>
                     <View style={styles.importedBibleInfo}>
@@ -1334,6 +1423,7 @@ export default function App() {
                 <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
                   <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
                 </TouchableOpacity>
+                {isAdmin && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 새 관리자 등록</Text></TouchableOpacity>}
               </View>
             </View>
           </ScrollView>
@@ -1465,6 +1555,21 @@ export default function App() {
         </View>
       </Modal>
 
+      <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>새 관리자 등록</Text>
+            <Text style={styles.adminModalDescription}>새 관리자가 사용할 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
+            <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" style={styles.adminInput} />
+            <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" style={styles.adminInput} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => { setNewAdminPassword(''); setAdminRegisterOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={registerNewAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '등록 중…' : '관리자 등록'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={!!postEditor} transparent animationType="slide" onRequestClose={() => setPostEditor(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.postEditorCard}>
@@ -1568,10 +1673,13 @@ const styles = StyleSheet.create({
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
   noticeMenuScreen: { flex: 1, paddingHorizontal: 22, paddingTop: 30, alignItems: 'center' },
-  noticeMenuButtons: { width: '100%', marginTop: 28, gap: 14 },
-  noticeMenuButton: { minHeight: 130, padding: 20, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', alignItems: 'center', justifyContent: 'center' },
-  noticeMenuIcon: { fontSize: 29, marginBottom: 8 },
-  noticeMenuTitle: { fontSize: 21, fontWeight: '900', color: '#17223B' },
+  noticeMenuButtons: { width: '100%', marginTop: 24, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  noticeMenuButton: { width: '48.5%', minHeight: 265, paddingHorizontal: 11, paddingVertical: 15, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' },
+  noticeMenuHeading: { alignItems: 'center', justifyContent: 'center', minHeight: 72 },
+  noticeMenuIcon: { fontSize: 26, marginBottom: 5 },
+  noticeMenuTitle: { fontSize: 18, fontWeight: '900', color: '#17223B', textAlign: 'center' },
+  noticePreviewList: { minHeight: 130, marginTop: 10, borderTopWidth: 1, borderTopColor: '#EEEAE1', paddingTop: 8 },
+  noticePreviewRow: { minHeight: 25, justifyContent: 'center' }, noticePreviewTitle: { fontSize: 11, color: '#4A5363', fontWeight: '700' }, noticePreviewEmpty: { marginTop: 12, fontSize: 11, color: '#9A9EA5', textAlign: 'center' }, noticeMoreText: { marginTop: 8, color: '#9A7C43', fontSize: 11, fontWeight: '900', textAlign: 'right' },
   noticeMenuDescription: { marginTop: 6, fontSize: 12, lineHeight: 18, color: '#747C86', textAlign: 'center' },
   noticeListScreen: { flex: 1, paddingTop: 18 },
   noticeListHeader: { paddingHorizontal: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -1580,6 +1688,7 @@ const styles = StyleSheet.create({
   noticeHeaderSpacer: { width: 82 },
   writePostButton: { width: 82, paddingVertical: 9, borderRadius: 11, backgroundColor: '#17223B', alignItems: 'center' }, writePostButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
   noticeListContent: { paddingHorizontal: 22, paddingBottom: 100 }, noticeMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 }, noticeErrorText: { color: '#A24A4A', textAlign: 'center', fontWeight: '700' },
+  noticeDetailScreen: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 100 }, noticeTitleRow: { minHeight: 58, marginBottom: 8, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC', flexDirection: 'row', alignItems: 'center' }, noticeTitleRowText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#283245' }, noticeTitleArrow: { marginLeft: 8, color: '#9A7C43', fontSize: 24, fontWeight: '700' },
   noticeEmptyCard: { marginTop: 22, padding: 24, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center' }, noticeEmptyTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' },
   noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
@@ -1593,6 +1702,7 @@ const styles = StyleSheet.create({
   importBibleButtonDisabled: { opacity: 0.55 },
   importBibleButtonText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
   privateImportNotice: { marginTop: 11, fontSize: 11, lineHeight: 17, color: '#8A8170', textAlign: 'center' },
+  registeredTranslationsButton: { minHeight: 52, marginTop: 12, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#EAE8E1', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, registeredTranslationsButtonText: { color: '#303B52', fontSize: 14, fontWeight: '900' }, registeredTranslationsArrow: { color: '#777E88', fontSize: 12, fontWeight: '900' },
   importedList: { marginTop: 24 },
   importedBibleRow: { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 9, backgroundColor: '#FFF', borderRadius: 15, borderWidth: 1, borderColor: '#E7E2D8', flexDirection: 'row', alignItems: 'center' },
   importedBibleInfo: { flex: 1 },
@@ -1600,7 +1710,7 @@ const styles = StyleSheet.create({
   importedBibleMeta: { marginTop: 4, fontSize: 11, color: '#7A7F87', fontWeight: '700' },
   importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
-  adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' },
+  adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   postEditorCard: { width: '100%', minHeight: '62%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   adminModalTitle: { fontSize: 22, fontWeight: '900', color: '#17223B', marginBottom: 8 }, adminModalDescription: { fontSize: 13, lineHeight: 19, color: '#747C86', marginBottom: 14 },
