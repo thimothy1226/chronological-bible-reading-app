@@ -829,12 +829,8 @@ export default function App() {
           </View>
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
-            <View style={styles.homologiaGuide}>
-              <Text style={styles.homologiaGuideText}>이 고백기도문의 유포, 활용 방법에 대한{"\n"}질문이 있으시면 언제든지 문의하십시오.</Text>
-              <Text style={styles.homologiaContacts}>한상열 목사  010-5900-3007{"\n"}이창현 목사  010-3002-3007</Text>
-              <Text style={styles.homologiaGuideText}>새신자이거나 호물로기아를 처음 접하신 분은{"\n"}호물로기아 설명을 먼저 정독하고{"\n"}호물로기아 1부터 시작하십시오.</Text>
-              <Text style={styles.homologiaGuideText}>하나님의 자녀들과 교회들을 축복하고{"\n"}중보하는 일에 동참하시기 원하시면,{"\n"}매일 율로기아를 선포하십시오.</Text>
-            </View>
+            <Text style={styles.homologiaTitle}>GF호물로기아</Text>
+            <Text style={styles.homologiaSubtitle}>원하는 메뉴를 선택해 주세요.</Text>
             <View style={styles.homologiaGrid}>
               {HOMOLOGIA_MENUS.map((menu) => (
                 <TouchableOpacity
@@ -1051,13 +1047,12 @@ const styles = StyleSheet.create({
   placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
-  homologiaScreen: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
-  homologiaGuide: { width: '100%', alignItems: 'center', marginBottom: 12 },
-  homologiaGuideText: { width: '100%', color: '#66560B', fontSize: 16, lineHeight: 25, fontWeight: '700', textAlign: 'center', marginBottom: 10 },
-  homologiaContacts: { width: '100%', color: '#66560B', fontSize: 17, lineHeight: 27, fontWeight: '800', textAlign: 'center', marginBottom: 11 },
-  homologiaGrid: { width: '88%', alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 9 },
-  homologiaButton: { width: '46%', minHeight: 48, paddingHorizontal: 6, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
-  homologiaButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900', textAlign: 'center' },
+  homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
+  homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' },
+  homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' },
+  homologiaGrid: { width: '100%', alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
+  homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
   progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#E3E0D7', overflow: 'hidden' }, progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#B28A48' },
   card: { backgroundColor: '#FFF', borderRadius: 24, padding: 22, borderWidth: 1, borderColor: '#ECE8DE' }, dayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, dayBadgeText: { color: '#FFF', fontWeight: '900' },
