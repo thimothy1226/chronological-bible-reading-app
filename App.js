@@ -50,11 +50,11 @@ const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 
 const BIBLE_DATA = { KRV: krv };
 
-const friendlyBdfName = (baseName, hasKorean = false) => {
+const friendlyBdfName = (baseName, hasKorean = false, fallbackName = '') => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
   if (hasKorean) {
     if (/kchktv/i.test(compact)) return '바른성경 국한문';
-    if (/kchnkrv/i.test(compact)) return '개역개정 국한문';
+    if (/kchnkrv|hnkrv/i.test(compact)) return '개역개정 국한문';
     if (/kchhrv/i.test(compact)) return '개역한글 국한문';
     if (/hchv/i.test(compact)) return '개역 국한문';
     if (/korktv/i.test(compact) || /^ktv$/i.test(compact)) return '바른성경';
@@ -72,7 +72,7 @@ const friendlyBdfName = (baseName, hasKorean = false) => {
     if (/cath|catholic/i.test(compact)) return '가톨릭성경';
     if (/kmsg|message/i.test(compact)) return '한글 메시지성경';
     if (/[가-힣]/.test(baseName) && !/^한글\s*성경\s*\(/i.test(baseName)) return baseName.trim();
-    return compact.replace(/^한글성경/i, '') || compact || 'BDF';
+    return fallbackName || compact.replace(/^한글성경/i, '') || compact || 'BDF';
   }
   if (/nkjv/i.test(compact)) return 'NKJV';
   return compact || 'BDF 번역본';
@@ -385,7 +385,9 @@ export default function App() {
             loadedBibles[info.id] = bibleData;
             const hasKorean = bibleData.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
             const previousName = String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '');
-            validImported.push({ ...info, name: friendlyBdfName(previousName, hasKorean) });
+            const originalIdentifier = `${info.id || ''} ${info.fileName || ''} ${previousName}`;
+            const cleanedPreviousName = friendlyBdfName(previousName, hasKorean);
+            validImported.push({ ...info, name: friendlyBdfName(originalIdentifier, hasKorean, cleanedPreviousName) });
           } catch (error) {
             console.warn('Imported Bible load failed:', info?.id, error);
           }
