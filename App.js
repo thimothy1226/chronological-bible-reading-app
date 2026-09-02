@@ -11,6 +11,29 @@ import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
+import { initializeApp } from 'firebase/app';
+import {
+  getReactNativePersistence, initializeAuth, onAuthStateChanged,
+  signInWithEmailAndPassword, signOut,
+} from 'firebase/auth';
+import {
+  addDoc, collection, deleteDoc, doc, getFirestore, onSnapshot,
+  serverTimestamp, updateDoc,
+} from 'firebase/firestore';
+
+const firebaseApp = initializeApp({
+  apiKey: 'AIzaSyDjboFxfiXUBNVGiT-ecGhyc5_tH_vpq04',
+  authDomain: 'gfc-bible-reading.firebaseapp.com',
+  projectId: 'gfc-bible-reading',
+  storageBucket: 'gfc-bible-reading.firebasestorage.app',
+  messagingSenderId: '444394059472',
+  appId: '1:444394059472:web:d2eb2dba7a9de7264bd0d5',
+});
+const firebaseAuth = initializeAuth(firebaseApp, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+const firestore = getFirestore(firebaseApp);
+const ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
 const COMPLETIONS_KEY = '@chronological_bible/completions';
@@ -241,12 +264,47 @@ export default function App() {
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
   const [translationPickerOpen, setTranslationPickerOpen] = useState(false);
+  const [noticeCategory, setNoticeCategory] = useState(null);
+  const [communityPosts, setCommunityPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState('');
+  const [adminUser, setAdminUser] = useState(null);
+  const [adminLoginOpen, setAdminLoginOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminBusy, setAdminBusy] = useState(false);
+  const [postEditor, setPostEditor] = useState(null);
+  const [postTitle, setPostTitle] = useState('');
+  const [postBody, setPostBody] = useState('');
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
   const lastScrollY = useRef(0);
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
+
+  const isAdmin = adminUser?.uid === ADMIN_UID;
+
+  useEffect(() => onAuthStateChanged(firebaseAuth, setAdminUser), []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(firestore, 'communityPosts'), (snapshot) => {
+      const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      next.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || 0;
+        const bTime = b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+      setCommunityPosts(next);
+      setPostsError('');
+      setPostsLoading(false);
+    }, (error) => {
+      console.warn('Community posts load failed:', error);
+      setPostsError('게시글을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+      setPostsLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -483,6 +541,89 @@ export default function App() {
     setSelectedVerses([]);
     await saveCurrentPosition();
     setScreen(destination);
+  };
+
+  const loginAsAdmin = async () => {
+    if (!adminEmail.trim() || !adminPassword) {
+      Alert.alert('입력 확인', '관리자 이메일과 비밀번호를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const credential = await signInWithEmailAndPassword(firebaseAuth, adminEmail.trim(), adminPassword);
+      if (credential.user.uid !== ADMIN_UID) {
+        await signOut(firebaseAuth);
+        Alert.alert('권한 없음', '등록된 관리자 계정이 아닙니다.');
+        return;
+      }
+      setAdminPassword('');
+      setAdminLoginOpen(false);
+      Alert.alert('로그인 완료', '이제 GFC 소식과 중보기도 글을 관리할 수 있습니다.');
+    } catch (error) {
+      console.warn('Admin login failed:', error);
+      Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const logoutAdmin = () => {
+    Alert.alert('관리자 로그아웃', '로그아웃하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', onPress: () => signOut(firebaseAuth).catch(() => {}) },
+    ]);
+  };
+
+  const openPostEditor = (post = null) => {
+    setPostTitle(post?.title || '');
+    setPostBody(post?.body || '');
+    setPostEditor(post || { category: noticeCategory });
+  };
+
+  const saveCommunityPost = async () => {
+    if (!isAdmin) return;
+    if (!postTitle.trim() || !postBody.trim()) {
+      Alert.alert('입력 확인', '제목과 내용을 모두 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      if (postEditor?.id) {
+        await updateDoc(doc(firestore, 'communityPosts', postEditor.id), {
+          title: postTitle.trim(), body: postBody.trim(), updatedAt: serverTimestamp(),
+        });
+      } else {
+        await addDoc(collection(firestore, 'communityPosts'), {
+          category: postEditor?.category || noticeCategory,
+          title: postTitle.trim(),
+          body: postBody.trim(),
+          authorUid: adminUser.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      setPostEditor(null);
+      setPostTitle('');
+      setPostBody('');
+    } catch (error) {
+      console.warn('Community post save failed:', error);
+      Alert.alert('저장 실패', '글을 저장하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const removeCommunityPost = (post) => {
+    if (!isAdmin) return;
+    Alert.alert('게시글 삭제', '이 글을 삭제하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제', style: 'destructive', onPress: async () => {
+          try { await deleteDoc(doc(firestore, 'communityPosts', post.id)); }
+          catch { Alert.alert('삭제 실패', '글을 삭제하지 못했습니다.'); }
+        },
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -1104,10 +1245,43 @@ export default function App() {
         </View>
 
         {screen === 'notice' ? (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderTitle}>공지사항</Text>
-            <Text style={styles.placeholderText}>공지사항 메뉴는 앞으로 추가될 예정입니다.</Text>
-          </View>
+          noticeCategory ? (
+            <View style={styles.noticeListScreen}>
+              <View style={styles.noticeListHeader}>
+                <TouchableOpacity onPress={() => setNoticeCategory(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ 공지사항</Text></TouchableOpacity>
+                <Text style={styles.noticeListTitle}>{noticeCategory === 'news' ? 'GFC 소식' : '중보기도'}</Text>
+                {isAdmin ? <TouchableOpacity onPress={() => openPostEditor()} style={styles.writePostButton}><Text style={styles.writePostButtonText}>＋ 글쓰기</Text></TouchableOpacity> : <View style={styles.noticeHeaderSpacer} />}
+              </View>
+              {postsLoading ? <View style={styles.noticeMessage}><Text style={styles.placeholderText}>게시글을 불러오는 중입니다…</Text></View> : postsError ? <View style={styles.noticeMessage}><Text style={styles.noticeErrorText}>{postsError}</Text></View> : (
+                <FlatList
+                  data={communityPosts.filter((post) => post.category === noticeCategory)}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.noticeListContent}
+                  ListEmptyComponent={<View style={styles.noticeEmptyCard}><Text style={styles.noticeEmptyTitle}>아직 등록된 글이 없습니다.</Text><Text style={styles.placeholderText}>{isAdmin ? '오른쪽 위의 글쓰기 버튼으로 첫 글을 등록해 주세요.' : '새로운 글이 등록되면 이곳에 표시됩니다.'}</Text></View>}
+                  renderItem={({ item }) => (
+                    <View style={styles.noticePostCard}>
+                      <Text style={styles.noticePostTitle}>{item.title}</Text>
+                      <Text style={styles.noticePostDate}>{item.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
+                      <Text style={styles.noticePostBody}>{item.body}</Text>
+                      {isAdmin && <View style={styles.noticePostActions}>
+                        <TouchableOpacity onPress={() => openPostEditor(item)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={() => removeCommunityPost(item)} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
+                      </View>}
+                    </View>
+                  )}
+                />
+              )}
+            </View>
+          ) : (
+            <View style={styles.noticeMenuScreen}>
+              <Text style={styles.placeholderTitle}>공지사항</Text>
+              <Text style={styles.placeholderText}>확인할 메뉴를 선택해 주세요.</Text>
+              <View style={styles.noticeMenuButtons}>
+                <TouchableOpacity onPress={() => setNoticeCategory('news')} style={styles.noticeMenuButton}><Text style={styles.noticeMenuIcon}>📢</Text><Text style={styles.noticeMenuTitle}>GFC 소식</Text><Text style={styles.noticeMenuDescription}>교회와 공동체의 새로운 소식을 확인합니다.</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setNoticeCategory('prayer')} style={styles.noticeMenuButton}><Text style={styles.noticeMenuIcon}>🙏</Text><Text style={styles.noticeMenuTitle}>중보기도</Text><Text style={styles.noticeMenuDescription}>함께 기도할 제목을 확인합니다.</Text></TouchableOpacity>
+              </View>
+            </View>
+          )
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
             <Text style={styles.homologiaTitle}>GF호물로기아</Text>
@@ -1152,6 +1326,16 @@ export default function App() {
                 ))}
               </View>
             )}
+            <View style={styles.adminSettingsBlock}>
+              <Text style={styles.settingsSectionTitle}>공지사항 관리자</Text>
+              <View style={styles.settingsCard}>
+                <Text style={styles.settingsCardTitle}>{isAdmin ? '관리자 로그인됨' : '관리자 로그인'}</Text>
+                <Text style={styles.settingsDescription}>{isAdmin ? 'GFC 소식과 중보기도를 작성·수정·삭제할 수 있습니다.' : '지정된 관리자만 로그인하여 공지 글을 작성할 수 있습니다.'}</Text>
+                <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
+                  <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </ScrollView>
         ) : screen === 'today' && displayed ? (
           <View style={styles.content}>
@@ -1266,6 +1450,35 @@ export default function App() {
 
       <TranslationPicker />
 
+      <Modal visible={adminLoginOpen} transparent animationType="fade" onRequestClose={() => setAdminLoginOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>관리자 로그인</Text>
+            <Text style={styles.adminModalDescription}>Firebase에 등록한 관리자 계정으로 로그인하세요.</Text>
+            <TextInput value={adminEmail} onChangeText={setAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="이메일" style={styles.adminInput} />
+            <TextInput value={adminPassword} onChangeText={setAdminPassword} secureTextEntry placeholder="비밀번호" style={styles.adminInput} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => { setAdminPassword(''); setAdminLoginOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={loginAsAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '로그인 중…' : '로그인'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!postEditor} transparent animationType="slide" onRequestClose={() => setPostEditor(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.postEditorCard}>
+            <Text style={styles.adminModalTitle}>{postEditor?.id ? '게시글 수정' : `${postEditor?.category === 'news' ? 'GFC 소식' : '중보기도'} 작성`}</Text>
+            <TextInput value={postTitle} onChangeText={setPostTitle} placeholder="제목" maxLength={100} style={styles.adminInput} />
+            <TextInput value={postBody} onChangeText={setPostBody} placeholder="내용을 입력해 주세요." multiline textAlignVertical="top" style={[styles.adminInput, styles.postBodyInput]} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => setPostEditor(null)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={saveCommunityPost} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '저장 중…' : '저장'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={!!completionModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.celebrateBackdrop}>
           <View style={styles.celebrateCard}>
@@ -1354,6 +1567,22 @@ const styles = StyleSheet.create({
   placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
+  noticeMenuScreen: { flex: 1, paddingHorizontal: 22, paddingTop: 30, alignItems: 'center' },
+  noticeMenuButtons: { width: '100%', marginTop: 28, gap: 14 },
+  noticeMenuButton: { minHeight: 130, padding: 20, borderRadius: 20, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', alignItems: 'center', justifyContent: 'center' },
+  noticeMenuIcon: { fontSize: 29, marginBottom: 8 },
+  noticeMenuTitle: { fontSize: 21, fontWeight: '900', color: '#17223B' },
+  noticeMenuDescription: { marginTop: 6, fontSize: 12, lineHeight: 18, color: '#747C86', textAlign: 'center' },
+  noticeListScreen: { flex: 1, paddingTop: 18 },
+  noticeListHeader: { paddingHorizontal: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  noticeBackButton: { width: 82, paddingVertical: 8 }, noticeBackText: { color: '#9A7C43', fontSize: 13, fontWeight: '900' },
+  noticeListTitle: { flex: 1, textAlign: 'center', fontSize: 21, fontWeight: '900', color: '#17223B' },
+  noticeHeaderSpacer: { width: 82 },
+  writePostButton: { width: 82, paddingVertical: 9, borderRadius: 11, backgroundColor: '#17223B', alignItems: 'center' }, writePostButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
+  noticeListContent: { paddingHorizontal: 22, paddingBottom: 100 }, noticeMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 }, noticeErrorText: { color: '#A24A4A', textAlign: 'center', fontWeight: '700' },
+  noticeEmptyCard: { marginTop: 22, padding: 24, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center' }, noticeEmptyTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' },
+  noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
+  noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
   settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
@@ -1371,6 +1600,12 @@ const styles = StyleSheet.create({
   importedBibleMeta: { marginTop: 4, fontSize: 11, color: '#7A7F87', fontWeight: '700' },
   importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
+  adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' },
+  adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
+  postEditorCard: { width: '100%', minHeight: '62%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
+  adminModalTitle: { fontSize: 22, fontWeight: '900', color: '#17223B', marginBottom: 8 }, adminModalDescription: { fontSize: 13, lineHeight: 19, color: '#747C86', marginBottom: 14 },
+  adminInput: { minHeight: 52, marginTop: 10, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#DED9CE', backgroundColor: '#FFF', color: '#17223B', fontSize: 15 }, postBodyInput: { flex: 1, minHeight: 220 },
+  adminModalActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'flex-end', gap: 9 }, adminCancelButton: { minWidth: 82, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 12, backgroundColor: '#E8E5DE', alignItems: 'center' }, adminCancelText: { color: '#626A75', fontWeight: '900' }, adminLoginButton: { minWidth: 100, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 12, backgroundColor: '#173C70', alignItems: 'center' }, adminLoginText: { color: '#FFF', fontWeight: '900' },
   homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' },
   homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' },
