@@ -50,32 +50,32 @@ const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 
 const BIBLE_DATA = { KRV: krv };
 
-const friendlyBdfName = (baseName, hasKorean = false, fallbackName = '') => {
+const friendlyBdfName = (baseName, hasKorean = false) => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
+  const code = compact.replace(/^CUSTOM/i, '').replace(/JSON$/i, '');
   if (hasKorean) {
-    if (/kchktv/i.test(compact)) return '바른성경 국한문';
-    if (/kchnkrv|hnkrv/i.test(compact)) return '개역개정 국한문';
-    if (/kchhrv/i.test(compact)) return '개역한글 국한문';
-    if (/hchv/i.test(compact)) return '개역 국한문';
-    if (/korktv/i.test(compact) || /^ktv$/i.test(compact)) return '바른성경';
-    if (/nkrv|gaeyukgaejung/i.test(compact)) return '개역개정';
-    if (/hrv|krv|gaeyukhangul/i.test(compact)) return '개역한글';
-    if (/knrsv|kornewstandard|saebeonyeok/i.test(compact)) return '새번역';
-    if (/nkcb|commonrevised/i.test(compact)) return '공동번역 개정판';
-    if (/kcb|commontranslation/i.test(compact)) return '공동번역';
-    if (/kkjv|koreankingjames/i.test(compact)) return '한글킹제임스';
-    if (/hkjv|heumjeong/i.test(compact)) return '킹제임스 흠정역';
-    if (/klb|livingbible/i.test(compact)) return '현대인의 성경';
-    if (/tkv|todaykorean/i.test(compact)) return '현대어성경';
-    if (/dob|woorimal/i.test(compact)) return '우리말성경';
-    if (/easy/i.test(compact)) return '쉬운성경';
-    if (/cath|catholic/i.test(compact)) return '가톨릭성경';
-    if (/kmsg|message/i.test(compact)) return '한글 메시지성경';
+    if (/kchktv/i.test(code)) return '바른성경 국한문';
+    if (/kchnkrv|hnkrv/i.test(code)) return '개역개정 국한문';
+    if (/kchhrv/i.test(code)) return '개역한글 국한문';
+    if (/hchv/i.test(code)) return '개역 국한문';
+    if (/korktv/i.test(code) || /^ktv$/i.test(code)) return '바른성경';
+    if (/nkrv|gaeyukgaejung/i.test(code)) return '개역개정';
+    if (/hrv|krv|gaeyukhangul/i.test(code)) return '개역한글';
+    if (/knrsv|kornewstandard|saebeonyeok/i.test(code)) return '새번역';
+    if (/nkcb|commonrevised/i.test(code)) return '공동번역 개정판';
+    if (/kcb|commontranslation/i.test(code)) return '공동번역';
+    if (/kkjv|koreankingjames/i.test(code)) return '한글킹제임스';
+    if (/hkjv|heumjeong/i.test(code)) return '킹제임스 흠정역';
+    if (/klb|livingbible/i.test(code)) return '현대인의 성경';
+    if (/tkv|todaykorean/i.test(code)) return '현대어성경';
+    if (/dob|woorimal/i.test(code)) return '우리말성경';
+    if (/easy/i.test(code)) return '쉬운성경';
+    if (/cath|catholic/i.test(code)) return '가톨릭성경';
+    if (/kmsg|message/i.test(code)) return '한글 메시지성경';
     if (/[가-힣]/.test(baseName) && !/^한글\s*성경\s*\(/i.test(baseName)) return baseName.trim();
-    return fallbackName || compact.replace(/^한글성경/i, '') || compact || 'BDF';
+    return code || 'BDF';
   }
-  if (/nkjv/i.test(compact)) return 'NKJV';
-  return compact || 'BDF 번역본';
+  return code.replace(/^ENG/i, '').toUpperCase() || 'BDF';
 };
 
 function decodeBdfBytes(bytes) {
@@ -391,9 +391,8 @@ export default function App() {
             loadedBibles[info.id] = bibleData;
             const hasKorean = bibleData.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
             const previousName = String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '');
-            const originalIdentifier = `${info.id || ''} ${info.fileName || ''} ${previousName}`;
-            const cleanedPreviousName = friendlyBdfName(previousName, hasKorean);
-            validImported.push({ ...info, name: friendlyBdfName(originalIdentifier, hasKorean, cleanedPreviousName) });
+            const originalIdentifier = info.id || info.fileName || previousName;
+            validImported.push({ ...info, name: friendlyBdfName(originalIdentifier, hasKorean) });
           } catch (error) {
             console.warn('Imported Bible load failed:', info?.id, error);
           }
