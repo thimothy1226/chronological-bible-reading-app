@@ -57,6 +57,7 @@ const friendlyBdfName = (baseName, hasKorean = false) => {
   if (/nkjv/i.test(compact)) return 'NKJV';
   if (/kkjv/i.test(compact)) return '한글킹제임스';
   if (/hkjv/i.test(compact)) return '킹제임스 흠정역';
+  if (hasKorean && /[가-힣]/.test(baseName)) return baseName.trim();
   if (hasKorean && !/[가-힣]/.test(compact)) return `한글 성경 (${compact})`;
   return compact || 'BDF 번역본';
 };
@@ -364,14 +365,18 @@ export default function App() {
           try {
             const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
             if (!storedFile.exists) continue;
-            loadedBibles[info.id] = JSON.parse(await storedFile.text());
-            validImported.push({ ...info, name: String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '') });
+            const bibleData = JSON.parse(await storedFile.text());
+            loadedBibles[info.id] = bibleData;
+            const hasKorean = bibleData.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
+            const previousName = String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '');
+            validImported.push({ ...info, name: friendlyBdfName(previousName, hasKorean) });
           } catch (error) {
             console.warn('Imported Bible load failed:', info?.id, error);
           }
         }
         setCustomBibles(loadedBibles);
         setCustomTranslations(validImported);
+        await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(validImported));
         const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
         if (bibleSelection) {
           if (bibleSelection.testament) setTestament(bibleSelection.testament);
