@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
+import homologiaData from './assets/homologia.json';
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
 const COMPLETIONS_KEY = '@chronological_bible/completions';
@@ -19,15 +20,15 @@ const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const BIBLE_DATA = { KRV: krv };
 
 const HOMOLOGIA_MENUS = [
-  { title: '호물로기아 설명', color: '#0E5947' },
-  { title: '율로기아', color: '#C61017' },
-  { title: '지혜의 중보기도', color: '#171C4D' },
-  { title: '치유기도', color: '#0E5947' },
-  { title: '호물로기아 1', color: '#0E5947' },
-  { title: '호물로기아 2', color: '#211F72' },
-  { title: '호물로기아 3', color: '#705B08' },
-  { title: '호물로기아 4', color: '#5B2C68' },
-  { title: '이름하기 버전', color: '#0E5947' },
+  { title: '호물로기아 설명', color: '#0E5947', sectionIndex: 0 },
+  { title: '율로기아', color: '#C61017', sectionIndex: 1 },
+  { title: '지혜의 중보기도', color: '#171C4D', sectionIndex: 2 },
+  { title: '치유기도', color: '#0E5947', sectionIndex: 3 },
+  { title: '호물로기아 1', color: '#0E5947', sectionIndex: 4 },
+  { title: '호물로기아 2', color: '#211F72', sectionIndex: 5 },
+  { title: '호물로기아 3', color: '#705B08', sectionIndex: 6 },
+  { title: '호물로기아 4', color: '#5B2C68', sectionIndex: 7 },
+  { title: '이륙하기 버전', color: '#0E5947', sectionIndex: 8 },
 ];
 
 const BOOK_NAME_KO = {
@@ -177,6 +178,8 @@ export default function App() {
   const [noteModal, setNoteModal] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [completionModal, setCompletionModal] = useState(null);
+  const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
+  const [homologiaFontScale, setHomologiaFontScale] = useState(1);
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -400,9 +403,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (Platform.OS !== 'android' || screen !== 'reader') return undefined;
+    if (Platform.OS !== 'android' || !['reader', 'homologiaReader'].includes(screen)) return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
+      if (screen === 'homologiaReader') setScreen('homologia');
+      else closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
       return true;
     });
     return () => subscription.remove();
@@ -581,6 +585,68 @@ export default function App() {
 
   if (!loaded) {
     return <SafeAreaView style={styles.safeArea}><View style={styles.loadingWrap}><Text>일정을 불러오는 중...</Text></View></SafeAreaView>;
+  }
+
+  if (screen === 'homologiaReader' && homologiaSectionIndex !== null) {
+    const section = homologiaData.sections[homologiaSectionIndex];
+    const sectionPages = homologiaData.pages.filter((page) => page.page >= section.startPage && page.page <= section.endPage);
+    const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => Math.min(1.45, Math.max(0.75, Number((value + delta).toFixed(2)))));
+
+    return (
+      <SafeAreaView style={styles.homologiaReaderSafe}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.homologiaReaderHeader}>
+          <TouchableOpacity onPress={() => setScreen('homologia')} style={styles.homologiaBackButton}>
+            <Text style={styles.homologiaBackText}>‹ 목록</Text>
+          </TouchableOpacity>
+          <View style={styles.homologiaReaderHeading}>
+            <Text style={styles.homologiaReaderTitle}>{HOMOLOGIA_MENUS[homologiaSectionIndex]?.title}</Text>
+            <Text style={styles.homologiaPageRange}>PDF {section.startPage}–{section.endPage}쪽</Text>
+          </View>
+          <View style={styles.homologiaFontTools}>
+            <TouchableOpacity onPress={() => changeHomologiaFont(-0.1)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => changeHomologiaFont(0.1)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
+          </View>
+        </View>
+        <FlatList
+          data={sectionPages}
+          keyExtractor={(page) => String(page.page)}
+          contentContainerStyle={styles.homologiaPages}
+          initialNumToRender={2}
+          windowSize={4}
+          renderItem={({ item: page }) => (
+            <View style={styles.homologiaPage}>
+              <Text style={styles.homologiaPageNumber}>{page.page}</Text>
+              {page.blocks.map((block, blockIndex) => (
+                <View
+                  key={`${page.page}-${blockIndex}`}
+                  style={[
+                    styles.homologiaTextBlock,
+                    { marginTop: block.gap || 4 },
+                    block.background && { backgroundColor: block.background, paddingVertical: 9, paddingHorizontal: 10 },
+                  ]}
+                >
+                  <Text style={{ textAlign: block.align || 'left' }}>
+                    {block.spans.map((span, spanIndex) => (
+                      <Text
+                        key={spanIndex}
+                        style={{
+                          color: span.color || '#67530E',
+                          fontSize: Math.round(Math.max(13, Math.min(28, span.size * 1.05)) * homologiaFontScale),
+                          lineHeight: Math.round(Math.max(20, Math.min(40, span.size * 1.55)) * homologiaFontScale),
+                          fontWeight: span.bold ? '900' : '600',
+                          fontStyle: span.italic ? 'italic' : 'normal',
+                        }}
+                      >{span.text}</Text>
+                    ))}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        />
+      </SafeAreaView>
+    );
   }
 
   if (screen === 'reader' && readerContext) {
@@ -773,7 +839,7 @@ export default function App() {
               {HOMOLOGIA_MENUS.map((menu) => (
                 <TouchableOpacity
                   key={menu.title}
-                  onPress={() => Alert.alert(menu.title, '세부 내용은 앞으로 추가될 예정입니다.')}
+                  onPress={() => { setHomologiaSectionIndex(menu.sectionIndex); setScreen('homologiaReader'); }}
                   style={[styles.homologiaButton, { backgroundColor: menu.color }]}
                 >
                   <Text style={styles.homologiaButtonText}>{menu.title}</Text>
@@ -825,10 +891,8 @@ export default function App() {
               <View style={styles.countPill}><Text style={styles.countPillText}>{completedCount}일</Text></View>
             </View>
             <FlatList
-              ref={recordsRef}
-              data={completedRows}
-              onLayout={() => setTimeout(() => recordsRef.current?.scrollToEnd({ animated: false }), 100)}
-              onContentSizeChange={() => recordsRef.current?.scrollToEnd({ animated: false })}
+              inverted
+              data={[...completedRows].reverse()}
               keyExtractor={(i) => String(i.day)}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={<View style={styles.emptyCard}><Text style={styles.emptyText}>아직 완료 기록이 없습니다.</Text></View>}
@@ -1016,6 +1080,20 @@ const styles = StyleSheet.create({
 
   selectionBar: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', gap: 8 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
+  homologiaReaderSafe: { flex: 1, backgroundColor: '#F4F1E9' },
+  homologiaReaderHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
+  homologiaBackButton: { paddingHorizontal: 8, paddingVertical: 10 },
+  homologiaBackText: { color: '#0E5947', fontSize: 15, fontWeight: '900' },
+  homologiaReaderHeading: { flex: 1, alignItems: 'center' },
+  homologiaReaderTitle: { color: '#17223B', fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  homologiaPageRange: { color: '#8A8170', fontSize: 10, fontWeight: '700', marginTop: 2 },
+  homologiaFontTools: { flexDirection: 'row', gap: 5 },
+  homologiaFontButton: { minWidth: 38, paddingHorizontal: 8, paddingVertical: 9, borderRadius: 9, backgroundColor: '#17223B', alignItems: 'center' },
+  homologiaFontButtonText: { color: '#FFF', fontWeight: '900' },
+  homologiaPages: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 70 : 35 },
+  homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
+  homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
+  homologiaTextBlock: { width: '100%', borderRadius: 2 },
   noteModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, postIt: { width: '100%', backgroundColor: '#FFF2A8', borderRadius: 18, padding: 20, elevation: 8 }, postItTitle: { fontSize: 20, fontWeight: '900', color: '#554716' }, postItVerse: { marginTop: 5, marginBottom: 13, color: '#786725', fontWeight: '800' }, noteInput: { minHeight: 170, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.42)', borderRadius: 12, padding: 14, color: '#413913', fontSize: 16, lineHeight: 24 }, noteButtons: { marginTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, noteRightButtons: { flexDirection: 'row', gap: 8 }, noteDelete: { paddingHorizontal: 12, paddingVertical: 10 }, noteDeleteText: { color: '#A04B3C', fontWeight: '900' }, noteCancel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E8D989' }, noteCancelText: { color: '#5A4D1E', fontWeight: '900' }, noteSave: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, backgroundColor: '#17223B' }, noteSaveText: { color: '#FFF', fontWeight: '900' },
 
   celebrateBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center', padding: 20 }, celebrateCard: { width: '100%', backgroundColor: '#FFFEFB', borderRadius: 24, padding: 22, alignItems: 'center' }, confetti: { fontSize: 30, marginBottom: 4 }, celebrateTitle: { fontSize: 30, fontWeight: '900', color: '#17223B', marginBottom: 18 }, celebrateSummary: { width: '100%', backgroundColor: '#FBF7EF', borderWidth: 1, borderColor: '#EADDBE', borderRadius: 18, padding: 18 }, celebrateSmall: { fontSize: 13, fontWeight: '800', color: '#747C86', marginBottom: 8 }, celebrateDayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, celebrateDayText: { color: '#FFF', fontWeight: '900' }, celebrateStage: { fontSize: 16, lineHeight: 23, fontWeight: '900', color: '#8B6B35' }, celebrateDivider: { height: 1, backgroundColor: '#E8DDC6', marginVertical: 14 }, celebrateReading: { fontSize: 23, lineHeight: 32, fontWeight: '900', color: '#17223B' }, celebrateSuccess: { marginTop: 18, fontSize: 19, lineHeight: 28, fontWeight: '900', color: '#17223B', textAlign: 'center' }, finalCongrats: { marginTop: 8, fontSize: 13, lineHeight: 20, color: '#8B6B35', fontWeight: '800', textAlign: 'center' }, celebrateButton: { width: '100%', marginTop: 18, backgroundColor: '#173C70', borderRadius: 14, paddingVertical: 15, alignItems: 'center' }, celebrateButtonText: { color: '#FFF', fontSize: 17, fontWeight: '900' },
