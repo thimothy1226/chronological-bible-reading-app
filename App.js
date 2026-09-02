@@ -52,6 +52,7 @@ const BIBLE_DATA = { KRV: krv };
 
 const friendlyBdfName = (baseName, hasKorean = false) => {
   const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
+  if (/korktv/i.test(compact) || /^ktv$/i.test(compact)) return '바른성경';
   if (/nkrv|gaeyukgaejung/i.test(compact)) return '개역개정';
   if (/krv|gaeyukhangul/i.test(compact)) return '개역한글';
   if (/nkjv/i.test(compact)) return 'NKJV';
@@ -1310,7 +1311,7 @@ export default function App() {
         </View>
 
         <View style={styles.tabs}>
-          <TouchableOpacity onPress={() => setScreen('notice')} style={[styles.tab, screen === 'notice' && styles.tabActive]}><Text style={[styles.tabText, screen === 'notice' && styles.tabTextActive]}>공지사항</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => { setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && styles.tabActive]}><Text style={[styles.tabText, screen === 'notice' && styles.tabTextActive]}>공지사항</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
