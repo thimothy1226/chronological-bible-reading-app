@@ -179,6 +179,7 @@ export default function App() {
   const [completionModal, setCompletionModal] = useState(null);
 
   const readerRef = useRef(null);
+  const recordsRef = useRef(null);
   const lastScrollY = useRef(0);
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
@@ -762,11 +763,11 @@ export default function App() {
           </View>
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
-            <Text style={styles.homologiaTitle}>GF호물로기아</Text>
             <View style={styles.homologiaGuide}>
-              <Text style={styles.homologiaGuideText}>이 고백기도문의 유포, 활용 방법에 대한 질문이 있으시면 언제든지 문의하십시오.</Text>
+              <Text style={styles.homologiaGuideText}>이 고백기도문의 유포, 활용 방법에 대한{"\n"}질문이 있으시면 언제든지 문의하십시오.</Text>
               <Text style={styles.homologiaContacts}>한상열 목사  010-5900-3007{"\n"}이창현 목사  010-3002-3007</Text>
-              <Text style={styles.homologiaGuideText}>새신자이거나 호물로기아를 처음 접하신 분은 호물로기아 설명을 먼저 정독하고 호물로기아 1부터 시작하십시오. 하나님의 자녀들과 교회들을 축복하고 중보하는 일에 동참하시기 원하시면, 매일 율로기아를 선포하십시오.</Text>
+              <Text style={styles.homologiaGuideText}>새신자이거나 호물로기아를 처음 접하신 분은{"\n"}호물로기아 설명을 먼저 정독하고{"\n"}호물로기아 1부터 시작하십시오.</Text>
+              <Text style={styles.homologiaGuideText}>하나님의 자녀들과 교회들을 축복하고{"\n"}중보하는 일에 동참하시기 원하시면,{"\n"}매일 율로기아를 선포하십시오.</Text>
             </View>
             <View style={styles.homologiaGrid}>
               {HOMOLOGIA_MENUS.map((menu) => (
@@ -824,7 +825,10 @@ export default function App() {
               <View style={styles.countPill}><Text style={styles.countPillText}>{completedCount}일</Text></View>
             </View>
             <FlatList
+              ref={recordsRef}
               data={completedRows}
+              onLayout={() => setTimeout(() => recordsRef.current?.scrollToEnd({ animated: false }), 100)}
+              onContentSizeChange={() => recordsRef.current?.scrollToEnd({ animated: false })}
               keyExtractor={(i) => String(i.day)}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={<View style={styles.emptyCard}><Text style={styles.emptyText}>아직 완료 기록이 없습니다.</Text></View>}
@@ -975,7 +979,21 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
-  tabs: { marginHorizontal: 22, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' }, tab: { width: '33.333%', paddingHorizontal: 5, paddingVertical: 9, borderRadius: 11, alignItems: 'center' }, tabActive: { backgroundColor: '#FFF' }, tabTexthomologiaScreen: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 90 }, homologiaTitle: { fontSize: 23, fontWeight: '900', color: '#17223B', marginBottom: 10 }, homologiaGuide: { backgroundColor: '#FFF', borderRadius: 14, padding: 13, marginBottom: 12, borderWidth: 1, borderColor: '#ECE8DE' }, homologiaGuideText: { color: '#66560B', fontSize: 13, lineHeight: 20, fontWeight: '700' }, homologiaContacts: { color: '#66560B', fontSize: 14, lineHeight: 22, fontWeight: '900', textAlign: 'center', marginVertical: 7 }, homologiaGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 }, homologiaButton: { width: '48.5%', minHeight: 50, paddingHorizontal: 7, borderRadius: 3, alignItems: 'center', justifyContent: 'center' }, homologiaButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900', textAlign: 'center' },homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' }, homologiaGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }, homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' }, homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
+  tabs: { marginHorizontal: 22, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
+  tab: { width: '33.333%', paddingHorizontal: 5, paddingVertical: 9, borderRadius: 11, alignItems: 'center' },
+  tabActive: { backgroundColor: '#FFF' },
+  tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13, textAlign: 'center' },
+  tabTextActive: { color: '#17223B' },
+  placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
+  placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
+  placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
+  homologiaScreen: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
+  homologiaGuide: { width: '100%', alignItems: 'center', marginBottom: 12 },
+  homologiaGuideText: { width: '100%', color: '#66560B', fontSize: 16, lineHeight: 25, fontWeight: '700', textAlign: 'center', marginBottom: 10 },
+  homologiaContacts: { width: '100%', color: '#66560B', fontSize: 17, lineHeight: 27, fontWeight: '800', textAlign: 'center', marginBottom: 11 },
+  homologiaGrid: { width: '88%', alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 9 },
+  homologiaButton: { width: '46%', minHeight: 48, paddingHorizontal: 6, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
+  homologiaButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900', textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
   progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#E3E0D7', overflow: 'hidden' }, progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#B28A48' },
   card: { backgroundColor: '#FFF', borderRadius: 24, padding: 22, borderWidth: 1, borderColor: '#ECE8DE' }, dayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, dayBadgeText: { color: '#FFF', fontWeight: '900' },
