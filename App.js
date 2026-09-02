@@ -1605,17 +1605,17 @@ export default function App() {
 
       <Modal visible={!!postEditor} transparent animationType="slide" onRequestClose={() => setPostEditor(null)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
-          <ScrollView style={styles.postEditorScroll} contentContainerStyle={styles.postEditorScrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <View style={styles.postEditorCard}>
+          <View style={styles.postEditorCard}>
             <Text style={styles.adminModalTitle}>{postEditor?.id ? '게시글 수정' : `${postEditor?.category === 'news' ? 'GFC 소식' : '중보기도'} 작성`}</Text>
-            <TextInput value={postTitle} onChangeText={setPostTitle} placeholder="제목" maxLength={100} style={styles.adminInput} />
-            <TextInput value={postBody} onChangeText={setPostBody} placeholder="내용을 입력해 주세요." multiline scrollEnabled textAlignVertical="top" style={[styles.adminInput, styles.postBodyInput]} />
+            <ScrollView style={styles.postEditorFields} contentContainerStyle={styles.postEditorFieldsContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TextInput value={postTitle} onChangeText={setPostTitle} placeholder="제목" maxLength={100} style={styles.adminInput} />
+              <TextInput value={postBody} onChangeText={setPostBody} placeholder="내용을 입력해 주세요." multiline scrollEnabled textAlignVertical="top" style={[styles.adminInput, styles.postBodyInput]} />
+            </ScrollView>
             <View style={styles.adminModalActions}>
               <TouchableOpacity disabled={adminBusy} onPress={() => setPostEditor(null)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
               <TouchableOpacity disabled={adminBusy} onPress={saveCommunityPost} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '저장 중…' : '저장'}</Text></TouchableOpacity>
             </View>
-            </View>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -1748,10 +1748,10 @@ const styles = StyleSheet.create({
   adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   keyboardModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' },
-  postEditorScroll: { flexGrow: 0, maxHeight: '92%' }, postEditorScrollContent: { flexGrow: 1, justifyContent: 'flex-end' },
-  postEditorCard: { width: '100%', minHeight: 430, paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 28 : 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
+  postEditorCard: { width: '100%', height: '78%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 52 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
+  postEditorFields: { flex: 1 }, postEditorFieldsContent: { flexGrow: 1, paddingBottom: 8 },
   adminModalTitle: { fontSize: 22, fontWeight: '900', color: '#17223B', marginBottom: 8 }, adminModalDescription: { fontSize: 13, lineHeight: 19, color: '#747C86', marginBottom: 14 },
-  adminInput: { minHeight: 52, marginTop: 10, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#DED9CE', backgroundColor: '#FFF', color: '#17223B', fontSize: 15 }, postBodyInput: { minHeight: 210, maxHeight: 310 },
+  adminInput: { minHeight: 52, marginTop: 10, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#DED9CE', backgroundColor: '#FFF', color: '#17223B', fontSize: 15 }, postBodyInput: { minHeight: 220, flexGrow: 1 },
   adminModalActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'flex-end', gap: 9 }, adminCancelButton: { minWidth: 82, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 12, backgroundColor: '#E8E5DE', alignItems: 'center' }, adminCancelText: { color: '#626A75', fontWeight: '900' }, adminLoginButton: { minWidth: 100, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 12, backgroundColor: '#173C70', alignItems: 'center' }, adminLoginText: { color: '#FFF', fontWeight: '900' },
   homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' },
