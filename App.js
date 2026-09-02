@@ -746,14 +746,14 @@ export default function App() {
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+        <View style={styles.tabs}>
           <TouchableOpacity onPress={() => setScreen('notice')} style={[styles.tab, screen === 'notice' && styles.tabActive]}><Text style={[styles.tabText, screen === 'notice' && styles.tabTextActive]}>공지사항</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료기록</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>설정</Text></TouchableOpacity>
-        </ScrollView>
+        </View>
 
         {screen === 'notice' ? (
           <View style={styles.placeholderScreen}>
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
-  tabs: { marginHorizontal: 22, flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' }, tab: { minWidth: 88, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 11, alignItems: 'center' }, tabActive: { backgroundColor: '#FFF' }, tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13 }, tabTextActive: { color: '#17223B' },
+  tabs: { marginHorizontal: 22, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' }, tab: { width: '33.333%', paddingHorizontal: 5, paddingVertical: 9, borderRadius: 11, alignItems: 'center' }, tabActive: { backgroundColor: '#FFF' }, tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13 }, tabTextActive: { color: '#17223B' },
   placeholderScreen: { flex: 1, margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }, placeholderTitle: { fontSize: 25, fontWeight: '900', color: '#17223B' }, placeholderText: { marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
   homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 50 }, homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' }, homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' }, homologiaGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }, homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' }, homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
