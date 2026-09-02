@@ -203,11 +203,11 @@ export default function App() {
         setCompletions(migrated);
         setTranslationId(saved[TRANSLATION_KEY] || 'KRV');
         const f = Number(saved[FONT_SIZE_KEY] || 19);
-        setFontSize(Number.isFinite(f) ? Math.min(30, Math.max(15, f)) : 19);
+        setFontSize(Number.isFinite(f) ? Math.min(48, Math.max(15, f)) : 19);
         setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
-        setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(1.45, Math.max(0.75, homologiaScale)) : 1);
+        setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
         const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
         if (bibleSelection) {
           if (bibleSelection.testament) setTestament(bibleSelection.testament);
@@ -559,7 +559,7 @@ export default function App() {
   };
 
   const changeFont = async (delta) => {
-    const next = Math.min(30, Math.max(15, fontSize + delta));
+    const next = Math.min(48, Math.max(15, fontSize + delta));
     setFontSize(next);
     await AsyncStorage.setItem(FONT_SIZE_KEY, String(next));
   };
@@ -632,7 +632,7 @@ export default function App() {
     }, []);
 
     const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => {
-      const next = Math.min(1.45, Math.max(0.75, Number((value + delta).toFixed(2))));
+      const next = Math.min(4, Math.max(0.75, Number((value + delta).toFixed(2))));
       AsyncStorage.setItem(HOMOLOGIA_FONT_SCALE_KEY, String(next))
         .catch((error) => console.warn('Homologia font size save failed:', error));
       return next;
@@ -662,8 +662,8 @@ export default function App() {
             <Text style={styles.homologiaPageRange}>원본 구성 · 글자 보기</Text>
           </View>
           <View style={styles.homologiaFontTools}>
-            <TouchableOpacity onPress={() => changeHomologiaFont(-0.1)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => changeHomologiaFont(0.1)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => changeHomologiaFont(-0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => changeHomologiaFont(0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
           </View>
         </View>
         <FlatList
