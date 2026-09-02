@@ -186,6 +186,12 @@ const formatKoreanDateTime = (date = new Date()) => {
   }
 };
 
+const formatPostDate = (timestamp) => {
+  const date = timestamp?.toDate?.();
+  if (!date) return '';
+  return `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+};
+
 function normalizeBooks(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.books)) return data.books;
@@ -1370,6 +1376,7 @@ export default function App() {
                   renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => setSelectedNoticePost(item)} style={styles.noticeTitleRow}>
                       <Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticeTitleRowText}>{item.title}</Text>
+                      <Text style={styles.noticeTitleRowDate}>{formatPostDate(item.createdAt)}</Text>
                       <Text style={styles.noticeTitleArrow}>›</Text>
                     </TouchableOpacity>
                   )}
@@ -1388,7 +1395,7 @@ export default function App() {
                       <Text style={styles.noticeMenuIcon}>{menu.icon}</Text><Text style={styles.noticeMenuTitle}>{menu.title}</Text>
                     </TouchableOpacity>
                     <View style={styles.noticePreviewList}>
-                      {previewPosts.length ? previewPosts.map((post) => <TouchableOpacity key={post.id} onPress={() => { setNoticeCategory(menu.key); setSelectedNoticePost(post); }} style={styles.noticePreviewRow}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticePreviewTitle}>• {post.title}</Text></TouchableOpacity>) : <Text style={styles.noticePreviewEmpty}>등록된 글이 없습니다.</Text>}
+                      {previewPosts.length ? previewPosts.map((post) => <TouchableOpacity key={post.id} onPress={() => { setNoticeCategory(menu.key); setSelectedNoticePost(post); }} style={styles.noticePreviewRow}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticePreviewTitle}>• {post.title}</Text><Text style={styles.noticePreviewDate}>{formatPostDate(post.createdAt)}</Text></TouchableOpacity>) : <Text style={styles.noticePreviewEmpty}>등록된 글이 없습니다.</Text>}
                     </View>
                     <TouchableOpacity onPress={() => setNoticeCategory(menu.key)}><Text style={styles.noticeMoreText}>전체보기 ›</Text></TouchableOpacity>
                   </View>;
@@ -1706,7 +1713,7 @@ const styles = StyleSheet.create({
   noticeMenuIcon: { fontSize: 26, marginBottom: 5 },
   noticeMenuTitle: { fontSize: 18, fontWeight: '900', color: '#17223B', textAlign: 'center' },
   noticePreviewList: { minHeight: 130, marginTop: 10, borderTopWidth: 1, borderTopColor: '#EEEAE1', paddingTop: 8 },
-  noticePreviewRow: { minHeight: 25, justifyContent: 'center' }, noticePreviewTitle: { fontSize: 11, color: '#4A5363', fontWeight: '700' }, noticePreviewEmpty: { marginTop: 12, fontSize: 11, color: '#9A9EA5', textAlign: 'center' }, noticeMoreText: { marginTop: 8, color: '#9A7C43', fontSize: 11, fontWeight: '900', textAlign: 'right' },
+  noticePreviewRow: { minHeight: 25, flexDirection: 'row', alignItems: 'center' }, noticePreviewTitle: { flex: 1, fontSize: 11, color: '#4A5363', fontWeight: '700' }, noticePreviewDate: { marginLeft: 4, fontSize: 9, color: '#9A9EA5', fontWeight: '700' }, noticePreviewEmpty: { marginTop: 12, fontSize: 11, color: '#9A9EA5', textAlign: 'center' }, noticeMoreText: { marginTop: 8, color: '#9A7C43', fontSize: 11, fontWeight: '900', textAlign: 'right' },
   noticeMenuDescription: { marginTop: 6, fontSize: 12, lineHeight: 18, color: '#747C86', textAlign: 'center' },
   noticeListScreen: { flex: 1, paddingTop: 18 },
   noticeListHeader: { paddingHorizontal: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -1715,7 +1722,7 @@ const styles = StyleSheet.create({
   noticeHeaderSpacer: { width: 82 },
   writePostButton: { width: 82, paddingVertical: 9, borderRadius: 11, backgroundColor: '#17223B', alignItems: 'center' }, writePostButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
   noticeListContent: { paddingHorizontal: 22, paddingBottom: 100 }, noticeMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 }, noticeErrorText: { color: '#A24A4A', textAlign: 'center', fontWeight: '700' },
-  noticeDetailScreen: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 100 }, noticeTitleRow: { minHeight: 58, marginBottom: 8, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC', flexDirection: 'row', alignItems: 'center' }, noticeTitleRowText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#283245' }, noticeTitleArrow: { marginLeft: 8, color: '#9A7C43', fontSize: 24, fontWeight: '700' },
+  noticeDetailScreen: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 100 }, noticeTitleRow: { minHeight: 58, marginBottom: 8, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC', flexDirection: 'row', alignItems: 'center' }, noticeTitleRowText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#283245' }, noticeTitleRowDate: { marginLeft: 8, fontSize: 11, color: '#8D929A', fontWeight: '700' }, noticeTitleArrow: { marginLeft: 8, color: '#9A7C43', fontSize: 24, fontWeight: '700' },
   noticeEmptyCard: { marginTop: 22, padding: 24, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center' }, noticeEmptyTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' },
   noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
