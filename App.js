@@ -589,7 +589,33 @@ export default function App() {
 
   if (screen === 'homologiaReader' && homologiaSectionIndex !== null) {
     const section = homologiaData.sections[homologiaSectionIndex];
-    const sectionPages = homologiaData.pages.filter((page) => page.page >= section.startPage && page.page <= section.endPage);
+    const sourceBlocks = homologiaData.pages
+      .filter((page) => page.page >= section.startPage && page.page <= section.endPage)
+      .flatMap((page) => page.blocks);
+
+    const blockText = (block) => block.spans.map((span) => span.text).join('').trim();
+    const sectionBlocks = sourceBlocks.reduce((flow, block) => {
+      const previous = flow[flow.length - 1];
+      const previousText = previous ? blockText(previous) : '';
+      const currentText = blockText(block);
+      const previousIsBody = previous && !previous.background && previous.align === 'left' && (previous.baseSize || 28) <= 28.5;
+      const currentIsBody = !block.background && block.align === 'left' && (block.baseSize || 28) <= 28.5;
+      const sentenceContinues = previousText && !/[.!?。！？…]["'”’）)\]]*$/.test(previousText);
+      const similarSize = previous && Math.abs((previous.baseSize || 28) - (block.baseSize || 28)) <= 2;
+
+      if (previousIsBody && currentIsBody && sentenceContinues && similarSize) {
+        const joinStyle = block.spans[0] || previous.spans[previous.spans.length - 1];
+        previous.spans = [
+          ...previous.spans,
+          { ...joinStyle, text: ' ' },
+          ...block.spans,
+        ];
+        return flow;
+      }
+      flow.push({ ...block, spans: [...block.spans] });
+      return flow;
+    }, []);
+
     const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => Math.min(1.45, Math.max(0.75, Number((value + delta).toFixed(2)))));
 
     return (
@@ -601,7 +627,7 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.homologiaReaderHeading}>
             <Text style={styles.homologiaReaderTitle}>{HOMOLOGIA_MENUS[homologiaSectionIndex]?.title}</Text>
-            <Text style={styles.homologiaPageRange}>PDF {section.startPage}–{section.endPage}쪽</Text>
+            <Text style={styles.homologiaPageRange}>원본 구성 · 글자 보기</Text>
           </View>
           <View style={styles.homologiaFontTools}>
             <TouchableOpacity onPress={() => changeHomologiaFont(-0.1)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
@@ -609,50 +635,38 @@ export default function App() {
           </View>
         </View>
         <FlatList
-          data={sectionPages}
-          keyExtractor={(page) => String(page.page)}
+          data={sectionBlocks}
+          keyExtractor={(_, index) => String(index)}
           contentContainerStyle={styles.homologiaPages}
-          initialNumToRender={2}
-          windowSize={4}
-          renderItem={({ item: page }) => (
-            <View style={styles.homologiaPage}>
-              <Text style={styles.homologiaPageNumber}>{page.page}</Text>
-              {page.blocks.map((block, blockIndex) => {
-                const baseFontSize = Math.round(Math.max(13, Math.min(28, block.baseSize || 15)) * homologiaFontScale);
-                const blockLineHeight = Math.round(baseFontSize * 1.58);
-                return (
-                  <View
-                    key={`${page.page}-${blockIndex}`}
-                    style={[
-                      styles.homologiaTextBlock,
-                      { marginTop: block.gap || 4, paddingLeft: block.indent || 0 },
-                      block.background && { backgroundColor: block.background, paddingVertical: 9, paddingHorizontal: 10 },
-                    ]}
-                  >
+          initialNumToRender={12}
+          windowSize={7}
+          renderItem={({ item: block }) => {
+            const baseFontSize = Math.round(Math.max(12, Math.min(30, (block.baseSize || 28) * 0.62)) * homologiaFontScale);
+            const blockLineHeight = Math.round(baseFontSize * 1.62);
+            return (
+              <View
+                style={[
+                  styles.homologiaTextBlock,
+                  { marginTop: block.gap || 5, paddingLeft: block.indent || 0 },
+                  block.background && { backgroundColor: block.background, paddingVertical: 10, paddingHorizontal: 10 },
+                ]}
+              >
+                <Text style={{ textAlign: block.align || 'left', fontSize: baseFontSize, lineHeight: blockLineHeight }}>
+                  {block.spans.map((span, spanIndex) => (
                     <Text
+                      key={spanIndex}
                       style={{
-                        textAlign: block.align || 'left',
-                        fontSize: baseFontSize,
-                        lineHeight: blockLineHeight,
+                        color: span.color || '#67530E',
+                        fontSize: Math.round(Math.max(12, Math.min(30, (span.size || block.baseSize || 28) * 0.62)) * homologiaFontScale),
+                        fontWeight: span.bold ? '900' : '600',
+                        fontStyle: span.italic ? 'italic' : 'normal',
                       }}
-                    >
-                      {block.spans.map((span, spanIndex) => (
-                        <Text
-                          key={spanIndex}
-                          style={{
-                            color: span.color || '#67530E',
-                            fontSize: Math.round(Math.max(13, Math.min(28, span.size || block.baseSize || 15)) * homologiaFontScale),
-                            fontWeight: span.bold ? '900' : '600',
-                            fontStyle: span.italic ? 'italic' : 'normal',
-                          }}
-                        >{span.text}</Text>
-                      ))}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
+                    >{span.text}</Text>
+                  ))}
+                </Text>
+              </View>
+            );
+          }}
         />
       </SafeAreaView>
     );
@@ -1094,7 +1108,7 @@ const styles = StyleSheet.create({
   homologiaFontTools: { flexDirection: 'row', gap: 5 },
   homologiaFontButton: { minWidth: 38, paddingHorizontal: 8, paddingVertical: 9, borderRadius: 9, backgroundColor: '#17223B', alignItems: 'center' },
   homologiaFontButtonText: { color: '#FFF', fontWeight: '900' },
-  homologiaPages: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 70 : 35 },
+  homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
   homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
   homologiaTextBlock: { width: '100%', borderRadius: 2 },
