@@ -617,31 +617,40 @@ export default function App() {
           renderItem={({ item: page }) => (
             <View style={styles.homologiaPage}>
               <Text style={styles.homologiaPageNumber}>{page.page}</Text>
-              {page.blocks.map((block, blockIndex) => (
-                <View
-                  key={`${page.page}-${blockIndex}`}
-                  style={[
-                    styles.homologiaTextBlock,
-                    { marginTop: block.gap || 4 },
-                    block.background && { backgroundColor: block.background, paddingVertical: 9, paddingHorizontal: 10 },
-                  ]}
-                >
-                  <Text style={{ textAlign: block.align || 'left' }}>
-                    {block.spans.map((span, spanIndex) => (
-                      <Text
-                        key={spanIndex}
-                        style={{
-                          color: span.color || '#67530E',
-                          fontSize: Math.round(Math.max(13, Math.min(28, span.size * 1.05)) * homologiaFontScale),
-                          lineHeight: Math.round(Math.max(20, Math.min(40, span.size * 1.55)) * homologiaFontScale),
-                          fontWeight: span.bold ? '900' : '600',
-                          fontStyle: span.italic ? 'italic' : 'normal',
-                        }}
-                      >{span.text}</Text>
-                    ))}
-                  </Text>
-                </View>
-              ))}
+              {page.blocks.map((block, blockIndex) => {
+                const baseFontSize = Math.round(Math.max(13, Math.min(28, block.baseSize || 15)) * homologiaFontScale);
+                const blockLineHeight = Math.round(baseFontSize * 1.58);
+                return (
+                  <View
+                    key={`${page.page}-${blockIndex}`}
+                    style={[
+                      styles.homologiaTextBlock,
+                      { marginTop: block.gap || 4, paddingLeft: block.indent || 0 },
+                      block.background && { backgroundColor: block.background, paddingVertical: 9, paddingHorizontal: 10 },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        textAlign: block.align || 'left',
+                        fontSize: baseFontSize,
+                        lineHeight: blockLineHeight,
+                      }}
+                    >
+                      {block.spans.map((span, spanIndex) => (
+                        <Text
+                          key={spanIndex}
+                          style={{
+                            color: span.color || '#67530E',
+                            fontSize: Math.round(Math.max(13, Math.min(28, span.size || block.baseSize || 15)) * homologiaFontScale),
+                            fontWeight: span.bold ? '900' : '600',
+                            fontStyle: span.italic ? 'italic' : 'normal',
+                          }}
+                        >{span.text}</Text>
+                      ))}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         />
