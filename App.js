@@ -16,6 +16,7 @@ const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
+const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 
 const BIBLE_DATA = { KRV: krv };
 
@@ -191,7 +192,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -205,6 +206,8 @@ export default function App() {
         setFontSize(Number.isFinite(f) ? Math.min(30, Math.max(15, f)) : 19);
         setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
+        const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
+        setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(1.45, Math.max(0.75, homologiaScale)) : 1);
         const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
         if (bibleSelection) {
           if (bibleSelection.testament) setTestament(bibleSelection.testament);
@@ -591,7 +594,19 @@ export default function App() {
     const section = homologiaData.sections[homologiaSectionIndex];
     const sourceBlocks = homologiaData.pages
       .filter((page) => page.page >= section.startPage && page.page <= section.endPage)
-      .flatMap((page) => page.blocks);
+      .flatMap((page) => page.blocks.map((block, blockIndex) => ({
+        ...block,
+        spans: block.spans.filter((span, spanIndex) => !(
+          blockIndex === 0
+          && spanIndex === 0
+          && Number(span.size) <= 12
+          && span.text.trim() === String(page.page)
+        )),
+      })))
+      .filter((block) => {
+        const text = block.spans.map((span) => span.text).join('').trim();
+        return text && !text.includes('책 처음으로 이동');
+      });
 
     const blockText = (block) => block.spans.map((span) => span.text).join('').trim();
     const sectionBlocks = sourceBlocks.reduce((flow, block) => {
@@ -612,11 +627,28 @@ export default function App() {
         ];
         return flow;
       }
-      flow.push({ ...block, spans: [...block.spans] });
+      flow.push({ ...block, spans: [...block.spans], paragraphBreak: flow.length > 0 });
       return flow;
     }, []);
 
-    const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => Math.min(1.45, Math.max(0.75, Number((value + delta).toFixed(2)))));
+    const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => {
+      const next = Math.min(1.45, Math.max(0.75, Number((value + delta).toFixed(2))));
+      AsyncStorage.setItem(HOMOLOGIA_FONT_SCALE_KEY, String(next))
+        .catch((error) => console.warn('Homologia font size save failed:', error));
+      return next;
+    });
+
+    const formatSentenceText = (spans, spanIndex) => {
+      const text = spans[spanIndex]?.text || '';
+      const formatted = text
+        .replace(/([.!?。！？…]+["'”’）)\]]*)[ \t]+/g, '$1\n')
+        .replace(/\n{3,}/g, '\n\n');
+      const hasFollowingText = spans.slice(spanIndex + 1).some((span) => span.text.trim());
+      if (hasFollowingText && /[.!?。！？…]+["'”’）)\]]*[ \t]*$/.test(formatted) && !formatted.endsWith('\n')) {
+        return `${formatted.trimEnd()}\n`;
+      }
+      return formatted;
+    };
 
     return (
       <SafeAreaView style={styles.homologiaReaderSafe}>
@@ -647,7 +679,10 @@ export default function App() {
               <View
                 style={[
                   styles.homologiaTextBlock,
-                  { marginTop: block.gap || 5, paddingLeft: block.indent || 0 },
+                  {
+                    marginTop: block.paragraphBreak ? Math.max(block.gap || 5, Math.round(baseFontSize * 0.8)) : (block.gap || 5),
+                    paddingLeft: block.indent || 0,
+                  },
                   block.background && { backgroundColor: block.background, paddingVertical: 10, paddingHorizontal: 10 },
                 ]}
               >
@@ -661,7 +696,7 @@ export default function App() {
                         fontWeight: span.bold ? '900' : '600',
                         fontStyle: span.italic ? 'italic' : 'normal',
                       }}
-                    >{span.text}</Text>
+                    >{formatSentenceText(block.spans, spanIndex)}</Text>
                   ))}
                 </Text>
               </View>
