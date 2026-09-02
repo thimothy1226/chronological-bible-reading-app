@@ -4,6 +4,9 @@ import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Directory, File, Paths } from 'expo-file-system';
+import { Buffer } from 'buffer';
+import iconv from 'iconv-lite';
 import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
@@ -17,8 +20,61 @@ const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
+const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 
 const BIBLE_DATA = { KRV: krv };
+
+const friendlyBdfName = (baseName) => {
+  const compact = baseName.replace(/[^a-zA-Z0-9가-힣]/g, '');
+  if (/nkjv/i.test(compact)) return 'NKJV (개인 파일)';
+  if (/kkjv/i.test(compact)) return '한글킹제임스 (개인 파일)';
+  if (/hkjv/i.test(compact)) return '킹제임스 흠정역 (개인 파일)';
+  return `${compact || 'BDF 번역본'} (개인 파일)`;
+};
+
+function decodeBdfBytes(bytes) {
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return Buffer.from(bytes).toString('utf8');
+  }
+  return iconv.decode(Buffer.from(bytes), 'cp949');
+}
+
+function parseBdfFiles(files) {
+  const booksByNumber = new Map();
+  let verseCount = 0;
+  files.forEach(({ text }) => {
+    text.split(/\r?\n/).forEach((line) => {
+      const match = line.match(/^(\d+).*?\s+(\d+):(\d+)\s+(.+)$/);
+      if (!match) return;
+      const bookNumber = Number(match[1]);
+      const chapterNumber = Number(match[2]);
+      const verseNumber = Number(match[3]);
+      const body = match[4].trim();
+      const meta = BIBLE_BOOKS[bookNumber - 1];
+      if (!meta || !body) return;
+      if (!booksByNumber.has(bookNumber)) {
+        booksByNumber.set(bookNumber, { book: meta.book, koreanTitle: meta.ko, chapters: new Map() });
+      }
+      const book = booksByNumber.get(bookNumber);
+      if (!book.chapters.has(chapterNumber)) book.chapters.set(chapterNumber, []);
+      const verses = book.chapters.get(chapterNumber);
+      const existing = verses.findIndex((verse) => verse.verse === verseNumber);
+      const verse = { verse: verseNumber, text: body };
+      if (existing >= 0) verses[existing] = verse;
+      else verses.push(verse);
+      verseCount += 1;
+    });
+  });
+  const books = [...booksByNumber.entries()].sort((a, b) => a[0] - b[0]).map(([, book]) => ({
+    book: book.book,
+    koreanTitle: book.koreanTitle,
+    chapters: [...book.chapters.entries()].sort((a, b) => a[0] - b[0]).map(([chapter, verses]) => ({
+      chapter,
+      verses: verses.sort((a, b) => a.verse - b.verse),
+    })),
+  }));
+  return { books, verseCount };
+}
 
 const HOMOLOGIA_MENUS = [
   { title: '호물로기아 설명', color: '#0E5947', sectionIndex: 0 },
@@ -181,6 +237,9 @@ export default function App() {
   const [completionModal, setCompletionModal] = useState(null);
   const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
   const [homologiaFontScale, setHomologiaFontScale] = useState(1);
+  const [customBibles, setCustomBibles] = useState({});
+  const [customTranslations, setCustomTranslations] = useState([]);
+  const [importingBible, setImportingBible] = useState(false);
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -192,7 +251,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, CUSTOM_TRANSLATIONS_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -208,6 +267,21 @@ export default function App() {
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
         setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
+        const imported = safeParseJson(saved[CUSTOM_TRANSLATIONS_KEY], []);
+        const loadedBibles = {};
+        const validImported = [];
+        for (const info of Array.isArray(imported) ? imported : []) {
+          try {
+            const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
+            if (!storedFile.exists) continue;
+            loadedBibles[info.id] = JSON.parse(await storedFile.text());
+            validImported.push(info);
+          } catch (error) {
+            console.warn('Imported Bible load failed:', info?.id, error);
+          }
+        }
+        setCustomBibles(loadedBibles);
+        setCustomTranslations(validImported);
         const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
         if (bibleSelection) {
           if (bibleSelection.testament) setTestament(bibleSelection.testament);
@@ -228,7 +302,12 @@ export default function App() {
   const displayed = schedule[displayDay - 1];
   const completedCount = Object.values(completions).filter((x) => x?.active).length;
   const progress = completedCount / schedule.length;
-  const selectedTranslation = translations.find((t) => t.id === translationId) || translations[0];
+  const availableTranslations = useMemo(() => [
+    ...translations,
+    ...customTranslations.map((item) => ({ ...item, enabled: true })),
+  ], [customTranslations]);
+  const allBibleData = useMemo(() => ({ ...BIBLE_DATA, ...customBibles }), [customBibles]);
+  const selectedTranslation = availableTranslations.find((t) => t.id === translationId) || availableTranslations[0];
 
   const completedRows = useMemo(() => (
     schedule
@@ -237,11 +316,11 @@ export default function App() {
       .sort((a, b) => a.day - b.day)
   ), [completions]);
 
-  const bibleBooks = useMemo(() => normalizeBooks(BIBLE_DATA[translationId]), [translationId]);
+  const bibleBooks = useMemo(() => normalizeBooks(allBibleData[translationId]), [allBibleData, translationId]);
   const canonicalBooks = useMemo(() => BIBLE_BOOKS.map((meta) => ({
     ...meta,
-    data: getBook(BIBLE_DATA[translationId], meta.book, meta.ko),
-  })).filter((x) => x.data), [translationId]);
+    data: getBook(allBibleData[translationId], meta.book, meta.ko),
+  })).filter((x) => x.data), [allBibleData, translationId]);
   const testamentBooks = canonicalBooks.filter((x) => x.testament === testament);
   const selectedBookMeta = canonicalBooks.find((x) => x.book === selectedBookKey) || canonicalBooks[0];
   const selectedBook = selectedBookMeta?.data;
@@ -275,7 +354,7 @@ export default function App() {
 
   const readerSections = useMemo(() => {
     if (!readerContext) return [];
-    const data = BIBLE_DATA[translationId];
+    const data = allBibleData[translationId];
     if (readerContext.type === 'day') {
       const item = schedule[readerContext.day - 1];
       return (item?.passages || []).map((p) => ({
@@ -300,7 +379,7 @@ export default function App() {
       },
       verses,
     }];
-  }, [readerContext, translationId]);
+  }, [readerContext, translationId, allBibleData]);
 
   const readerTitle = useMemo(() => {
     if (!readerContext) return '';
@@ -565,7 +644,7 @@ export default function App() {
   };
 
   const cycleTranslation = async () => {
-    const enabled = translations.filter((t) => t.enabled);
+    const enabled = availableTranslations.filter((t) => t.enabled);
     if (enabled.length <= 1) {
       Alert.alert('번역본 선택', '현재는 개역한글만 설치되어 있습니다. 추후 번역본을 추가하면 이 버튼에서 선택할 수 있습니다.');
       return;
@@ -574,6 +653,91 @@ export default function App() {
     const next = enabled[(idx + 1) % enabled.length];
     setTranslationId(next.id);
     await AsyncStorage.setItem(TRANSLATION_KEY, next.id);
+  };
+
+  const importBibleFolder = async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('안내', '현재 BDF 폴더 등록은 안드로이드에서 사용할 수 있습니다.');
+      return;
+    }
+    setImportingBible(true);
+    try {
+      const selectedDirectory = await Directory.pickDirectoryAsync();
+      if (!selectedDirectory) return;
+      const bdfFiles = selectedDirectory.list().filter((item) => item.name?.toLowerCase().endsWith('.bdf'));
+      if (!bdfFiles.length) {
+        Alert.alert('BDF 파일 없음', '선택한 폴더에서 .bdf 파일을 찾지 못했습니다.');
+        return;
+      }
+
+      const groups = new Map();
+      for (const file of bdfFiles) {
+        const base = file.name.replace(/\.bdf$/i, '').replace(/\d+$/, '') || file.name.replace(/\.bdf$/i, '');
+        if (!groups.has(base)) groups.set(base, []);
+        groups.get(base).push({ name: file.name, text: decodeBdfBytes(await file.bytes()) });
+      }
+
+      const importsDirectory = new Directory(Paths.document, 'bible-imports');
+      importsDirectory.create({ idempotent: true, intermediates: true });
+      const nextBibles = { ...customBibles };
+      let nextTranslations = [...customTranslations];
+      const summaries = [];
+
+      for (const [base, files] of groups.entries()) {
+        files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        const parsed = parseBdfFiles(files);
+        if (!parsed.books.length) continue;
+        const id = `CUSTOM_${base.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
+        const fileName = `${id}.json`;
+        const storedFile = new File(importsDirectory, fileName);
+        storedFile.create({ overwrite: true, intermediates: true });
+        storedFile.write(JSON.stringify({ books: parsed.books }));
+        const info = { id, name: friendlyBdfName(base), fileName, sourceFiles: files.length, verseCount: parsed.verseCount };
+        nextBibles[id] = { books: parsed.books };
+        nextTranslations = [...nextTranslations.filter((item) => item.id !== id), info];
+        summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절`);
+      }
+
+      if (!summaries.length) {
+        Alert.alert('등록 실패', '책·장·절 형식을 확인할 수 있는 BDF 파일이 없습니다.');
+        return;
+      }
+      setCustomBibles(nextBibles);
+      setCustomTranslations(nextTranslations);
+      await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
+      Alert.alert('성경번역본 등록 완료', summaries.join('\n'));
+    } catch (error) {
+      if (!String(error?.message || error).toLowerCase().includes('cancel')) {
+        console.warn('BDF import failed:', error);
+        Alert.alert('등록 오류', 'BDF 파일을 읽지 못했습니다. 파일들이 들어 있는 폴더를 다시 선택해 주세요.');
+      }
+    } finally {
+      setImportingBible(false);
+    }
+  };
+
+  const removeCustomTranslation = (item) => {
+    Alert.alert('번역본 삭제', `${item.name}을 이 휴대폰에서 삭제할까요?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: async () => {
+        try {
+          const storedFile = new File(Paths.document, 'bible-imports', item.fileName);
+          if (storedFile.exists) storedFile.delete();
+        } catch (error) {
+          console.warn('Imported Bible file delete failed:', error);
+        }
+        const nextTranslations = customTranslations.filter((entry) => entry.id !== item.id);
+        const nextBibles = { ...customBibles };
+        delete nextBibles[item.id];
+        setCustomTranslations(nextTranslations);
+        setCustomBibles(nextBibles);
+        await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
+        if (translationId === item.id) {
+          setTranslationId('KRV');
+          await AsyncStorage.setItem(TRANSLATION_KEY, 'KRV');
+        }
+      }},
+    ]);
   };
 
   const exitApp = () => {
@@ -902,10 +1066,34 @@ export default function App() {
             </View>
           </ScrollView>
         ) : screen === 'settings' ? (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderTitle}>설정</Text>
-            <Text style={styles.placeholderText}>설정 메뉴는 앞으로 추가될 예정입니다.</Text>
-          </View>
+          <ScrollView contentContainerStyle={styles.settingsScreen}>
+            <Text style={styles.settingsTitle}>설정</Text>
+            <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
+            <View style={styles.settingsCard}>
+              <Text style={styles.settingsCardTitle}>BDF 성경 데이터 등록</Text>
+              <Text style={styles.settingsDescription}>성경 데이터가 들어 있는 폴더를 선택하면 같은 이름의 분할 BDF 파일들을 하나의 번역본으로 합쳐 이 휴대폰에만 저장합니다.</Text>
+              <TouchableOpacity disabled={importingBible} onPress={importBibleFolder} style={[styles.importBibleButton, importingBible && styles.importBibleButtonDisabled]}>
+                <Text style={styles.importBibleButtonText}>{importingBible ? 'BDF 파일 확인 중…' : '＋ 성경번역본 추가'}</Text>
+              </TouchableOpacity>
+              <Text style={styles.privateImportNotice}>APK와 GitHub에는 개인 번역본이 포함되지 않으며 인터넷 연결 없이 사용합니다.</Text>
+            </View>
+            {customTranslations.length > 0 && (
+              <View style={styles.importedList}>
+                <Text style={styles.settingsSectionTitle}>등록된 번역본</Text>
+                {customTranslations.map((item) => (
+                  <View key={item.id} style={styles.importedBibleRow}>
+                    <View style={styles.importedBibleInfo}>
+                      <Text style={styles.importedBibleName}>{item.name}</Text>
+                      <Text style={styles.importedBibleMeta}>{item.sourceFiles || 1}개 파일 · {(item.verseCount || 0).toLocaleString()}절</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => removeCustomTranslation(item)} style={styles.importedBibleDelete}>
+                      <Text style={styles.importedBibleDeleteText}>삭제</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
         ) : screen === 'today' && displayed ? (
           <View style={styles.content}>
             <View style={styles.progressBlock}>
@@ -1105,6 +1293,23 @@ const styles = StyleSheet.create({
   placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
+  settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
+  settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
+  settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
+  settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
+  settingsCardTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' },
+  settingsDescription: { marginTop: 9, fontSize: 13, lineHeight: 20, color: '#747C86', fontWeight: '600' },
+  importBibleButton: { marginTop: 18, minHeight: 52, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  importBibleButtonDisabled: { opacity: 0.55 },
+  importBibleButtonText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
+  privateImportNotice: { marginTop: 11, fontSize: 11, lineHeight: 17, color: '#8A8170', textAlign: 'center' },
+  importedList: { marginTop: 24 },
+  importedBibleRow: { minHeight: 68, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 9, backgroundColor: '#FFF', borderRadius: 15, borderWidth: 1, borderColor: '#E7E2D8', flexDirection: 'row', alignItems: 'center' },
+  importedBibleInfo: { flex: 1 },
+  importedBibleName: { fontSize: 15, fontWeight: '900', color: '#17223B' },
+  importedBibleMeta: { marginTop: 4, fontSize: 11, color: '#7A7F87', fontWeight: '700' },
+  importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
+  importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' },
   homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' },
