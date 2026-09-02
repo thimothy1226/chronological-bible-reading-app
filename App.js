@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, BackHandler, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar,
+  Alert, BackHandler, FlatList, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,7 @@ import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
+import homologiaBoxes from './assets/homologia-boxes.json';
 import { initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword, getReactNativePersistence, inMemoryPersistence,
@@ -1057,27 +1058,44 @@ export default function App() {
     const section = homologiaData.sections[homologiaSectionIndex];
     const sourceBlocks = homologiaData.pages
       .filter((page) => page.page >= section.startPage && page.page <= section.endPage)
-      .flatMap((page) => page.blocks.map((block, blockIndex) => ({
-        ...block,
-        spans: block.spans.filter((span, spanIndex) => !(
-          blockIndex === 0
-          && spanIndex === 0
-          && Number(span.size) <= 12
-          && span.text.trim() === String(page.page)
-        )),
-      })))
+      .flatMap((page) => {
+        const boxDefinitions = homologiaBoxes[String(page.page)] || [];
+        return page.blocks.flatMap((block, blockIndex) => {
+          const boxStart = boxDefinitions.find((box) => box.start === blockIndex);
+          if (boxStart) {
+            return [{
+              type: 'boxImage',
+              imageUri: `data:image/png;base64,${boxStart.data}`,
+              imageWidth: boxStart.width,
+              imageHeight: boxStart.height,
+              gap: block.gap,
+            }];
+          }
+          if (boxDefinitions.some((box) => blockIndex > box.start && blockIndex <= box.end)) return [];
+          return [{
+            ...block,
+            spans: block.spans.filter((span, spanIndex) => !(
+              blockIndex === 0
+              && spanIndex === 0
+              && Number(span.size) <= 12
+              && span.text.trim() === String(page.page)
+            )),
+          }];
+        });
+      })
       .filter((block) => {
+        if (block.type === 'boxImage') return true;
         const text = block.spans.map((span) => span.text).join('').trim();
         return text && !text.includes('책 처음으로 이동');
       });
 
-    const blockText = (block) => block.spans.map((span) => span.text).join('').trim();
+    const blockText = (block) => block.spans?.map((span) => span.text).join('').trim() || '';
     const sectionBlocks = sourceBlocks.reduce((flow, block) => {
       const previous = flow[flow.length - 1];
       const previousText = previous ? blockText(previous) : '';
       const currentText = blockText(block);
-      const previousIsBody = previous && !previous.background && previous.align === 'left' && (previous.baseSize || 28) <= 28.5;
-      const currentIsBody = !block.background && block.align === 'left' && (block.baseSize || 28) <= 28.5;
+      const previousIsBody = previous && previous.type !== 'boxImage' && !previous.background && previous.align === 'left' && (previous.baseSize || 28) <= 28.5;
+      const currentIsBody = block.type !== 'boxImage' && !block.background && block.align === 'left' && (block.baseSize || 28) <= 28.5;
       const sentenceContinues = previousText && !/[.!?。！？…]["'”’）)\]]*$/.test(previousText);
       const similarSize = previous && Math.abs((previous.baseSize || 28) - (block.baseSize || 28)) <= 2;
 
@@ -1090,7 +1108,11 @@ export default function App() {
         ];
         return flow;
       }
-      flow.push({ ...block, spans: [...block.spans], paragraphBreak: flow.length > 0 });
+      flow.push({
+        ...block,
+        ...(block.spans ? { spans: [...block.spans] } : {}),
+        paragraphBreak: flow.length > 0,
+      });
       return flow;
     }, []);
 
@@ -1101,16 +1123,10 @@ export default function App() {
       return next;
     });
 
-    const formatSentenceText = (spans, spanIndex) => {
+    const formatFlowingText = (spans, spanIndex, preserveLines) => {
       const text = spans[spanIndex]?.text || '';
-      const formatted = text
-        .replace(/([.!?。！？…]+["'”’）)\]]*)[ \t]+/g, '$1\n')
-        .replace(/\n{3,}/g, '\n\n');
-      const hasFollowingText = spans.slice(spanIndex + 1).some((span) => span.text.trim());
-      if (hasFollowingText && /[.!?。！？…]+["'”’）)\]]*[ \t]*$/.test(formatted) && !formatted.endsWith('\n')) {
-        return `${formatted.trimEnd()}\n`;
-      }
-      return formatted;
+      if (preserveLines) return text.replace(/\n{3,}/g, '\n\n');
+      return text.replace(/[ \t]*\n[ \t]*/g, ' ');
     };
 
     return (
@@ -1136,8 +1152,20 @@ export default function App() {
           initialNumToRender={12}
           windowSize={7}
           renderItem={({ item: block }) => {
+            if (block.type === 'boxImage') {
+              return (
+                <View style={[styles.homologiaBoxImageWrap, { marginTop: block.paragraphBreak ? Math.max(block.gap || 5, 14) : (block.gap || 5) }]}>
+                  <Image
+                    source={{ uri: block.imageUri }}
+                    resizeMode="contain"
+                    style={[styles.homologiaBoxImage, { aspectRatio: block.imageWidth / block.imageHeight }]}
+                  />
+                </View>
+              );
+            }
             const baseFontSize = Math.round(Math.max(12, Math.min(30, (block.baseSize || 28) * 0.62)) * homologiaFontScale);
-            const blockLineHeight = Math.round(baseFontSize * 1.62);
+            const isHeading = block.align === 'center' || (block.baseSize || 28) > 28.5;
+            const blockLineHeight = Math.round(baseFontSize * (isHeading ? 1.38 : 1.55));
             return (
               <View
                 style={[
@@ -1159,7 +1187,7 @@ export default function App() {
                         fontWeight: span.bold ? '900' : '600',
                         fontStyle: span.italic ? 'italic' : 'normal',
                       }}
-                    >{formatSentenceText(block.spans, spanIndex)}</Text>
+                    >{formatFlowingText(block.spans, spanIndex, isHeading)}</Text>
                   ))}
                 </Text>
               </View>
@@ -1805,6 +1833,7 @@ const styles = StyleSheet.create({
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
   homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
   homologiaTextBlock: { width: '100%', borderRadius: 2 },
+  homologiaBoxImageWrap: { width: '100%', alignItems: 'center' }, homologiaBoxImage: { width: '100%', borderRadius: 2 },
   noteModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, postIt: { width: '100%', backgroundColor: '#FFF2A8', borderRadius: 18, padding: 20, elevation: 8 }, postItTitle: { fontSize: 20, fontWeight: '900', color: '#554716' }, postItVerse: { marginTop: 5, marginBottom: 13, color: '#786725', fontWeight: '800' }, noteInput: { minHeight: 170, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.42)', borderRadius: 12, padding: 14, color: '#413913', fontSize: 16, lineHeight: 24 }, noteButtons: { marginTop: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, noteRightButtons: { flexDirection: 'row', gap: 8 }, noteDelete: { paddingHorizontal: 12, paddingVertical: 10 }, noteDeleteText: { color: '#A04B3C', fontWeight: '900' }, noteCancel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: '#E8D989' }, noteCancelText: { color: '#5A4D1E', fontWeight: '900' }, noteSave: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10, backgroundColor: '#17223B' }, noteSaveText: { color: '#FFF', fontWeight: '900' },
 
   celebrateBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center', padding: 20 }, celebrateCard: { width: '100%', backgroundColor: '#FFFEFB', borderRadius: 24, padding: 22, alignItems: 'center' }, confetti: { fontSize: 30, marginBottom: 4 }, celebrateTitle: { fontSize: 30, fontWeight: '900', color: '#17223B', marginBottom: 18 }, celebrateSummary: { width: '100%', backgroundColor: '#FBF7EF', borderWidth: 1, borderColor: '#EADDBE', borderRadius: 18, padding: 18 }, celebrateSmall: { fontSize: 13, fontWeight: '800', color: '#747C86', marginBottom: 8 }, celebrateDayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, celebrateDayText: { color: '#FFF', fontWeight: '900' }, celebrateStage: { fontSize: 16, lineHeight: 23, fontWeight: '900', color: '#8B6B35' }, celebrateDivider: { height: 1, backgroundColor: '#E8DDC6', marginVertical: 14 }, celebrateReading: { fontSize: 23, lineHeight: 32, fontWeight: '900', color: '#17223B' }, celebrateSuccess: { marginTop: 18, fontSize: 19, lineHeight: 28, fontWeight: '900', color: '#17223B', textAlign: 'center' }, finalCongrats: { marginTop: 8, fontSize: 13, lineHeight: 20, color: '#8B6B35', fontWeight: '800', textAlign: 'center' }, celebrateButton: { width: '100%', marginTop: 18, backgroundColor: '#173C70', borderRadius: 14, paddingVertical: 15, alignItems: 'center' }, celebrateButtonText: { color: '#FFF', fontSize: 17, fontWeight: '900' },
