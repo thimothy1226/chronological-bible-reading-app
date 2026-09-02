@@ -14,8 +14,21 @@ const TRANSLATION_KEY = '@chronological_bible/translation';
 const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
+const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 
 const BIBLE_DATA = { KRV: krv };
+
+const HOMOLOGIA_MENUS = [
+  { title: '호물로기아 설명', color: '#0E5947' },
+  { title: '율로기아', color: '#C61017' },
+  { title: '지혜의 중보기도', color: '#171C4D' },
+  { title: '치유기도', color: '#0E5947' },
+  { title: '호물로기아 1', color: '#0E5947' },
+  { title: '호물로기아 2', color: '#211F72' },
+  { title: '호물로기아 3', color: '#705B08' },
+  { title: '호물로기아 4', color: '#5B2C68' },
+  { title: '이름하기 버전', color: '#0E5947' },
+];
 
 const BOOK_NAME_KO = {
   Genesis: '창세기', Exodus: '출애굽기', Leviticus: '레위기', Numbers: '민수기', Deuteronomy: '신명기',
@@ -174,7 +187,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -188,6 +201,13 @@ export default function App() {
         setFontSize(Number.isFinite(f) ? Math.min(30, Math.max(15, f)) : 19);
         setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
+        const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
+        if (bibleSelection) {
+          if (bibleSelection.testament) setTestament(bibleSelection.testament);
+          if (bibleSelection.book) setSelectedBookKey(bibleSelection.book);
+          if (Number(bibleSelection.chapter) > 0) setSelectedChapter(Number(bibleSelection.chapter));
+          if (Number(bibleSelection.verse) > 0) setSelectedVerse(Number(bibleSelection.verse));
+        }
       } catch (error) {
         // 저장 데이터 일부가 손상되어도 앱 자체는 실행되도록 기본값으로 복구합니다.
         console.warn('Saved data load failed:', error);
@@ -229,6 +249,16 @@ export default function App() {
   useEffect(() => {
     if (selectedVerse > verseCount) setSelectedVerse(1);
   }, [selectedChapter, verseCount, selectedVerse]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    AsyncStorage.setItem(BIBLE_SELECTION_KEY, JSON.stringify({
+      testament,
+      book: selectedBookKey,
+      chapter: selectedChapter,
+      verse: selectedVerse,
+    })).catch((error) => console.warn('Bible selection save failed:', error));
+  }, [loaded, testament, selectedBookKey, selectedChapter, selectedVerse]);
 
   const readerKey = useMemo(() => {
     if (!readerContext) return null;
@@ -393,7 +423,10 @@ export default function App() {
     let nextDay = currentDay;
     if (advanceIfCurrent && day === currentDay && currentDay < schedule.length) nextDay = currentDay + 1;
 
-    if (screen === 'reader') await saveCurrentPosition();
+    if (screen === 'reader') {
+      await saveCurrentPosition();
+      setScreen('today');
+    }
     await AsyncStorage.multiSet([
       [COMPLETIONS_KEY, JSON.stringify(next)],
       [CURRENT_DAY_KEY, String(nextDay)],
@@ -713,13 +746,42 @@ export default function App() {
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
-        <View style={styles.tabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+          <TouchableOpacity onPress={() => setScreen('notice')} style={[styles.tab, screen === 'notice' && styles.tabActive]}><Text style={[styles.tabText, screen === 'notice' && styles.tabTextActive]}>공지사항</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료 기록</Text></TouchableOpacity>
-        </View>
+          <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료기록</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>설정</Text></TouchableOpacity>
+        </ScrollView>
 
-        {screen === 'today' && displayed ? (
+        {screen === 'notice' ? (
+          <View style={styles.placeholderScreen}>
+            <Text style={styles.placeholderTitle}>공지사항</Text>
+            <Text style={styles.placeholderText}>공지사항 메뉴는 앞으로 추가될 예정입니다.</Text>
+          </View>
+        ) : screen === 'homologia' ? (
+          <ScrollView contentContainerStyle={styles.homologiaScreen}>
+            <Text style={styles.homologiaTitle}>GF호물로기아</Text>
+            <Text style={styles.homologiaSubtitle}>원하는 메뉴를 선택해 주세요.</Text>
+            <View style={styles.homologiaGrid}>
+              {HOMOLOGIA_MENUS.map((menu) => (
+                <TouchableOpacity
+                  key={menu.title}
+                  onPress={() => Alert.alert(menu.title, '세부 내용은 앞으로 추가될 예정입니다.')}
+                  style={[styles.homologiaButton, { backgroundColor: menu.color }]}
+                >
+                  <Text style={styles.homologiaButtonText}>{menu.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        ) : screen === 'settings' ? (
+          <View style={styles.placeholderScreen}>
+            <Text style={styles.placeholderTitle}>설정</Text>
+            <Text style={styles.placeholderText}>설정 메뉴는 앞으로 추가될 예정입니다.</Text>
+          </View>
+        ) : screen === 'today' && displayed ? (
           <View style={styles.content}>
             <View style={styles.progressBlock}>
               <View style={styles.progressTextRow}><Text style={styles.progressLabel}>통독 진행률</Text><Text style={styles.progressValue}>{completedCount} / 365</Text></View>
@@ -888,12 +950,12 @@ export default function App() {
               initialScrollIndex={Math.max(0, Math.min(currentDay - 1, schedule.length - 1))}
               getItemLayout={(_, index) => ({ length: 68, offset: 68 * index, index })}
               renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => chooseDay(item.day)} style={[styles.dayPickerRow, item.day === displayDay && styles.dayPickerRowActive]}>
+                <TouchableOpacity onPress={() => chooseDay(item.day)} style={[styles.dayPickerRow, completions[String(item.day)]?.active && styles.dayPickerRowCompleted, item.day === displayDay && styles.dayPickerRowActive]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.dayPickerDay, item.day === displayDay && styles.dayPickerDayActive]}>{item.dayLabel}</Text>
-                    <Text style={styles.dayPickerReading} numberOfLines={1}>{item.reading}</Text>
+                    <Text style={[styles.dayPickerDay, completions[String(item.day)]?.active && styles.dayPickerTextCompleted, item.day === displayDay && styles.dayPickerDayActive]}>{item.dayLabel}</Text>
+                    <Text style={[styles.dayPickerReading, completions[String(item.day)]?.active && styles.dayPickerTextCompleted]} numberOfLines={1}>{item.reading}</Text>
                   </View>
-                  <Text style={styles.dayPickerState}>{completions[String(item.day)]?.active ? '✓' : ''}</Text>
+                  <Text style={styles.dayPickerState}>{completions[String(item.day)]?.active ? '✓ 완료' : ''}</Text>
                 </TouchableOpacity>
               )}
             />
@@ -909,7 +971,9 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
-  tabs: { marginHorizontal: 22, flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' }, tab: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' }, tabActive: { backgroundColor: '#FFF' }, tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13 }, tabTextActive: { color: '#17223B' },
+  tabs: { marginHorizontal: 22, flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' }, tab: { minWidth: 88, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 11, alignItems: 'center' }, tabActive: { backgroundColor: '#FFF' }, tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13 }, tabTextActive: { color: '#17223B' },
+  placeholderScreen: { flex: 1, margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' }, placeholderTitle: { fontSize: 25, fontWeight: '900', color: '#17223B' }, placeholderText: { marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
+  homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 50 }, homologiaTitle: { fontSize: 26, fontWeight: '900', color: '#17223B' }, homologiaSubtitle: { marginTop: 6, marginBottom: 22, fontSize: 13, color: '#747C86' }, homologiaGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }, homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' }, homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
   content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
   progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#E3E0D7', overflow: 'hidden' }, progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#B28A48' },
   card: { backgroundColor: '#FFF', borderRadius: 24, padding: 22, borderWidth: 1, borderColor: '#ECE8DE' }, dayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, dayBadgeText: { color: '#FFF', fontWeight: '900' },
@@ -928,7 +992,7 @@ const styles = StyleSheet.create({
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
   selectionBar: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', gap: 8 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
