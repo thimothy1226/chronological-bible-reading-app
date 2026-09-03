@@ -1165,6 +1165,8 @@ export default function App() {
             }
             const baseFontSize = Math.round(Math.max(12, Math.min(30, (block.baseSize || 28) * 0.62)) * homologiaFontScale);
             const isHeading = block.align === 'center' || (block.baseSize || 28) > 28.5;
+            const linkedUrls = new Set(block.spans.filter((span) => span.url).map((span) => span.url));
+            const preserveLinkedLines = linkedUrls.size > 1;
             const blockLineHeight = Math.round(baseFontSize * (isHeading ? 1.38 : 1.55));
             return (
               <View
@@ -1189,7 +1191,7 @@ export default function App() {
                         textDecorationLine: span.url ? 'underline' : 'none',
                       }}
                       onPress={span.url ? () => Linking.openURL(span.url).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.')) : undefined}
-                    >{formatFlowingText(block.spans, spanIndex, isHeading)}</Text>
+                    >{formatFlowingText(block.spans, spanIndex, isHeading || preserveLinkedLines)}</Text>
                   ))}
                 </Text>
               </View>
