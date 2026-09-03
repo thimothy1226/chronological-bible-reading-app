@@ -64,7 +64,7 @@ const createInviteCode = () => {
 };
 const normalizeInviteCode = (value) => {
   const raw = String(value || '').toUpperCase().trim();
-  const labeled = raw.match(/(?:초대\s*코드|INVITE\s*CODE)\s*[:：]?\s*([A-Z0-9\s-]{8,40})/i)?.[1];
+  const labeled = raw.match(/(?:초대\s*코드|INVITE\s*CODE)\s*[:：]?\s*([A-Z0-9][A-Z0-9\t -]{7,39})/i)?.[1];
   const candidates = (labeled ? [labeled] : (raw.match(/[A-Z0-9](?:[\s-]?[A-Z0-9]){7,31}/g) || [raw]))
     .map((item) => item.replace(/[^A-Z0-9]/g, ''))
     .filter((item) => item.length >= 8);
@@ -1016,11 +1016,15 @@ export default function App() {
     }
     setAdminBusy(true);
     try {
-      let snapshot = await getDocs(query(collection(firestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
+      let snapshot = await getDocs(query(collection(memberFirestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
       let groupDoc = snapshot.docs[0];
       if (!groupDoc) {
-        snapshot = await getDocs(collection(firestore, 'groups'));
-        groupDoc = snapshot.docs.find((item) => normalizeInviteCode(item.data()?.normalizedInviteCode) === normalizedCode);
+        snapshot = await getDocs(collection(memberFirestore, 'groups'));
+        const pastedText = String(joinCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        groupDoc = snapshot.docs.find((item) => {
+          const storedCode = normalizeInviteCode(item.data()?.normalizedInviteCode);
+          return storedCode && (storedCode === normalizedCode || pastedText.includes(storedCode));
+        });
       }
       if (!groupDoc) {
         Alert.alert('기관을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
@@ -1114,6 +1118,29 @@ export default function App() {
       { text: '취소', style: 'cancel' },
       { text: '탈퇴', style: 'destructive', onPress: async () => {
         try {
+          let signedOutFromAdmin = false;
+          if (isAdmin && !isSuperAdmin && adminRecord) {
+            const legacyRole = adminRecord.role === 'subAdmin' ? 'subAdmin' : 'manager';
+            const previousRoles = adminRecord.groupRoles || Object.fromEntries((adminRecord.groupIds || []).map((id) => [id, legacyRole]));
+            if (previousRoles[leavingId]) {
+              const nextRoles = { ...previousRoles };
+              delete nextRoles[leavingId];
+              const nextAdminGroupIds = (adminRecord.groupIds || Object.keys(previousRoles)).filter((id) => id !== leavingId);
+              const remainingRoles = Object.values(nextRoles);
+              const nextActive = remainingRoles.length > 0;
+              await updateDoc(doc(firestore, 'admins', adminUser.uid), {
+                groupIds: nextAdminGroupIds,
+                groupRoles: nextRoles,
+                active: nextActive,
+                role: remainingRoles.includes('manager') ? 'groupAdmin' : (nextActive ? 'subAdmin' : 'formerAdmin'),
+                updatedAt: serverTimestamp(),
+              });
+              if (!nextActive) {
+                await signOut(firebaseAuth).catch(() => {});
+                signedOutFromAdmin = true;
+              }
+            }
+          }
           await setDoc(doc(memberFirestore, 'memberships', `${leavingId}_${memberUser.uid}`), {
             active: false, removedByAdmin: false, leftAt: serverTimestamp(), updatedAt: serverTimestamp(),
           }, { merge: true });
@@ -1125,8 +1152,11 @@ export default function App() {
           if (nextId) await AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId);
           else await AsyncStorage.removeItem(CURRENT_GROUP_KEY);
           setScreen('today');
-          Alert.alert('탈퇴 완료', '개인사용자로 전환되었습니다. 초대 코드가 있으면 다시 가입할 수 있습니다.');
-        } catch { Alert.alert('탈퇴 실패', '잠시 후 다시 시도해 주세요.'); }
+          Alert.alert('탈퇴 완료', `${currentGroupName}에서 탈퇴했습니다.${isAdmin && !isSuperAdmin ? '\n해당 기관의 관리자 권한도 해제되었습니다.' : ''}${signedOutFromAdmin ? '\n관리자 계정에서 로그아웃되었습니다.' : ''}`);
+        } catch (error) {
+          console.warn('Group leave failed:', error);
+          Alert.alert('탈퇴 실패', '기관 탈퇴 또는 관리자 권한 해제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        }
       } },
     ]);
   };
@@ -2518,16 +2548,18 @@ export default function App() {
 
       <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
-          <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>{currentGroupName} {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text>
-            <Text style={styles.adminModalDescription}>{isSuperAdmin ? '그룹관리자는 회원과 부관리자까지 관리합니다.' : '부관리자는 게시글 작성·수정·삭제만 담당합니다.'} 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
-            <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" style={styles.adminInput} />
-            <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" style={styles.adminInput} />
-            <View style={styles.adminModalActions}>
-              <TouchableOpacity disabled={adminBusy} onPress={() => { setNewAdminPassword(''); setAdminRegisterOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
-              <TouchableOpacity disabled={adminBusy} onPress={registerNewAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '등록 중…' : '관리자 등록'}</Text></TouchableOpacity>
+          <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View style={styles.adminModalCard}>
+              <Text style={styles.adminModalTitle}>{currentGroupName} {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text>
+              <Text style={styles.adminModalDescription}>{isSuperAdmin ? '그룹관리자는 회원과 부관리자까지 관리합니다.' : '부관리자는 게시글 작성·수정·삭제만 담당합니다.'} 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
+              <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" returnKeyType="next" style={styles.adminInput} />
+              <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" returnKeyType="done" onSubmitEditing={registerNewAdmin} style={styles.adminInput} />
+              <View style={styles.adminModalActions}>
+                <TouchableOpacity disabled={adminBusy} onPress={() => { setNewAdminPassword(''); setAdminRegisterOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+                <TouchableOpacity disabled={adminBusy} onPress={registerNewAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '등록 중…' : '관리자 등록'}</Text></TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
