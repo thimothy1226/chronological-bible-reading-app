@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, BackHandler, FlatList, Image, KeyboardAvoidingView, Modal, Platform, SafeAreaView, ScrollView, StatusBar,
+  Alert, BackHandler, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, SafeAreaView, ScrollView, StatusBar,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1086,7 +1086,7 @@ export default function App() {
       .filter((block) => {
         if (block.type === 'boxImage') return true;
         const text = block.spans.map((span) => span.text).join('').trim();
-        return text && !text.includes('책 처음으로 이동');
+        return text && !text.includes('책 처음으로 이동') && !text.includes('첫페이지로 이동');
       });
 
     const blockText = (block) => block.spans?.map((span) => span.text).join('').trim() || '';
@@ -1186,7 +1186,9 @@ export default function App() {
                         fontSize: Math.round(Math.max(12, Math.min(30, (span.size || block.baseSize || 28) * 0.62)) * homologiaFontScale),
                         fontWeight: span.bold ? '900' : '600',
                         fontStyle: span.italic ? 'italic' : 'normal',
+                        textDecorationLine: span.url ? 'underline' : 'none',
                       }}
+                      onPress={span.url ? () => Linking.openURL(span.url).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.')) : undefined}
                     >{formatFlowingText(block.spans, spanIndex, isHeading)}</Text>
                   ))}
                 </Text>
