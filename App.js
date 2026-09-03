@@ -535,7 +535,9 @@ export default function App() {
       return undefined;
     }
     setPostsLoading(true);
-    const sourceDb = isAdmin ? firestore : memberFirestore;
+    // 관리자 로그인 상태여도 현재 기관의 관리자 권한이 없으면
+    // 익명 회원 계정으로 읽어야 다른 가입 기관의 공지를 볼 수 있습니다.
+    const sourceDb = canManageCurrentGroup ? firestore : memberFirestore;
     const sourceQuery = isSuperAdmin
       ? collection(sourceDb, 'communityPosts')
       : query(collection(sourceDb, 'communityPosts'), where('groupId', '==', currentGroupId));
@@ -555,7 +557,7 @@ export default function App() {
       setPostsLoading(false);
     });
     return unsubscribe;
-  }, [currentGroupId, isAdmin, isSuperAdmin, memberUser]);
+  }, [currentGroupId, isAdmin, isSuperAdmin, memberUser, canManageCurrentGroup]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -1030,9 +1032,10 @@ export default function App() {
         Alert.alert('기관을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
         return;
       }
-      const membershipId = `${groupDoc.id}_${memberUser.uid}`;
-      const existing = await getDoc(doc(memberFirestore, 'memberships', membershipId));
-      if (existing.exists() && existing.data()?.removedByAdmin) {
+      // 존재하지 않는 회원 문서를 먼저 읽으면 Firestore 규칙상 권한 오류가 납니다.
+      // 내 회원목록 구독에서 이미 확인한 값만 사용하고 새 가입은 바로 진행합니다.
+      const existing = myMemberships[groupDoc.id];
+      if (existing?.removedByAdmin) {
         Alert.alert('가입 제한', '기관 관리자에 의해 탈퇴 처리된 회원번호입니다. 기관 관리자에게 문의해 주세요.');
         return;
       }
@@ -1040,7 +1043,7 @@ export default function App() {
       setJoinGroupOpen(false);
       setPendingJoinGroup({ id: groupDoc.id, ...groupDoc.data() });
       setNicknameTargetGroupId(groupDoc.id);
-      setNicknameDraft(existing.data()?.nickname || '');
+      setNicknameDraft(existing?.nickname || '');
       setNicknameEditorOpen(true);
     } catch (error) {
       console.warn('Group join failed:', error);
@@ -2532,18 +2535,20 @@ export default function App() {
       </Modal>
 
       <Modal visible={adminLoginOpen} transparent animationType="fade" onRequestClose={() => setAdminLoginOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>관리자 로그인</Text>
-            <Text style={styles.adminModalDescription}>Firebase에 등록한 관리자 계정으로 로그인하세요.</Text>
-            <TextInput value={adminEmail} onChangeText={setAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="이메일" style={styles.adminInput} />
-            <TextInput value={adminPassword} onChangeText={setAdminPassword} secureTextEntry placeholder="비밀번호" style={styles.adminInput} />
-            <View style={styles.adminModalActions}>
-              <TouchableOpacity disabled={adminBusy} onPress={() => { setAdminPassword(''); setAdminLoginOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
-              <TouchableOpacity disabled={adminBusy} onPress={loginAsAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '로그인 중…' : '로그인'}</Text></TouchableOpacity>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
+          <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <View style={styles.adminModalCard}>
+              <Text style={styles.adminModalTitle}>관리자 로그인</Text>
+              <Text style={styles.adminModalDescription}>Firebase에 등록한 관리자 계정으로 로그인하세요.</Text>
+              <TextInput value={adminEmail} onChangeText={setAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="이메일" returnKeyType="next" style={styles.adminInput} />
+              <TextInput value={adminPassword} onChangeText={setAdminPassword} secureTextEntry placeholder="비밀번호" returnKeyType="done" onSubmitEditing={loginAsAdmin} style={styles.adminInput} />
+              <View style={styles.adminModalActions}>
+                <TouchableOpacity disabled={adminBusy} onPress={() => { setAdminPassword(''); setAdminLoginOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+                <TouchableOpacity disabled={adminBusy} onPress={loginAsAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '로그인 중…' : '로그인'}</Text></TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
