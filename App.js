@@ -145,20 +145,6 @@ const HOMOLOGIA_VIDEO_LINKS = [
   { title: '소성에 대한 간증', url: 'https://www.youtube.com/watch?v=WIN8FYvXCCg' },
 ];
 
-const HOMOLOGIA_PDF_SHORTCUTS = [
-  { title: 'PDF 첫 페이지', page: 1 },
-  { title: '목차', page: 3 },
-  { title: '호몰로기아 설명', page: 4 },
-  { title: '율로기아', page: 19 },
-  { title: '지혜의 중보기도', page: 34 },
-  { title: '치유기도', page: 40 },
-  { title: '호몰로기아 1', page: 45 },
-  { title: '호몰로기아 2', page: 53 },
-  { title: '호몰로기아 3', page: 60 },
-  { title: '호몰로기아 4', page: 71 },
-  { title: '이륙하기 버전', page: 79 },
-];
-
 const BOOK_NAME_KO = {
   Genesis: '창세기', Exodus: '출애굽기', Leviticus: '레위기', Numbers: '민수기', Deuteronomy: '신명기',
   Joshua: '여호수아', Judges: '사사기', Ruth: '룻기', '1 Samuel': '사무엘상', '2 Samuel': '사무엘하',
@@ -317,7 +303,6 @@ export default function App() {
   const [homologiaViewMode, setHomologiaViewMode] = useState('pdf');
   const [homologiaPdfScale, setHomologiaPdfScale] = useState(1);
   const [homologiaPdfStartPage, setHomologiaPdfStartPage] = useState(1);
-  const [homologiaPdfNavigationOpen, setHomologiaPdfNavigationOpen] = useState(false);
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
@@ -347,7 +332,6 @@ export default function App() {
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
   const homologiaPdfScaleRef = useRef(1);
-  const homologiaPdfRef = useRef(null);
   const homologiaPdfPositionsRef = useRef({});
 
   const isAdmin = !!adminUser && adminAuthorized;
@@ -1181,12 +1165,6 @@ export default function App() {
         .catch((error) => console.warn('Homologia PDF position save failed:', error));
     };
 
-    const jumpToHomologiaPdfPage = (page) => {
-      homologiaPdfRef.current?.setPage(page);
-      saveHomologiaPdfPage(page);
-      setHomologiaPdfNavigationOpen(false);
-    };
-
     return (
       <SafeAreaView style={styles.homologiaReaderSafe}>
         <StatusBar barStyle="dark-content" />
@@ -1222,31 +1200,16 @@ export default function App() {
           </TouchableOpacity>
         </View>
         {homologiaViewMode === 'pdf' && (
-          <View>
-            <View style={styles.homologiaVideoLinks}>
-              {HOMOLOGIA_VIDEO_LINKS.map((link) => (
-                <TouchableOpacity key={link.url} onPress={() => openHomologiaLink(link.url)} style={styles.homologiaVideoLinkButton}>
-                  <Text numberOfLines={1} style={styles.homologiaVideoLinkText}>▶ {link.title}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity onPress={() => setHomologiaPdfNavigationOpen((value) => !value)} style={styles.homologiaPdfNavigationToggle}>
-              <Text style={styles.homologiaPdfNavigationToggleText}>PDF 바로가기 {homologiaPdfNavigationOpen ? '▲' : '▼'}</Text>
-            </TouchableOpacity>
-            {homologiaPdfNavigationOpen && (
-              <View style={styles.homologiaPdfNavigationPanel}>
-                {HOMOLOGIA_PDF_SHORTCUTS.map((shortcut) => (
-                  <TouchableOpacity key={`${shortcut.page}-${shortcut.title}`} onPress={() => jumpToHomologiaPdfPage(shortcut.page)} style={styles.homologiaPdfShortcutButton}>
-                    <Text style={styles.homologiaPdfShortcutText}>{shortcut.title}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+          <View style={styles.homologiaVideoLinks}>
+            {HOMOLOGIA_VIDEO_LINKS.map((link) => (
+              <TouchableOpacity key={link.url} onPress={() => openHomologiaLink(link.url)} style={styles.homologiaVideoLinkButton}>
+                <Text numberOfLines={1} style={styles.homologiaVideoLinkText}>▶ {link.title}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
         {homologiaViewMode === 'pdf' ? (
           <Pdf
-            ref={homologiaPdfRef}
             source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
             page={homologiaPdfStartPage}
             scale={homologiaPdfScale}
@@ -1571,7 +1534,6 @@ export default function App() {
                     setHomologiaPdfStartPage(Number.isFinite(savedPage) ? savedPage : homologiaData.sections[menu.sectionIndex].startPage);
                     setHomologiaSectionIndex(menu.sectionIndex);
                     setHomologiaViewMode('pdf');
-                    setHomologiaPdfNavigationOpen(false);
                     setScreen('homologiaReader');
                   }}
                   style={[styles.homologiaButton, { backgroundColor: menu.color }]}
@@ -1972,11 +1934,6 @@ const styles = StyleSheet.create({
   homologiaVideoLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 9 },
   homologiaVideoLinkButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F0E8D7', borderWidth: 1, borderColor: '#D8C9A8' },
   homologiaVideoLinkText: { color: '#6C531F', fontSize: 11, fontWeight: '900' },
-  homologiaPdfNavigationToggle: { alignSelf: 'center', marginBottom: 8, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 9, backgroundColor: '#17223B' },
-  homologiaPdfNavigationToggleText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
-  homologiaPdfNavigationPanel: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, paddingHorizontal: 10, paddingBottom: 9 },
-  homologiaPdfShortcutButton: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D9D3C6' },
-  homologiaPdfShortcutText: { color: '#24314A', fontSize: 11, fontWeight: '900' },
   homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
   homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
