@@ -27,7 +27,7 @@ service cloud.firestore {
       return isSuperAdmin()
         || (isActiveAdmin() && (
           (('groupRoles' in adminData())
-            && (adminData().groupRoles[groupId] == 'manager' || adminData().groupRoles[groupId] == 'subAdmin'))
+            && (adminData().groupRoles.get(groupId, '') == 'manager' || adminData().groupRoles.get(groupId, '') == 'subAdmin'))
           || ((!('groupRoles' in adminData())) && (
             (('groupIds' in adminData()) && adminData().groupIds.hasAny([groupId]))
             || (groupId == 'gfc' && !('groupIds' in adminData()))
@@ -38,7 +38,7 @@ service cloud.firestore {
     function isGroupManager(groupId) {
       return isSuperAdmin()
         || (isActiveAdmin() && (
-          (('groupRoles' in adminData()) && adminData().groupRoles[groupId] == 'manager')
+          (('groupRoles' in adminData()) && adminData().groupRoles.get(groupId, '') == 'manager')
           || (
             (!('groupRoles' in adminData()))
             && (!('role' in adminData()) || adminData().role != 'subAdmin')
