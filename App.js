@@ -16,8 +16,8 @@ import homologiaBoxes from './assets/homologia-boxes.json';
 import homologiaPdfBase64 from './assets/homologia-pdf';
 import { initializeApp } from 'firebase/app';
 import {
-  createUserWithEmailAndPassword, getReactNativePersistence, inMemoryPersistence,
-  initializeAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+  createUserWithEmailAndPassword, EmailAuthProvider, getReactNativePersistence, inMemoryPersistence,
+  initializeAuth, onAuthStateChanged, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword,
 } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot,
@@ -346,6 +346,11 @@ export default function App() {
   const [editingGroup, setEditingGroup] = useState(null);
   const [editGroupName, setEditGroupName] = useState('');
   const [editGroupCode, setEditGroupCode] = useState('');
+  const [passwordChangeOpen, setPasswordChangeOpen] = useState(false);
+  const [currentAdminPassword, setCurrentAdminPassword] = useState('');
+  const [nextAdminPassword, setNextAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [adminDirectory, setAdminDirectory] = useState({});
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -402,6 +407,19 @@ export default function App() {
     setCurrentGroupId(firstId);
     AsyncStorage.setItem(CURRENT_GROUP_KEY, firstId).catch(() => {});
   }, [isSuperAdmin, currentGroupId, availableGroups]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setAdminDirectory({});
+      return;
+    }
+    getDocs(collection(firestore, 'admins')).then((snapshot) => {
+      const directory = {};
+      snapshot.docs.forEach((item) => { directory[item.id] = item.data()?.email || item.id; });
+      if (adminUser?.uid) directory[adminUser.uid] = adminUser.email || '최고 관리자';
+      setAdminDirectory(directory);
+    }).catch((error) => console.warn('Admin directory load failed:', error));
+  }, [isSuperAdmin, adminUser?.uid, adminRegisterOpen]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(firestore, 'communityPosts'), (snapshot) => {
@@ -741,6 +759,41 @@ export default function App() {
     }
   };
 
+  const changeAdminPassword = async () => {
+    if (!adminUser?.email) return;
+    if (!currentAdminPassword || nextAdminPassword.length < 6) {
+      Alert.alert('입력 확인', '현재 비밀번호와 6자리 이상의 새 비밀번호를 입력해 주세요.');
+      return;
+    }
+    if (nextAdminPassword !== confirmAdminPassword) {
+      Alert.alert('입력 확인', '새 비밀번호가 서로 일치하지 않습니다.');
+      return;
+    }
+    if (currentAdminPassword === nextAdminPassword) {
+      Alert.alert('입력 확인', '현재 비밀번호와 다른 새 비밀번호를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const credential = EmailAuthProvider.credential(adminUser.email, currentAdminPassword);
+      await reauthenticateWithCredential(adminUser, credential);
+      await updatePassword(adminUser, nextAdminPassword);
+      setCurrentAdminPassword('');
+      setNextAdminPassword('');
+      setConfirmAdminPassword('');
+      setPasswordChangeOpen(false);
+      Alert.alert('변경 완료', '관리자 비밀번호가 안전하게 변경되었습니다.');
+    } catch (error) {
+      console.warn('Password change failed:', error);
+      const code = String(error?.code || '');
+      Alert.alert('변경 실패', code.includes('invalid-credential') || code.includes('wrong-password')
+        ? '현재 비밀번호가 올바르지 않습니다.'
+        : '비밀번호를 변경하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
   const selectCommunityGroup = async (groupId) => {
     setCurrentGroupId(groupId);
     setGroupPickerOpen(false);
@@ -916,6 +969,7 @@ export default function App() {
           title: postTitle.trim(),
           body: postBody.trim(),
           authorUid: adminUser.uid,
+          authorEmail: adminUser.email || '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -1687,6 +1741,7 @@ export default function App() {
               <View style={styles.noticePostCard}>
                 <Text style={styles.noticePostTitle}>{selectedNoticePost.title}</Text>
                 <Text style={styles.noticePostDate}>{selectedNoticePost.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
+                {isSuperAdmin && <Text style={styles.noticePostAuthor}>작성 관리자 · {selectedNoticePost.authorEmail || adminDirectory[selectedNoticePost.authorUid] || selectedNoticePost.authorUid || '확인할 수 없음'}</Text>}
                 <Text style={styles.noticePostBody}>{selectedNoticePost.body}</Text>
                 {canManageCurrentGroup && <View style={styles.noticePostActions}>
                   <TouchableOpacity onPress={() => openPostEditor(selectedNoticePost)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
@@ -1808,6 +1863,7 @@ export default function App() {
                 <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
                   <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
                 </TouchableOpacity>
+                {isAdmin && <TouchableOpacity onPress={() => setPasswordChangeOpen(true)} style={styles.changePasswordButton}><Text style={styles.changePasswordButtonText}>내 비밀번호 변경</Text></TouchableOpacity>}
                 {canManageCurrentGroup && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {currentGroupName} 관리자 등록</Text></TouchableOpacity>}
               </View>
             </View>
@@ -2021,7 +2077,7 @@ export default function App() {
       </Modal>
 
       <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <View style={styles.adminModalCard}>
             <Text style={styles.adminModalTitle}>{currentGroupName} 관리자 등록</Text>
             <Text style={styles.adminModalDescription}>이 관리자는 {currentGroupName}의 게시글만 관리합니다. 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
@@ -2032,7 +2088,25 @@ export default function App() {
               <TouchableOpacity disabled={adminBusy} onPress={registerNewAdmin} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '등록 중…' : '관리자 등록'}</Text></TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={passwordChangeOpen} transparent animationType="fade" onRequestClose={() => setPasswordChangeOpen(false)}>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>내 비밀번호 변경</Text>
+            <Text style={styles.adminModalDescription}>본인 확인을 위해 현재 비밀번호를 먼저 입력해 주세요.</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TextInput value={currentAdminPassword} onChangeText={setCurrentAdminPassword} secureTextEntry placeholder="현재 비밀번호" style={styles.adminInput} />
+              <TextInput value={nextAdminPassword} onChangeText={setNextAdminPassword} secureTextEntry placeholder="새 비밀번호 (6자리 이상)" style={styles.adminInput} />
+              <TextInput value={confirmAdminPassword} onChangeText={setConfirmAdminPassword} secureTextEntry placeholder="새 비밀번호 다시 입력" style={styles.adminInput} />
+            </ScrollView>
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => { setCurrentAdminPassword(''); setNextAdminPassword(''); setConfirmAdminPassword(''); setPasswordChangeOpen(false); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={changeAdminPassword} style={[styles.adminLoginButton, adminBusy && styles.importBibleButtonDisabled]}><Text style={styles.adminLoginText}>{adminBusy ? '변경 중…' : '변경'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={!!postEditor} transparent animationType="slide" onRequestClose={() => setPostEditor(null)}>
@@ -2162,7 +2236,7 @@ const styles = StyleSheet.create({
   noticeListContent: { paddingHorizontal: 22, paddingBottom: 100 }, noticeMessage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 }, noticeErrorText: { color: '#A24A4A', textAlign: 'center', fontWeight: '700' },
   noticeDetailScreen: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 100 }, noticeTitleRow: { minHeight: 58, marginBottom: 8, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC', flexDirection: 'row', alignItems: 'center' }, noticeTitleRowText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#283245' }, noticeTitleRowDate: { marginLeft: 8, fontSize: 11, color: '#8D929A', fontWeight: '700' }, noticeTitleArrow: { marginLeft: 8, color: '#9A7C43', fontSize: 24, fontWeight: '700' },
   noticeEmptyCard: { marginTop: 22, padding: 24, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center' }, noticeEmptyTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' },
-  noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
+  noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostAuthor: { marginTop: 5, fontSize: 11, color: '#687386', fontWeight: '800' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   settingsSectionGap: { height: 24 },
@@ -2184,6 +2258,7 @@ const styles = StyleSheet.create({
   importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
+  changePasswordButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#E8EEF6', alignItems: 'center', justifyContent: 'center' }, changePasswordButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   superAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#9A7C43', alignItems: 'center', justifyContent: 'center' }, superAdminButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   groupManageButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#EEEAE1', alignItems: 'center', justifyContent: 'center' }, groupManageButtonText: { color: '#655332', fontSize: 14, fontWeight: '900' },
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
