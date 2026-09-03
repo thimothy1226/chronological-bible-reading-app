@@ -342,6 +342,10 @@ export default function App() {
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupCode, setNewGroupCode] = useState('');
+  const [groupManagerOpen, setGroupManagerOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupCode, setEditGroupCode] = useState('');
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -354,7 +358,7 @@ export default function App() {
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
   const currentGroup = availableGroups.find((group) => group.id === currentGroupId) || null;
-  const currentGroupName = currentGroup?.name || '가입한 그룹 없음';
+  const currentGroupName = currentGroup?.name || '가입한 기관 없음';
   const visibleGroups = isSuperAdmin ? availableGroups : availableGroups.filter((group) => joinedGroupIds.includes(group.id));
   const canManageCurrentGroup = !!currentGroupId && (isSuperAdmin || (isAdmin && (
     adminRecord?.groupIds?.includes(currentGroupId) || (!adminRecord?.groupIds && currentGroupId === 'gfc')
@@ -371,7 +375,6 @@ export default function App() {
     if (user.uid === ADMIN_UID) {
       setAdminAuthorized(true);
       setAdminRecord({ role: 'superAdmin', groupIds: [] });
-      setDoc(doc(firestore, 'groups', 'gfc'), { name: 'GFC 교회', normalizedInviteCode: 'GFC', updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
       return;
     }
     try {
@@ -388,7 +391,8 @@ export default function App() {
 
   useEffect(() => onSnapshot(collection(firestore, 'groups'), (snapshot) => {
     const remoteGroups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-    const next = [DEFAULT_GROUP, ...remoteGroups.filter((group) => group.id !== 'gfc')];
+    const remoteGfc = remoteGroups.find((group) => group.id === 'gfc');
+    const next = [{ ...DEFAULT_GROUP, ...(remoteGfc || {}) }, ...remoteGroups.filter((group) => group.id !== 'gfc')];
     setAvailableGroups(next);
   }, (error) => console.warn('Groups load failed:', error)), []);
 
@@ -688,7 +692,7 @@ export default function App() {
       setAdminAuthorized(true);
       setAdminPassword('');
       setAdminLoginOpen(false);
-      Alert.alert('로그인 완료', credential.user.uid === ADMIN_UID ? '최고 관리자로 로그인했습니다.' : '담당 그룹의 공지사항을 관리할 수 있습니다.');
+      Alert.alert('로그인 완료', credential.user.uid === ADMIN_UID ? '최고 관리자로 로그인했습니다.' : '담당 기관의 공지사항을 관리할 수 있습니다.');
     } catch (error) {
       console.warn('Admin login failed:', error);
       Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해 주세요.');
@@ -755,7 +759,7 @@ export default function App() {
     try {
       const snapshot = await getDocs(query(collection(firestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
       if (snapshot.empty) {
-        Alert.alert('그룹을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
+        Alert.alert('기관을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
         return;
       }
       const groupDoc = snapshot.docs[0];
@@ -765,10 +769,10 @@ export default function App() {
       await AsyncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, groupDoc.id]]);
       setJoinCode('');
       setJoinGroupOpen(false);
-      Alert.alert('그룹 가입 완료', `${groupDoc.data().name} 공지사항을 볼 수 있습니다.`);
+      Alert.alert('기관 가입 완료', `${groupDoc.data().name} 공지사항을 볼 수 있습니다.`);
     } catch (error) {
       console.warn('Group join failed:', error);
-      Alert.alert('가입 실패', '그룹 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+      Alert.alert('가입 실패', '교회·기관 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
     } finally {
       setAdminBusy(false);
     }
@@ -779,7 +783,7 @@ export default function App() {
     const name = newGroupName.trim();
     const normalizedCode = newGroupCode || createInviteCode();
     if (!name) {
-      Alert.alert('입력 확인', '그룹 이름을 입력해 주세요.');
+      Alert.alert('입력 확인', '교회·기관 이름을 입력해 주세요.');
       return;
     }
     setAdminBusy(true);
@@ -793,19 +797,97 @@ export default function App() {
         name, normalizedInviteCode: normalizedCode, createdBy: adminUser.uid,
         createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       });
+      const managementCode = `ORG-${created.id.slice(0, 6).toUpperCase()}`;
+      await updateDoc(doc(firestore, 'groups', created.id), { managementCode });
       setNewGroupName('');
       setNewGroupCode('');
       setCreateGroupOpen(false);
       await selectCommunityGroup(created.id);
       const Clipboard = require('expo-clipboard');
       await Clipboard.setStringAsync(normalizedCode);
-      Alert.alert('그룹 생성 완료', `${name} 그룹이 만들어졌습니다.\n\n초대 코드: ${normalizedCode}\n\n코드를 클립보드에 복사했습니다.`);
+      Alert.alert('기관 생성 완료', `${name}이 만들어졌습니다.\n관리번호: ${managementCode}\n\n초대 코드: ${normalizedCode}\n\n초대 코드를 클립보드에 복사했습니다.`);
     } catch (error) {
       console.warn('Group creation failed:', error);
-      Alert.alert('생성 실패', '그룹을 만들지 못했습니다.');
+      Alert.alert('생성 실패', '교회·기관을 만들지 못했습니다.');
     } finally {
       setAdminBusy(false);
     }
+  };
+
+  const openGroupEditor = (group) => {
+    setEditGroupName(group.name || '');
+    setEditGroupCode(group.normalizedInviteCode || '');
+    setGroupManagerOpen(false);
+    setEditingGroup(group);
+  };
+
+  const saveGroupChanges = async () => {
+    if (!isSuperAdmin || !editingGroup) return;
+    const name = editGroupName.trim();
+    const normalizedCode = editGroupCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!name || normalizedCode.length < 8) {
+      Alert.alert('입력 확인', '기관 이름과 8자리 이상의 초대 코드가 필요합니다.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const duplicate = await getDocs(query(collection(firestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
+      if (duplicate.docs.some((item) => item.id !== editingGroup.id)) {
+        Alert.alert('코드 중복', '이미 사용 중인 초대 코드입니다.');
+        return;
+      }
+      await setDoc(doc(firestore, 'groups', editingGroup.id), {
+        name, normalizedInviteCode: normalizedCode, updatedAt: serverTimestamp(),
+      }, { merge: true });
+      const codeChanged = normalizedCode !== editingGroup.normalizedInviteCode;
+      if (codeChanged) {
+        const Clipboard = require('expo-clipboard');
+        await Clipboard.setStringAsync(normalizedCode);
+      }
+      setEditingGroup(null);
+      Alert.alert('수정 완료', `${name} 정보가 변경되었습니다.${codeChanged ? '\n새 초대 코드를 클립보드에 복사했습니다.' : ''}`);
+    } catch (error) {
+      console.warn('Group update failed:', error);
+      Alert.alert('수정 실패', '교회·기관 정보를 변경하지 못했습니다.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const removeCommunityGroup = (group) => {
+    if (!isSuperAdmin) return;
+    if (group.id === 'gfc') {
+      Alert.alert('기본 기관', 'GFC 교회는 기존 게시글 보호를 위해 삭제할 수 없습니다. 이름과 초대 코드는 수정할 수 있습니다.');
+      return;
+    }
+    Alert.alert(
+      '교회·기관 삭제',
+      `${group.name}을 삭제하시겠습니까?\n해당 기관의 게시글도 모두 삭제되며 되돌릴 수 없습니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '삭제', style: 'destructive', onPress: async () => {
+          setAdminBusy(true);
+          try {
+            const groupPosts = communityPosts.filter((post) => post.groupId === group.id);
+            await Promise.all(groupPosts.map((post) => deleteDoc(doc(firestore, 'communityPosts', post.id))));
+            await deleteDoc(doc(firestore, 'groups', group.id));
+            const nextJoined = joinedGroupIds.filter((id) => id !== group.id);
+            setJoinedGroupIds(nextJoined);
+            await AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextJoined));
+            if (currentGroupId === group.id) {
+              const nextId = nextJoined[0] || 'gfc';
+              await selectCommunityGroup(nextId);
+            }
+            Alert.alert('삭제 완료', `${group.name}이 삭제되었습니다.`);
+          } catch (error) {
+            console.warn('Group deletion failed:', error);
+            Alert.alert('삭제 실패', '교회·기관을 삭제하지 못했습니다.');
+          } finally {
+            setAdminBusy(false);
+          }
+        } },
+      ],
+    );
   };
 
   const openPostEditor = (post = null) => {
@@ -862,8 +944,19 @@ export default function App() {
     ]);
   };
 
+  const confirmAppExit = () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('종료 안내', 'iPhone에서는 홈 화면으로 이동해 주세요.');
+      return;
+    }
+    Alert.alert('앱 종료', '종료하시겠습니까?', [
+      { text: '아니요', style: 'cancel' },
+      { text: '예', onPress: () => BackHandler.exitApp() },
+    ]);
+  };
+
   useEffect(() => {
-    if (Platform.OS !== 'android' || !['reader', 'homologiaReader', 'notice', 'settings'].includes(screen)) return undefined;
+    if (Platform.OS !== 'android') return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen === 'homologiaReader') {
         setHomologiaPdfScale(homologiaPdfScaleRef.current);
@@ -871,12 +964,13 @@ export default function App() {
       }
       else if (screen === 'notice' && selectedNoticePost) setSelectedNoticePost(null);
       else if (screen === 'notice' && noticeCategory) setNoticeCategory(null);
-      else if (screen === 'notice') return false;
+      else if (screen === 'notice') confirmAppExit();
       else if (screen === 'settings') {
         setDisplayDay(currentDay);
         setScreen('today');
       }
-      else closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
+      else if (screen === 'reader') closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
+      else confirmAppExit();
       return true;
     });
     return () => subscription.remove();
@@ -1186,8 +1280,7 @@ export default function App() {
   };
 
   const exitApp = () => {
-    if (Platform.OS === 'android') BackHandler.exitApp();
-    else Alert.alert('종료 안내', 'iPhone에서는 홈 화면으로 이동해 주세요.');
+    confirmAppExit();
   };
 
   const chooseDay = (day) => {
@@ -1628,8 +1721,8 @@ export default function App() {
           ) : (
             <View style={styles.noticeMenuScreen}>
               <Text style={styles.placeholderTitle}>공지사항</Text>
-              <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>🏠 {currentGroupName}</Text><Text style={styles.groupSelectorHint}>그룹 변경  ▼</Text></TouchableOpacity>
-              <Text style={styles.placeholderText}>선택한 그룹의 공지사항입니다.</Text>
+              <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>🏠 {currentGroupName}</Text><Text style={styles.groupSelectorHint}>기관 변경  ▼</Text></TouchableOpacity>
+              <Text style={styles.placeholderText}>선택한 교회·기관의 공지사항입니다.</Text>
               <View style={styles.noticeMenuButtons}>
                 {[{ key: 'news', icon: '📢', title: `${currentGroupName} 소식` }, { key: 'prayer', icon: '🙏', title: '중보기도' }].map((menu) => {
                   const previewPosts = postsForCurrentGroup.filter((post) => post.category === menu.key).slice(0, 5);
@@ -1671,12 +1764,13 @@ export default function App() {
         ) : screen === 'settings' ? (
           <ScrollView contentContainerStyle={styles.settingsScreen}>
             <Text style={styles.settingsTitle}>설정</Text>
-            <Text style={styles.settingsSectionTitle}>교회·그룹</Text>
+            <Text style={styles.settingsSectionTitle}>교회·기관</Text>
             <View style={styles.settingsCard}>
-              <Text style={styles.settingsCardTitle}>그룹 설정</Text>
-              <Text style={styles.settingsDescription}>{joinedGroupIds.length ? `현재 공지 그룹: ${currentGroupName}\n그룹 변경은 공지사항 화면에서 할 수 있습니다.` : '그룹에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 그룹 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
-              <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
-              {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 그룹 만들기</Text></TouchableOpacity>}
+              <Text style={styles.settingsCardTitle}>기관 설정</Text>
+              <Text style={styles.settingsDescription}>{joinedGroupIds.length ? `현재 공지 기관: ${currentGroupName}\n기관 변경은 공지사항 화면에서 할 수 있습니다.` : '교회·기관에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 기관 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
+              <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 기관 가입</Text></TouchableOpacity>
+              {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>}
+              {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>교회·기관 수정 및 삭제</Text></TouchableOpacity>}
             </View>
             <View style={styles.settingsSectionGap} />
             <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
@@ -1709,8 +1803,8 @@ export default function App() {
             <View style={styles.adminSettingsBlock}>
               <Text style={styles.settingsSectionTitle}>공지사항 관리자</Text>
               <View style={styles.settingsCard}>
-                <Text style={styles.settingsCardTitle}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '그룹 관리자 로그인됨' : '관리자 로그인'}</Text>
-                <Text style={styles.settingsDescription}>{isSuperAdmin ? '모든 그룹을 생성하고 관리자를 지정할 수 있습니다.' : canManageCurrentGroup ? `${currentGroupName}의 게시글을 관리할 수 있습니다.` : isAdmin ? '관리할 수 있는 그룹을 선택해 주세요.' : '지정된 관리자만 로그인하여 공지 글을 작성할 수 있습니다.'}</Text>
+                <Text style={styles.settingsCardTitle}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '기관 관리자 로그인됨' : '관리자 로그인'}</Text>
+                <Text style={styles.settingsDescription}>{isSuperAdmin ? '모든 교회·기관을 생성하고 관리자를 지정할 수 있습니다.' : canManageCurrentGroup ? `${currentGroupName}의 게시글을 관리할 수 있습니다.` : isAdmin ? '관리할 수 있는 기관을 선택해 주세요.' : '지정된 관리자만 로그인하여 공지 글을 작성할 수 있습니다.'}</Text>
                 <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
                   <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
                 </TouchableOpacity>
@@ -1831,16 +1925,51 @@ export default function App() {
 
       <TranslationPicker />
 
+      <Modal visible={groupManagerOpen} transparent animationType="fade" onRequestClose={() => setGroupManagerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.groupManagerCard}>
+            <Text style={styles.adminModalTitle}>교회·기관 관리</Text>
+            <Text style={styles.adminModalDescription}>이름이 같아도 고유 관리번호로 구별할 수 있습니다.</Text>
+            <ScrollView style={styles.groupManagerList}>
+              {availableGroups.map((group) => {
+                const managementCode = group.managementCode || (group.id === 'gfc' ? 'GFC-BASE' : `ORG-${group.id.slice(0, 6).toUpperCase()}`);
+                return <View key={group.id} style={styles.groupManageRow}>
+                  <View style={styles.groupManageInfo}><Text style={styles.groupManageName}>{group.name}</Text><Text style={styles.groupManageMeta}>관리번호 {managementCode}</Text><Text style={styles.groupManageMeta}>초대 코드 {group.normalizedInviteCode || '미설정'}</Text></View>
+                  <View style={styles.groupManageActions}><TouchableOpacity onPress={() => openGroupEditor({ ...group, managementCode })} style={styles.groupEditButton}><Text style={styles.groupEditButtonText}>수정</Text></TouchableOpacity><TouchableOpacity onPress={() => removeCommunityGroup(group)} style={styles.groupDeleteButton}><Text style={styles.groupDeleteButtonText}>삭제</Text></TouchableOpacity></View>
+                </View>;
+              })}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setGroupManagerOpen(false)} style={styles.groupManagerClose}><Text style={styles.adminLoginText}>닫기</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!editingGroup} transparent animationType="fade" onRequestClose={() => setEditingGroup(null)}>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>교회·기관 수정</Text>
+            <Text style={styles.managementCodeText}>관리번호 {editingGroup?.managementCode}</Text>
+            <TextInput value={editGroupName} onChangeText={setEditGroupName} placeholder="교회·기관 이름" style={styles.adminInput} />
+            <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>초대 코드</Text><Text style={styles.generatedCodeText}>{editGroupCode}</Text></View>
+            <TouchableOpacity onPress={() => setEditGroupCode(createInviteCode())} style={styles.regenerateCodeButton}><Text style={styles.regenerateCodeText}>새 초대 코드 만들기</Text></TouchableOpacity>
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => setEditingGroup(null)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={saveGroupChanges} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '저장 중…' : '저장'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <Modal visible={groupPickerOpen} transparent animationType="fade" onRequestClose={() => setGroupPickerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>공지사항 그룹 선택</Text>
-            <Text style={styles.adminModalDescription}>가입한 그룹을 선택하면 그 그룹의 소식과 중보기도만 표시됩니다.</Text>
+            <Text style={styles.adminModalTitle}>공지사항 기관 선택</Text>
+            <Text style={styles.adminModalDescription}>가입한 교회·기관을 선택하면 해당 기관의 소식과 중보기도만 표시됩니다.</Text>
             <ScrollView style={styles.groupPickerList}>
               {visibleGroups.map((group) => <TouchableOpacity key={group.id} onPress={() => selectCommunityGroup(group.id)} style={[styles.groupPickerRow, currentGroupId === group.id && styles.groupPickerRowActive]}><Text style={[styles.groupPickerRowText, currentGroupId === group.id && styles.groupPickerRowTextActive]}>{group.name}</Text>{currentGroupId === group.id && <Text style={styles.groupPickerCheck}>✓</Text>}</TouchableOpacity>)}
             </ScrollView>
             <View style={styles.adminModalActions}>
-              <TouchableOpacity onPress={() => { setGroupPickerOpen(false); setJoinGroupOpen(true); }} style={styles.registerAdminButtonInline}><Text style={styles.registerAdminButtonText}>＋ 그룹 가입</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { setGroupPickerOpen(false); setJoinGroupOpen(true); }} style={styles.registerAdminButtonInline}><Text style={styles.registerAdminButtonText}>＋ 기관 가입</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => setGroupPickerOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>닫기</Text></TouchableOpacity>
             </View>
           </View>
@@ -1850,8 +1979,8 @@ export default function App() {
       <Modal visible={joinGroupOpen} transparent animationType="fade" onRequestClose={() => setJoinGroupOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>교회·그룹 가입</Text>
-            <Text style={styles.adminModalDescription}>그룹 관리자에게 받은 초대 코드를 입력해 주세요.</Text>
+            <Text style={styles.adminModalTitle}>교회·기관 가입</Text>
+            <Text style={styles.adminModalDescription}>교회·기관 관리자에게 받은 초대 코드를 입력해 주세요.</Text>
             <TextInput value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="초대 코드" style={styles.adminInput} />
             <View style={styles.adminModalActions}>
               <TouchableOpacity disabled={adminBusy} onPress={() => setJoinGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
@@ -1864,13 +1993,13 @@ export default function App() {
       <Modal visible={createGroupOpen} transparent animationType="fade" onRequestClose={() => setCreateGroupOpen(false)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>새 교회·그룹 만들기</Text>
-            <Text style={styles.adminModalDescription}>그룹 이름만 입력하세요. 안전한 12자리 초대 코드는 앱이 자동으로 만들고 복사합니다.</Text>
-            <TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="그룹 이름 (예: 사랑교회)" style={styles.adminInput} />
+            <Text style={styles.adminModalTitle}>새 교회·기관 만들기</Text>
+            <Text style={styles.adminModalDescription}>교회·기관 이름만 입력하세요. 안전한 12자리 초대 코드는 앱이 자동으로 만들고 복사합니다.</Text>
+            <TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="교회·기관 이름 (예: 사랑교회)" style={styles.adminInput} />
             <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>자동 생성될 초대 코드</Text><Text style={styles.generatedCodeText}>{newGroupCode}</Text></View>
             <View style={styles.adminModalActions}>
               <TouchableOpacity disabled={adminBusy} onPress={() => setCreateGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
-              <TouchableOpacity disabled={adminBusy} onPress={createCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '생성 중…' : '그룹 만들기'}</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={createCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '생성 중…' : '기관 만들기'}</Text></TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -2056,7 +2185,11 @@ const styles = StyleSheet.create({
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   superAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#9A7C43', alignItems: 'center', justifyContent: 'center' }, superAdminButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
+  groupManageButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#EEEAE1', alignItems: 'center', justifyContent: 'center' }, groupManageButtonText: { color: '#655332', fontSize: 14, fontWeight: '900' },
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
+  groupManagerCard: { width: '100%', height: '78%', paddingHorizontal: 20, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 42 : 25, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' }, groupManagerList: { flex: 1 },
+  groupManageRow: { marginBottom: 10, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: '#E2DDD2', backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center' }, groupManageInfo: { flex: 1 }, groupManageName: { color: '#17223B', fontSize: 16, fontWeight: '900' }, groupManageMeta: { marginTop: 3, color: '#7A7F87', fontSize: 10, fontWeight: '700' }, groupManageActions: { marginLeft: 8, gap: 6 }, groupEditButton: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9, backgroundColor: '#E8EEF6' }, groupEditButtonText: { color: '#173C70', fontSize: 11, fontWeight: '900' }, groupDeleteButton: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F3E8E5' }, groupDeleteButtonText: { color: '#A04B3C', fontSize: 11, fontWeight: '900' }, groupManagerClose: { marginTop: 10, minHeight: 46, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' },
+  managementCodeText: { marginBottom: 8, color: '#9A7C43', fontSize: 12, fontWeight: '900' }, regenerateCodeButton: { marginTop: 9, alignSelf: 'center', paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#173C70' }, regenerateCodeText: { color: '#173C70', fontSize: 12, fontWeight: '900' },
   keyboardModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' },
   postEditorCard: { width: '100%', height: '78%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 52 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   postEditorFields: { flex: 1 }, postEditorFieldsContent: { flexGrow: 1, paddingBottom: 8 },
