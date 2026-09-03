@@ -137,6 +137,12 @@ const HOMOLOGIA_MENUS = [
   { title: '이륙하기 버전', color: '#0E5947', sectionIndex: 8 },
 ];
 
+const HOMOLOGIA_VIDEO_LINKS = [
+  { title: '소리내어 성경읽기 1', url: 'https://www.youtube.com/watch?v=mMI4QV0h3k4' },
+  { title: '소리내어 성경읽기 2', url: 'https://www.youtube.com/watch?v=Om7Eef_KDjs' },
+  { title: '소성에 대한 간증', url: 'https://www.youtube.com/watch?v=WIN8FYvXCCg' },
+];
+
 const BOOK_NAME_KO = {
   Genesis: '창세기', Exodus: '출애굽기', Leviticus: '레위기', Numbers: '민수기', Deuteronomy: '신명기',
   Joshua: '여호수아', Judges: '사사기', Ruth: '룻기', '1 Samuel': '사무엘상', '2 Samuel': '사무엘하',
@@ -1132,6 +1138,9 @@ export default function App() {
       return text.replace(/[ \t]*\n[ \t]*/g, ' ');
     };
 
+    const openHomologiaLink = (url) => Linking.openURL(url)
+      .catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.'));
+
     return (
       <SafeAreaView style={styles.homologiaReaderSafe}>
         <StatusBar barStyle="dark-content" />
@@ -1166,6 +1175,15 @@ export default function App() {
             <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'pdf' && styles.homologiaViewButtonTextActive]}>PDF 원본 보기</Text>
           </TouchableOpacity>
         </View>
+        {homologiaViewMode === 'pdf' && (
+          <View style={styles.homologiaVideoLinks}>
+            {HOMOLOGIA_VIDEO_LINKS.map((link) => (
+              <TouchableOpacity key={link.url} onPress={() => openHomologiaLink(link.url)} style={styles.homologiaVideoLinkButton}>
+                <Text numberOfLines={1} style={styles.homologiaVideoLinkText}>▶ {link.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         {homologiaViewMode === 'pdf' ? (
           <Pdf
             source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
@@ -1174,7 +1192,7 @@ export default function App() {
             maxScale={5}
             enablePaging={false}
             enableAnnotationRendering
-            onPressLink={(uri) => Linking.openURL(uri).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.'))}
+            onPressLink={openHomologiaLink}
             onError={(error) => {
               console.warn('Homologia PDF open failed:', error);
               Alert.alert('PDF 열기 실패', 'PDF 원본을 열 수 없습니다. 글자 보기로 확인해 주세요.');
@@ -1875,6 +1893,9 @@ const styles = StyleSheet.create({
   homologiaViewButtonActive: { backgroundColor: '#17223B' },
   homologiaViewButtonText: { color: '#777D87', fontSize: 13, fontWeight: '900' },
   homologiaViewButtonTextActive: { color: '#FFF' },
+  homologiaVideoLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 9 },
+  homologiaVideoLinkButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F0E8D7', borderWidth: 1, borderColor: '#D8C9A8' },
+  homologiaVideoLinkText: { color: '#6C531F', fontSize: 11, fontWeight: '900' },
   homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
   homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
