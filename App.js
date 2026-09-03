@@ -488,7 +488,8 @@ export default function App() {
   }, [memberUser, currentGroupId]);
 
   useEffect(() => {
-    if (!loaded || !memberSnapshotReady || isAdmin || !memberUser || !currentGroupId || !joinedGroupIds.includes(currentGroupId) || myMemberships[currentGroupId]?.active) return;
+    const savedMembership = currentGroupId ? myMemberships[currentGroupId] : null;
+    if (!loaded || !memberSnapshotReady || isAdmin || !memberUser || !currentGroupId || !joinedGroupIds.includes(currentGroupId) || !!savedMembership) return;
     if (nicknamePromptedRef.current.has(currentGroupId)) return;
     nicknamePromptedRef.current.add(currentGroupId);
     setPendingJoinGroup(availableGroups.find((group) => group.id === currentGroupId) || { id: currentGroupId, name: currentGroupName });
@@ -1120,6 +1121,14 @@ export default function App() {
     Alert.alert('교회·기관 탈퇴', `${currentGroupName}에서 탈퇴하시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '탈퇴', style: 'destructive', onPress: async () => {
+        // 탈퇴 처리 중 관리자 로그아웃과 회원정보 구독이 순서대로 갱신되더라도
+        // 방금 탈퇴한 기관의 가입창이 자동으로 다시 열리지 않게 합니다.
+        nicknamePromptedRef.current.add(leavingId);
+        setJoinGroupOpen(false);
+        setNicknameEditorOpen(false);
+        setPendingJoinGroup(null);
+        setNicknameTargetGroupId(null);
+        setJoinCode('');
         try {
           let signedOutFromAdmin = false;
           if (isAdmin && !isSuperAdmin && adminRecord) {
