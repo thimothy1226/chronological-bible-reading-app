@@ -299,7 +299,7 @@ export default function App() {
   const [completionModal, setCompletionModal] = useState(null);
   const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
   const [homologiaFontScale, setHomologiaFontScale] = useState(1);
-  const [homologiaViewMode, setHomologiaViewMode] = useState('text');
+  const [homologiaViewMode, setHomologiaViewMode] = useState('pdf');
   const [homologiaPdfScale, setHomologiaPdfScale] = useState(1);
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
@@ -329,6 +329,7 @@ export default function App() {
   const lastScrollY = useRef(0);
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
+  const homologiaPdfScaleRef = useRef(1);
 
   const isAdmin = !!adminUser && adminAuthorized;
 
@@ -393,7 +394,9 @@ export default function App() {
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
         setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
         const savedPdfScale = Number(saved[HOMOLOGIA_PDF_SCALE_KEY] || 1);
-        setHomologiaPdfScale(Number.isFinite(savedPdfScale) ? Math.min(5, Math.max(1, savedPdfScale)) : 1);
+        const initialPdfScale = Number.isFinite(savedPdfScale) ? Math.min(5, Math.max(1, savedPdfScale)) : 1;
+        homologiaPdfScaleRef.current = initialPdfScale;
+        setHomologiaPdfScale(initialPdfScale);
         const imported = safeParseJson(saved[CUSTOM_TRANSLATIONS_KEY], []);
         const loadedBibles = {};
         const validImported = [];
@@ -736,7 +739,10 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'android' || !['reader', 'homologiaReader', 'notice', 'settings'].includes(screen)) return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (screen === 'homologiaReader') setScreen('homologia');
+      if (screen === 'homologiaReader') {
+        setHomologiaPdfScale(homologiaPdfScaleRef.current);
+        setScreen('homologia');
+      }
       else if (screen === 'notice' && selectedNoticePost) setSelectedNoticePost(null);
       else if (screen === 'notice' && noticeCategory) setNoticeCategory(null);
       else if (screen === 'notice') return false;
@@ -1149,7 +1155,7 @@ export default function App() {
       <SafeAreaView style={styles.homologiaReaderSafe}>
         <StatusBar barStyle="dark-content" />
         <View style={styles.homologiaReaderHeader}>
-          <TouchableOpacity onPress={() => setScreen('homologia')} style={styles.homologiaBackButton}>
+          <TouchableOpacity onPress={() => { setHomologiaPdfScale(homologiaPdfScaleRef.current); setScreen('homologia'); }} style={styles.homologiaBackButton}>
             <Text style={styles.homologiaBackText}>‹ 목록</Text>
           </TouchableOpacity>
           <View style={styles.homologiaReaderHeading}>
@@ -1199,7 +1205,7 @@ export default function App() {
             enableAnnotationRendering
             onScaleChanged={(scale) => {
               const safeScale = Math.min(5, Math.max(1, Number(scale) || 1));
-              setHomologiaPdfScale(safeScale);
+              homologiaPdfScaleRef.current = safeScale;
               AsyncStorage.setItem(HOMOLOGIA_PDF_SCALE_KEY, String(safeScale))
                 .catch((error) => console.warn('Homologia PDF scale save failed:', error));
             }}
@@ -1508,7 +1514,7 @@ export default function App() {
               {HOMOLOGIA_MENUS.map((menu) => (
                 <TouchableOpacity
                   key={menu.title}
-                  onPress={() => { setHomologiaSectionIndex(menu.sectionIndex); setScreen('homologiaReader'); }}
+                  onPress={() => { setHomologiaSectionIndex(menu.sectionIndex); setHomologiaViewMode('pdf'); setScreen('homologiaReader'); }}
                   style={[styles.homologiaButton, { backgroundColor: menu.color }]}
                 >
                   <Text style={styles.homologiaButtonText}>{menu.title}</Text>
