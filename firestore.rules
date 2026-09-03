@@ -65,7 +65,11 @@ service cloud.firestore {
 
     match /groups/{groupId} {
       allow read: if true;
-      allow create, update, delete: if isSuperAdmin();
+      allow create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        || (isGroupManager(groupId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['address', 'description', 'updatedAt']));
     }
 
     match /memberships/{membershipId} {
