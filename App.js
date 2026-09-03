@@ -7,11 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Buffer } from 'buffer';
 import iconv from 'iconv-lite';
+import Pdf from 'react-native-pdf';
 import schedule from './assets/schedule.json';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
+import homologiaPdfBase64 from './assets/homologia-pdf';
 import { initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword, getReactNativePersistence, inMemoryPersistence,
@@ -290,6 +292,7 @@ export default function App() {
   const [completionModal, setCompletionModal] = useState(null);
   const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
   const [homologiaFontScale, setHomologiaFontScale] = useState(1);
+  const [homologiaViewMode, setHomologiaViewMode] = useState('text');
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
@@ -1141,10 +1144,45 @@ export default function App() {
             <Text style={styles.homologiaPageRange}>원본 구성 · 글자 보기</Text>
           </View>
           <View style={styles.homologiaFontTools}>
-            <TouchableOpacity onPress={() => changeHomologiaFont(-0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => changeHomologiaFont(0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
+            {homologiaViewMode === 'text' && (
+              <>
+                <TouchableOpacity onPress={() => changeHomologiaFont(-0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => changeHomologiaFont(0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
+        <View style={styles.homologiaViewSwitch}>
+          <TouchableOpacity
+            onPress={() => setHomologiaViewMode('text')}
+            style={[styles.homologiaViewButton, homologiaViewMode === 'text' && styles.homologiaViewButtonActive]}
+          >
+            <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'text' && styles.homologiaViewButtonTextActive]}>글자 보기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setHomologiaViewMode('pdf')}
+            style={[styles.homologiaViewButton, homologiaViewMode === 'pdf' && styles.homologiaViewButtonActive]}
+          >
+            <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'pdf' && styles.homologiaViewButtonTextActive]}>PDF 원본 보기</Text>
+          </TouchableOpacity>
+        </View>
+        {homologiaViewMode === 'pdf' ? (
+          <Pdf
+            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
+            page={section.startPage}
+            minScale={1}
+            maxScale={5}
+            enablePaging={false}
+            enableAnnotationRendering
+            onPressLink={(uri) => Linking.openURL(uri).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.'))}
+            onError={(error) => {
+              console.warn('Homologia PDF open failed:', error);
+              Alert.alert('PDF 열기 실패', 'PDF 원본을 열 수 없습니다. 글자 보기로 확인해 주세요.');
+              setHomologiaViewMode('text');
+            }}
+            style={styles.homologiaPdf}
+          />
+        ) : (
         <FlatList
           data={sectionBlocks}
           keyExtractor={(_, index) => String(index)}
@@ -1196,6 +1234,7 @@ export default function App() {
             );
           }}
         />
+        )}
       </SafeAreaView>
     );
   }
@@ -1831,6 +1870,12 @@ const styles = StyleSheet.create({
   homologiaFontTools: { flexDirection: 'row', gap: 5 },
   homologiaFontButton: { minWidth: 38, paddingHorizontal: 8, paddingVertical: 9, borderRadius: 9, backgroundColor: '#17223B', alignItems: 'center' },
   homologiaFontButtonText: { color: '#FFF', fontWeight: '900' },
+  homologiaViewSwitch: { flexDirection: 'row', alignSelf: 'center', marginVertical: 9, padding: 3, borderRadius: 12, backgroundColor: '#E7E2D7' },
+  homologiaViewButton: { minWidth: 112, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 9, alignItems: 'center' },
+  homologiaViewButtonActive: { backgroundColor: '#17223B' },
+  homologiaViewButtonText: { color: '#777D87', fontSize: 13, fontWeight: '900' },
+  homologiaViewButtonTextActive: { color: '#FFF' },
+  homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
   homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
   homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
