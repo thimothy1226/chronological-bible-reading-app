@@ -20,8 +20,8 @@ import {
   initializeAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
 } from 'firebase/auth';
 import {
-  addDoc, collection, deleteDoc, doc, getDoc, getFirestore, onSnapshot,
-  serverTimestamp, setDoc, updateDoc,
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot,
+  query, serverTimestamp, setDoc, updateDoc, where,
 } from 'firebase/firestore';
 
 const FIREBASE_CONFIG = {
@@ -52,6 +52,9 @@ const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
 const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_positions';
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
+const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
+const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
+const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
 
 const BIBLE_DATA = { KRV: krv };
 
@@ -325,6 +328,16 @@ export default function App() {
   const [adminRegisterOpen, setAdminRegisterOpen] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [adminRecord, setAdminRecord] = useState(null);
+  const [availableGroups, setAvailableGroups] = useState([DEFAULT_GROUP]);
+  const [joinedGroupIds, setJoinedGroupIds] = useState(['gfc']);
+  const [currentGroupId, setCurrentGroupId] = useState('gfc');
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
+  const [joinGroupOpen, setJoinGroupOpen] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupCode, setNewGroupCode] = useState('');
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -334,21 +347,32 @@ export default function App() {
   const homologiaPdfScaleRef = useRef(1);
   const homologiaPdfPositionsRef = useRef({});
 
+  const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
+  const currentGroup = availableGroups.find((group) => group.id === currentGroupId) || DEFAULT_GROUP;
+  const visibleGroups = isSuperAdmin ? availableGroups : availableGroups.filter((group) => joinedGroupIds.includes(group.id));
+  const canManageCurrentGroup = isSuperAdmin || (isAdmin && (
+    adminRecord?.groupIds?.includes(currentGroupId) || (!adminRecord?.groupIds && currentGroupId === 'gfc')
+  ));
+  const postsForCurrentGroup = communityPosts.filter((post) => (post.groupId || 'gfc') === currentGroupId);
 
   useEffect(() => onAuthStateChanged(firebaseAuth, async (user) => {
     setAdminUser(user);
     if (!user) {
       setAdminAuthorized(false);
+      setAdminRecord(null);
       return;
     }
     if (user.uid === ADMIN_UID) {
       setAdminAuthorized(true);
+      setAdminRecord({ role: 'superAdmin', groupIds: [] });
+      setDoc(doc(firestore, 'groups', 'gfc'), { name: 'GFC 교회', normalizedInviteCode: 'GFC', updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
       return;
     }
     try {
       const adminRecord = await getDoc(doc(firestore, 'admins', user.uid));
       setAdminAuthorized(adminRecord.exists());
+      setAdminRecord(adminRecord.exists() ? adminRecord.data() : null);
       if (!adminRecord.exists()) await signOut(firebaseAuth);
     } catch (error) {
       console.warn('Admin permission check failed:', error);
@@ -356,6 +380,12 @@ export default function App() {
       await signOut(firebaseAuth).catch(() => {});
     }
   }), []);
+
+  useEffect(() => onSnapshot(collection(firestore, 'groups'), (snapshot) => {
+    const remoteGroups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+    const next = [DEFAULT_GROUP, ...remoteGroups.filter((group) => group.id !== 'gfc')];
+    setAvailableGroups(next);
+  }, (error) => console.warn('Groups load failed:', error)), []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(firestore, 'communityPosts'), (snapshot) => {
@@ -380,11 +410,16 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
         const safeDay = Number.isFinite(d) && d >= 1 && d <= 365 ? d : 1;
+        const savedGroups = safeParseJson(saved[COMMUNITY_GROUPS_KEY], ['gfc']);
+        const validGroups = Array.isArray(savedGroups) && savedGroups.length ? [...new Set(['gfc', ...savedGroups])] : ['gfc'];
+        const savedCurrentGroup = saved[CURRENT_GROUP_KEY] || 'gfc';
+        setJoinedGroupIds(validGroups);
+        setCurrentGroupId(validGroups.includes(savedCurrentGroup) ? savedCurrentGroup : 'gfc');
         setCurrentDay(safeDay);
         setDisplayDay(safeDay);
         const migrated = migrateCompletions(safeParseJson(saved[COMPLETIONS_KEY], {}));
@@ -641,7 +676,7 @@ export default function App() {
       setAdminAuthorized(true);
       setAdminPassword('');
       setAdminLoginOpen(false);
-      Alert.alert('로그인 완료', '이제 GFC 소식과 중보기도 글을 관리할 수 있습니다.');
+      Alert.alert('로그인 완료', credential.user.uid === ADMIN_UID ? '최고 관리자로 로그인했습니다.' : '담당 그룹의 공지사항을 관리할 수 있습니다.');
     } catch (error) {
       console.warn('Admin login failed:', error);
       Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해 주세요.');
@@ -658,7 +693,7 @@ export default function App() {
   };
 
   const registerNewAdmin = async () => {
-    if (!isAdmin) return;
+    if (!canManageCurrentGroup) return;
     if (!newAdminEmail.trim() || newAdminPassword.length < 6) {
       Alert.alert('입력 확인', '이메일과 6자리 이상의 임시 비밀번호를 입력해 주세요.');
       return;
@@ -671,6 +706,8 @@ export default function App() {
       await setDoc(doc(firestore, 'admins', credential.user.uid), {
         uid: credential.user.uid,
         email: newAdminEmail.trim(),
+        role: 'groupAdmin',
+        groupIds: [currentGroupId],
         createdBy: adminUser.uid,
         createdAt: serverTimestamp(),
       });
@@ -678,11 +715,80 @@ export default function App() {
       setNewAdminEmail('');
       setNewAdminPassword('');
       setAdminRegisterOpen(false);
-      Alert.alert('관리자 등록 완료', '새 관리자가 입력한 이메일과 비밀번호로 로그인할 수 있습니다.');
+      Alert.alert('관리자 등록 완료', `새 관리자가 ${currentGroup.name}의 공지사항을 관리할 수 있습니다.`);
     } catch (error) {
       console.warn('Admin registration failed:', error);
       const duplicate = String(error?.code || '').includes('email-already-in-use');
       Alert.alert('등록 실패', duplicate ? '이미 사용 중인 이메일입니다.' : '관리자를 등록하지 못했습니다. 입력 내용을 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const selectCommunityGroup = async (groupId) => {
+    setCurrentGroupId(groupId);
+    setGroupPickerOpen(false);
+    setSelectedNoticePost(null);
+    setNoticeCategory(null);
+    await AsyncStorage.setItem(CURRENT_GROUP_KEY, groupId);
+  };
+
+  const joinCommunityGroup = async () => {
+    const normalizedCode = joinCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!normalizedCode) {
+      Alert.alert('입력 확인', '초대 코드를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const snapshot = await getDocs(query(collection(firestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
+      if (snapshot.empty) {
+        Alert.alert('그룹을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
+        return;
+      }
+      const groupDoc = snapshot.docs[0];
+      const nextIds = [...new Set([...joinedGroupIds, groupDoc.id])];
+      setJoinedGroupIds(nextIds);
+      setCurrentGroupId(groupDoc.id);
+      await AsyncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, groupDoc.id]]);
+      setJoinCode('');
+      setJoinGroupOpen(false);
+      Alert.alert('그룹 가입 완료', `${groupDoc.data().name} 공지사항을 볼 수 있습니다.`);
+    } catch (error) {
+      console.warn('Group join failed:', error);
+      Alert.alert('가입 실패', '그룹 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const createCommunityGroup = async () => {
+    if (!isSuperAdmin) return;
+    const name = newGroupName.trim();
+    const normalizedCode = newGroupCode.trim().toUpperCase().replace(/\s+/g, '');
+    if (!name || normalizedCode.length < 4) {
+      Alert.alert('입력 확인', '그룹 이름과 4자리 이상의 초대 코드를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      const duplicate = await getDocs(query(collection(firestore, 'groups'), where('normalizedInviteCode', '==', normalizedCode)));
+      if (!duplicate.empty) {
+        Alert.alert('코드 중복', '이미 사용 중인 초대 코드입니다.');
+        return;
+      }
+      const created = await addDoc(collection(firestore, 'groups'), {
+        name, normalizedInviteCode: normalizedCode, createdBy: adminUser.uid,
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+      });
+      setNewGroupName('');
+      setNewGroupCode('');
+      setCreateGroupOpen(false);
+      await selectCommunityGroup(created.id);
+      Alert.alert('그룹 생성 완료', `${name} 그룹이 만들어졌습니다.\n초대 코드: ${normalizedCode}`);
+    } catch (error) {
+      console.warn('Group creation failed:', error);
+      Alert.alert('생성 실패', '그룹을 만들지 못했습니다.');
     } finally {
       setAdminBusy(false);
     }
@@ -695,7 +801,7 @@ export default function App() {
   };
 
   const saveCommunityPost = async () => {
-    if (!isAdmin) return;
+    if (!canManageCurrentGroup) return;
     if (!postTitle.trim() || !postBody.trim()) {
       Alert.alert('입력 확인', '제목과 내용을 모두 입력해 주세요.');
       return;
@@ -709,6 +815,8 @@ export default function App() {
       } else {
         await addDoc(collection(firestore, 'communityPosts'), {
           category: postEditor?.category || noticeCategory,
+          groupId: currentGroupId,
+          groupName: currentGroup.name,
           title: postTitle.trim(),
           body: postBody.trim(),
           authorUid: adminUser.uid,
@@ -728,7 +836,7 @@ export default function App() {
   };
 
   const removeCommunityPost = (post) => {
-    if (!isAdmin) return;
+    if (!canManageCurrentGroup) return;
     Alert.alert('게시글 삭제', '이 글을 삭제하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       {
@@ -1467,12 +1575,13 @@ export default function App() {
         {screen === 'notice' ? (
           selectedNoticePost ? (
             <ScrollView contentContainerStyle={styles.noticeDetailScreen}>
+              <Text style={styles.currentGroupLabel}>{currentGroup.name}</Text>
               <TouchableOpacity onPress={() => setSelectedNoticePost(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ {noticeCategory === 'news' ? 'GFC 소식' : '중보기도'}</Text></TouchableOpacity>
               <View style={styles.noticePostCard}>
                 <Text style={styles.noticePostTitle}>{selectedNoticePost.title}</Text>
                 <Text style={styles.noticePostDate}>{selectedNoticePost.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
                 <Text style={styles.noticePostBody}>{selectedNoticePost.body}</Text>
-                {isAdmin && <View style={styles.noticePostActions}>
+                {canManageCurrentGroup && <View style={styles.noticePostActions}>
                   <TouchableOpacity onPress={() => openPostEditor(selectedNoticePost)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => { removeCommunityPost(selectedNoticePost); setSelectedNoticePost(null); }} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
                 </View>}
@@ -1480,17 +1589,18 @@ export default function App() {
             </ScrollView>
           ) : noticeCategory ? (
             <View style={styles.noticeListScreen}>
+              <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.groupSelectorCompact}><Text style={styles.groupSelectorCompactText}>🏠 {currentGroup.name}  ▼</Text></TouchableOpacity>
               <View style={styles.noticeListHeader}>
                 <TouchableOpacity onPress={() => setNoticeCategory(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ 공지사항</Text></TouchableOpacity>
                 <Text style={styles.noticeListTitle}>{noticeCategory === 'news' ? 'GFC 소식' : '중보기도'}</Text>
-                {isAdmin ? <TouchableOpacity onPress={() => openPostEditor()} style={styles.writePostButton}><Text style={styles.writePostButtonText}>＋ 글쓰기</Text></TouchableOpacity> : <View style={styles.noticeHeaderSpacer} />}
+                {canManageCurrentGroup ? <TouchableOpacity onPress={() => openPostEditor()} style={styles.writePostButton}><Text style={styles.writePostButtonText}>＋ 글쓰기</Text></TouchableOpacity> : <View style={styles.noticeHeaderSpacer} />}
               </View>
               {postsLoading ? <View style={styles.noticeMessage}><Text style={styles.placeholderText}>게시글을 불러오는 중입니다…</Text></View> : postsError ? <View style={styles.noticeMessage}><Text style={styles.noticeErrorText}>{postsError}</Text></View> : (
                 <FlatList
-                  data={communityPosts.filter((post) => post.category === noticeCategory)}
+                  data={postsForCurrentGroup.filter((post) => post.category === noticeCategory)}
                   keyExtractor={(item) => item.id}
                   contentContainerStyle={styles.noticeListContent}
-                  ListEmptyComponent={<View style={styles.noticeEmptyCard}><Text style={styles.noticeEmptyTitle}>아직 등록된 글이 없습니다.</Text><Text style={styles.placeholderText}>{isAdmin ? '오른쪽 위의 글쓰기 버튼으로 첫 글을 등록해 주세요.' : '새로운 글이 등록되면 이곳에 표시됩니다.'}</Text></View>}
+                  ListEmptyComponent={<View style={styles.noticeEmptyCard}><Text style={styles.noticeEmptyTitle}>아직 등록된 글이 없습니다.</Text><Text style={styles.placeholderText}>{canManageCurrentGroup ? '오른쪽 위의 글쓰기 버튼으로 첫 글을 등록해 주세요.' : '새로운 글이 등록되면 이곳에 표시됩니다.'}</Text></View>}
                   renderItem={({ item }) => (
                     <TouchableOpacity onPress={() => setSelectedNoticePost(item)} style={styles.noticeTitleRow}>
                       <Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticeTitleRowText}>{item.title}</Text>
@@ -1504,10 +1614,11 @@ export default function App() {
           ) : (
             <View style={styles.noticeMenuScreen}>
               <Text style={styles.placeholderTitle}>공지사항</Text>
-              <Text style={styles.placeholderText}>확인할 메뉴를 선택해 주세요.</Text>
+              <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>🏠 {currentGroup.name}</Text><Text style={styles.groupSelectorHint}>그룹 변경  ▼</Text></TouchableOpacity>
+              <Text style={styles.placeholderText}>선택한 그룹의 공지사항입니다.</Text>
               <View style={styles.noticeMenuButtons}>
                 {[{ key: 'news', icon: '📢', title: 'GFC 소식' }, { key: 'prayer', icon: '🙏', title: '중보기도' }].map((menu) => {
-                  const previewPosts = communityPosts.filter((post) => post.category === menu.key).slice(0, 5);
+                  const previewPosts = postsForCurrentGroup.filter((post) => post.category === menu.key).slice(0, 5);
                   return <View key={menu.key} style={styles.noticeMenuButton}>
                     <TouchableOpacity onPress={() => setNoticeCategory(menu.key)} style={styles.noticeMenuHeading}>
                       <Text style={styles.noticeMenuIcon}>{menu.icon}</Text><Text style={styles.noticeMenuTitle}>{menu.title}</Text>
@@ -1546,6 +1657,15 @@ export default function App() {
         ) : screen === 'settings' ? (
           <ScrollView contentContainerStyle={styles.settingsScreen}>
             <Text style={styles.settingsTitle}>설정</Text>
+            <Text style={styles.settingsSectionTitle}>교회·그룹</Text>
+            <View style={styles.settingsCard}>
+              <Text style={styles.settingsCardTitle}>가입한 그룹</Text>
+              <Text style={styles.settingsDescription}>여러 교회나 모임에 가입하고 공지사항에서 원하는 그룹을 선택할 수 있습니다.</Text>
+              <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.importBibleButton}><Text style={styles.importBibleButtonText}>🏠 {currentGroup.name} · 그룹 선택</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
+              {isSuperAdmin && <TouchableOpacity onPress={() => setCreateGroupOpen(true)} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 그룹 만들기</Text></TouchableOpacity>}
+            </View>
+            <View style={styles.settingsSectionGap} />
             <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
             <View style={styles.settingsCard}>
               <Text style={styles.settingsCardTitle}>BDF 성경 데이터 등록</Text>
@@ -1576,12 +1696,12 @@ export default function App() {
             <View style={styles.adminSettingsBlock}>
               <Text style={styles.settingsSectionTitle}>공지사항 관리자</Text>
               <View style={styles.settingsCard}>
-                <Text style={styles.settingsCardTitle}>{isAdmin ? '관리자 로그인됨' : '관리자 로그인'}</Text>
-                <Text style={styles.settingsDescription}>{isAdmin ? 'GFC 소식과 중보기도를 작성·수정·삭제할 수 있습니다.' : '지정된 관리자만 로그인하여 공지 글을 작성할 수 있습니다.'}</Text>
+                <Text style={styles.settingsCardTitle}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '그룹 관리자 로그인됨' : '관리자 로그인'}</Text>
+                <Text style={styles.settingsDescription}>{isSuperAdmin ? '모든 그룹을 생성하고 관리자를 지정할 수 있습니다.' : canManageCurrentGroup ? `${currentGroup.name}의 게시글을 관리할 수 있습니다.` : isAdmin ? '관리할 수 있는 그룹을 선택해 주세요.' : '지정된 관리자만 로그인하여 공지 글을 작성할 수 있습니다.'}</Text>
                 <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
                   <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
                 </TouchableOpacity>
-                {isAdmin && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 새 관리자 등록</Text></TouchableOpacity>}
+                {canManageCurrentGroup && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {currentGroup.name} 관리자 등록</Text></TouchableOpacity>}
               </View>
             </View>
           </ScrollView>
@@ -1698,6 +1818,51 @@ export default function App() {
 
       <TranslationPicker />
 
+      <Modal visible={groupPickerOpen} transparent animationType="fade" onRequestClose={() => setGroupPickerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>공지사항 그룹 선택</Text>
+            <Text style={styles.adminModalDescription}>가입한 그룹을 선택하면 그 그룹의 소식과 중보기도만 표시됩니다.</Text>
+            <ScrollView style={styles.groupPickerList}>
+              {visibleGroups.map((group) => <TouchableOpacity key={group.id} onPress={() => selectCommunityGroup(group.id)} style={[styles.groupPickerRow, currentGroupId === group.id && styles.groupPickerRowActive]}><Text style={[styles.groupPickerRowText, currentGroupId === group.id && styles.groupPickerRowTextActive]}>{group.name}</Text>{currentGroupId === group.id && <Text style={styles.groupPickerCheck}>✓</Text>}</TouchableOpacity>)}
+            </ScrollView>
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity onPress={() => { setGroupPickerOpen(false); setJoinGroupOpen(true); }} style={styles.registerAdminButtonInline}><Text style={styles.registerAdminButtonText}>＋ 그룹 가입</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setGroupPickerOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>닫기</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={joinGroupOpen} transparent animationType="fade" onRequestClose={() => setJoinGroupOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>교회·그룹 가입</Text>
+            <Text style={styles.adminModalDescription}>그룹 관리자에게 받은 초대 코드를 입력해 주세요.</Text>
+            <TextInput value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" placeholder="초대 코드" style={styles.adminInput} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => setJoinGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={joinCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '확인 중…' : '가입'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={createGroupOpen} transparent animationType="fade" onRequestClose={() => setCreateGroupOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>새 교회·그룹 만들기</Text>
+            <Text style={styles.adminModalDescription}>최고 관리자만 만들 수 있습니다. 초대 코드는 회원에게 전달할 고유 코드입니다.</Text>
+            <TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="그룹 이름 (예: 사랑교회)" style={styles.adminInput} />
+            <TextInput value={newGroupCode} onChangeText={setNewGroupCode} autoCapitalize="characters" placeholder="초대 코드 (4자리 이상)" style={styles.adminInput} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => setCreateGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={createCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '생성 중…' : '그룹 만들기'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={adminLoginOpen} transparent animationType="fade" onRequestClose={() => setAdminLoginOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
@@ -1716,8 +1881,8 @@ export default function App() {
       <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>새 관리자 등록</Text>
-            <Text style={styles.adminModalDescription}>새 관리자가 사용할 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
+            <Text style={styles.adminModalTitle}>{currentGroup.name} 관리자 등록</Text>
+            <Text style={styles.adminModalDescription}>이 관리자는 {currentGroup.name}의 게시글만 관리합니다. 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
             <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" style={styles.adminInput} />
             <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" style={styles.adminInput} />
             <View style={styles.adminModalActions}>
@@ -1833,6 +1998,9 @@ const styles = StyleSheet.create({
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
   noticeMenuScreen: { flex: 1, paddingHorizontal: 22, paddingTop: 30, alignItems: 'center' },
+  groupSelector: { width: '100%', marginTop: 16, marginBottom: 10, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD7CA', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  groupSelectorName: { flex: 1, color: '#17223B', fontSize: 16, fontWeight: '900' }, groupSelectorHint: { color: '#9A7C43', fontSize: 11, fontWeight: '800' },
+  groupSelectorCompact: { alignSelf: 'center', marginBottom: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18, backgroundColor: '#EEEAE1' }, groupSelectorCompactText: { color: '#4F5664', fontSize: 12, fontWeight: '900' }, currentGroupLabel: { alignSelf: 'center', marginBottom: 8, color: '#9A7C43', fontSize: 12, fontWeight: '900' },
   noticeMenuButtons: { width: '100%', marginTop: 24, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   noticeMenuButton: { width: '48.5%', minHeight: 265, paddingHorizontal: 11, paddingVertical: 15, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' },
   noticeMenuHeading: { alignItems: 'center', justifyContent: 'center', minHeight: 72 },
@@ -1853,6 +2021,7 @@ const styles = StyleSheet.create({
   noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
+  settingsSectionGap: { height: 24 },
   settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
   settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
   settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
@@ -1871,11 +2040,13 @@ const styles = StyleSheet.create({
   importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
+  superAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#9A7C43', alignItems: 'center', justifyContent: 'center' }, superAdminButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   keyboardModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' },
   postEditorCard: { width: '100%', height: '78%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 52 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   postEditorFields: { flex: 1 }, postEditorFieldsContent: { flexGrow: 1, paddingBottom: 8 },
   adminModalTitle: { fontSize: 22, fontWeight: '900', color: '#17223B', marginBottom: 8 }, adminModalDescription: { fontSize: 13, lineHeight: 19, color: '#747C86', marginBottom: 14 },
+  groupPickerList: { maxHeight: 330, marginTop: 4 }, groupPickerRow: { minHeight: 52, marginBottom: 7, paddingHorizontal: 16, borderRadius: 13, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DED9CE', flexDirection: 'row', alignItems: 'center' }, groupPickerRowActive: { backgroundColor: '#EAF2FF', borderColor: '#90B8EC' }, groupPickerRowText: { flex: 1, color: '#3F4859', fontSize: 15, fontWeight: '800' }, groupPickerRowTextActive: { color: '#173C70' }, groupPickerCheck: { color: '#276DB5', fontSize: 18, fontWeight: '900' }, registerAdminButtonInline: { minWidth: 110, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: '#173C70', alignItems: 'center' },
   adminInput: { minHeight: 52, marginTop: 10, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#DED9CE', backgroundColor: '#FFF', color: '#17223B', fontSize: 15 }, postBodyInput: { minHeight: 220, flexGrow: 1 },
   adminModalActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'flex-end', gap: 9 }, adminCancelButton: { minWidth: 82, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 12, backgroundColor: '#E8E5DE', alignItems: 'center' }, adminCancelText: { color: '#626A75', fontWeight: '900' }, adminLoginButton: { minWidth: 100, paddingHorizontal: 20, paddingVertical: 13, borderRadius: 12, backgroundColor: '#173C70', alignItems: 'center' }, adminLoginText: { color: '#FFF', fontWeight: '900' },
   homologiaScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
