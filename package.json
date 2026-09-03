@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -17,6 +18,7 @@
     "expo-file-system": "~57.0.6",
     "firebase": "^12.18.0",
     "iconv-lite": "^0.7.2",
+    "patch-package": "^8.0.1",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-blob-util": "^0.24.10",
