@@ -1,0 +1,123 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return signedIn() && request.auth.uid == 'XKWflFjskvSK016d8amlnTjLwX83';
+    }
+
+    function hasAdminDocument() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function adminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    function isActiveAdmin() {
+      return hasAdminDocument()
+        && (!('active' in adminData()) || adminData().active == true);
+    }
+
+    function managesGroup(groupId) {
+      return isSuperAdmin()
+        || (isActiveAdmin() && (
+          (('groupRoles' in adminData())
+            && (adminData().groupRoles[groupId] == 'manager' || adminData().groupRoles[groupId] == 'subAdmin'))
+          || ((!('groupRoles' in adminData())) && (
+            (('groupIds' in adminData()) && adminData().groupIds.hasAny([groupId]))
+            || (groupId == 'gfc' && !('groupIds' in adminData()))
+          ))
+        ));
+    }
+
+    function isGroupManager(groupId) {
+      return isSuperAdmin()
+        || (isActiveAdmin() && (
+          (('groupRoles' in adminData()) && adminData().groupRoles[groupId] == 'manager')
+          || (
+            (!('groupRoles' in adminData()))
+            && (!('role' in adminData()) || adminData().role != 'subAdmin')
+            && (
+              (('groupIds' in adminData()) && adminData().groupIds.hasAny([groupId]))
+              || (groupId == 'gfc' && !('groupIds' in adminData()))
+            )
+          )
+        ));
+    }
+
+    function isMember(groupId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/memberships/$(groupId + '_' + request.auth.uid))
+        && get(/databases/$(database)/documents/memberships/$(groupId + '_' + request.auth.uid)).data.active == true;
+    }
+
+    match /communityPosts/{postId} {
+      allow read: if managesGroup(resource.data.get('groupId', 'gfc'))
+        || isMember(resource.data.get('groupId', 'gfc'));
+      allow create: if managesGroup(request.resource.data.groupId);
+      allow update, delete: if managesGroup(resource.data.get('groupId', 'gfc'));
+    }
+
+    match /groups/{groupId} {
+      allow read: if true;
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if signedIn() && (
+        resource.data.memberUid == request.auth.uid
+        || isGroupManager(resource.data.groupId)
+      );
+
+      allow create: if signedIn()
+        && request.resource.data.memberUid == request.auth.uid
+        && request.resource.data.active == true
+        && request.resource.data.removedByAdmin == false
+        && request.resource.data.inviteCode == get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.normalizedInviteCode;
+
+      allow update: if isGroupManager(resource.data.groupId)
+        || (
+          signedIn()
+          && resource.data.memberUid == request.auth.uid
+          && resource.data.removedByAdmin != true
+          && request.resource.data.memberUid == resource.data.memberUid
+          && request.resource.data.groupId == resource.data.groupId
+          && request.resource.data.removedByAdmin == false
+          && (
+            request.resource.data.nickname == resource.data.nickname
+            || !('nicknameChangedAt' in resource.data)
+            || resource.data.nicknameChangedAt == null
+            || request.time >= resource.data.nicknameChangedAt + duration.value(24, 'h')
+          )
+        );
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && request.auth.uid == adminId)
+        || (isActiveAdmin()
+          && ('groupIds' in resource.data)
+          && ('groupIds' in adminData())
+          && resource.data.groupIds.hasAny(adminData().groupIds));
+
+      allow create: if isSuperAdmin()
+        || (request.resource.data.groupIds.size() == 1
+          && isGroupManager(request.resource.data.groupIds[0]));
+
+      allow update: if isSuperAdmin()
+        || (isActiveAdmin()
+          && ('groupIds' in resource.data)
+          && ('groupIds' in adminData())
+          && resource.data.groupIds.hasAny(adminData().groupIds)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['groupIds', 'groupRoles', 'active', 'role', 'updatedAt']));
+
+      allow delete: if isSuperAdmin();
+    }
+  }
+}
