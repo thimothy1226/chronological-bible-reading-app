@@ -17,11 +17,11 @@ import homologiaPdfBase64 from './assets/homologia-pdf';
 import { initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword, EmailAuthProvider, getReactNativePersistence, inMemoryPersistence,
-  initializeAuth, onAuthStateChanged, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword,
+  initializeAuth, onAuthStateChanged, reauthenticateWithCredential, signInAnonymously, signInWithEmailAndPassword, signOut, updatePassword,
 } from 'firebase/auth';
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot,
-  query, serverTimestamp, setDoc, updateDoc, where,
+  query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
 
 const FIREBASE_CONFIG = {
@@ -39,6 +39,9 @@ const firebaseAuth = initializeAuth(firebaseApp, {
 const firestore = getFirestore(firebaseApp);
 const adminCreatorApp = initializeApp(FIREBASE_CONFIG, 'adminCreator');
 const adminCreatorAuth = initializeAuth(adminCreatorApp, { persistence: inMemoryPersistence });
+const memberApp = initializeApp(FIREBASE_CONFIG, 'memberClient');
+const memberAuth = initializeAuth(memberApp, { persistence: getReactNativePersistence(AsyncStorage) });
+const memberFirestore = getFirestore(memberApp);
 const ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
@@ -351,6 +354,19 @@ export default function App() {
   const [nextAdminPassword, setNextAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
   const [adminDirectory, setAdminDirectory] = useState({});
+  const [memberUser, setMemberUser] = useState(null);
+  const [myMemberships, setMyMemberships] = useState({});
+  const [nicknameEditorOpen, setNicknameEditorOpen] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState('');
+  const [nicknameTargetGroupId, setNicknameTargetGroupId] = useState(null);
+  const [pendingJoinGroup, setPendingJoinGroup] = useState(null);
+  const [memberManagerOpen, setMemberManagerOpen] = useState(false);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [adminManagerOpen, setAdminManagerOpen] = useState(false);
+  const [groupAdmins, setGroupAdmins] = useState([]);
+  const [transferTarget, setTransferTarget] = useState(null);
+  const [transferPassword, setTransferPassword] = useState('');
+  const [memberSnapshotReady, setMemberSnapshotReady] = useState(false);
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -359,6 +375,7 @@ export default function App() {
   const restoredKey = useRef(null);
   const homologiaPdfScaleRef = useRef(1);
   const homologiaPdfPositionsRef = useRef({});
+  const nicknamePromptedRef = useRef(new Set());
 
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
@@ -366,8 +383,14 @@ export default function App() {
   const currentGroupName = currentGroup?.name || '가입한 기관 없음';
   const visibleGroups = isSuperAdmin ? availableGroups : availableGroups.filter((group) => joinedGroupIds.includes(group.id));
   const canManageCurrentGroup = !!currentGroupId && (isSuperAdmin || (isAdmin && (
-    adminRecord?.groupIds?.includes(currentGroupId) || (!adminRecord?.groupIds && currentGroupId === 'gfc')
+    adminRecord?.groupRoles
+      ? ['manager', 'subAdmin'].includes(adminRecord.groupRoles[currentGroupId])
+      : (adminRecord?.groupIds?.includes(currentGroupId) || (!adminRecord?.groupIds && currentGroupId === 'gfc'))
   )));
+  const currentAdminRole = isSuperAdmin ? 'superAdmin' : (adminRecord?.groupRoles?.[currentGroupId]
+    || (adminRecord?.groupIds?.includes(currentGroupId) ? (adminRecord?.role === 'subAdmin' ? 'subAdmin' : 'manager') : null));
+  const canManagePeople = isSuperAdmin || currentAdminRole === 'manager';
+  const currentMembership = currentGroupId ? myMemberships[currentGroupId] : null;
   const postsForCurrentGroup = communityPosts.filter((post) => (post.groupId || 'gfc') === currentGroupId);
 
   useEffect(() => onAuthStateChanged(firebaseAuth, async (user) => {
@@ -384,15 +407,26 @@ export default function App() {
     }
     try {
       const adminRecord = await getDoc(doc(firestore, 'admins', user.uid));
-      setAdminAuthorized(adminRecord.exists());
-      setAdminRecord(adminRecord.exists() ? adminRecord.data() : null);
-      if (!adminRecord.exists()) await signOut(firebaseAuth);
+      const allowed = adminRecord.exists() && adminRecord.data()?.active !== false;
+      setAdminAuthorized(allowed);
+      setAdminRecord(allowed ? adminRecord.data() : null);
+      if (!allowed) await signOut(firebaseAuth);
     } catch (error) {
       console.warn('Admin permission check failed:', error);
       setAdminAuthorized(false);
       await signOut(firebaseAuth).catch(() => {});
     }
   }), []);
+
+  useEffect(() => {
+    if (!adminUser || isSuperAdmin) return undefined;
+    return onSnapshot(doc(firestore, 'admins', adminUser.uid), (snapshot) => {
+      const allowed = snapshot.exists() && snapshot.data()?.active !== false;
+      setAdminAuthorized(allowed);
+      setAdminRecord(allowed ? snapshot.data() : null);
+      if (!allowed) signOut(firebaseAuth).catch(() => {});
+    }, (error) => console.warn('Admin permission listener failed:', error));
+  }, [adminUser?.uid, isSuperAdmin]);
 
   useEffect(() => onSnapshot(collection(firestore, 'groups'), (snapshot) => {
     const remoteGroups = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
@@ -408,6 +442,50 @@ export default function App() {
     AsyncStorage.setItem(CURRENT_GROUP_KEY, firstId).catch(() => {});
   }, [isSuperAdmin, currentGroupId, availableGroups]);
 
+  useEffect(() => onAuthStateChanged(memberAuth, (user) => {
+    if (user) {
+      setMemberUser(user);
+      return;
+    }
+    signInAnonymously(memberAuth).catch((error) => console.warn('Anonymous member login failed:', error));
+  }), []);
+
+  useEffect(() => {
+    if (!memberUser) return undefined;
+    return onSnapshot(query(collection(memberFirestore, 'memberships'), where('memberUid', '==', memberUser.uid)), (snapshot) => {
+      const next = {};
+      snapshot.docs.forEach((item) => {
+        const data = item.data();
+        next[data.groupId] = { id: item.id, ...data };
+      });
+      setMyMemberships(next);
+      setMemberSnapshotReady(true);
+      const removedIds = Object.values(next).filter((item) => item.active === false && item.removedByAdmin).map((item) => item.groupId);
+      if (removedIds.length) {
+        setJoinedGroupIds((previous) => {
+          const filtered = previous.filter((id) => !removedIds.includes(id));
+          AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(filtered)).catch(() => {});
+          return filtered;
+        });
+        if (removedIds.includes(currentGroupId)) {
+          setCurrentGroupId(null);
+          AsyncStorage.removeItem(CURRENT_GROUP_KEY).catch(() => {});
+          setScreen('today');
+        }
+      }
+    }, (error) => console.warn('Membership load failed:', error));
+  }, [memberUser, currentGroupId]);
+
+  useEffect(() => {
+    if (!loaded || !memberSnapshotReady || isAdmin || !memberUser || !currentGroupId || !joinedGroupIds.includes(currentGroupId) || myMemberships[currentGroupId]?.active) return;
+    if (nicknamePromptedRef.current.has(currentGroupId)) return;
+    nicknamePromptedRef.current.add(currentGroupId);
+    setPendingJoinGroup(availableGroups.find((group) => group.id === currentGroupId) || { id: currentGroupId, name: currentGroupName });
+    setNicknameTargetGroupId(currentGroupId);
+    setNicknameDraft('');
+    setNicknameEditorOpen(true);
+  }, [loaded, memberSnapshotReady, isAdmin, memberUser, currentGroupId, joinedGroupIds, myMemberships, availableGroups, currentGroupName]);
+
   useEffect(() => {
     if (!isSuperAdmin) {
       setAdminDirectory({});
@@ -422,7 +500,35 @@ export default function App() {
   }, [isSuperAdmin, adminUser?.uid, adminRegisterOpen]);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(firestore, 'communityPosts'), (snapshot) => {
+    if (!canManagePeople || !currentGroupId) {
+      setGroupMembers([]);
+      setGroupAdmins([]);
+      return undefined;
+    }
+    const unsubscribeMembers = onSnapshot(query(collection(firestore, 'memberships'), where('groupId', '==', currentGroupId)), (snapshot) => {
+      const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.active !== false);
+      next.sort((a, b) => (a.nickname || '').localeCompare(b.nickname || '', 'ko'));
+      setGroupMembers(next);
+    }, (error) => console.warn('Group members load failed:', error));
+    const unsubscribeAdmins = onSnapshot(query(collection(firestore, 'admins'), where('groupIds', 'array-contains', currentGroupId)), (snapshot) => {
+      const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() })).filter((item) => item.active !== false && item.id !== ADMIN_UID && (!item.groupRoles || item.groupRoles[currentGroupId]));
+      setGroupAdmins(next);
+    }, (error) => console.warn('Group admins load failed:', error));
+    return () => { unsubscribeMembers(); unsubscribeAdmins(); };
+  }, [canManagePeople, currentGroupId]);
+
+  useEffect(() => {
+    if (!currentGroupId || (!isAdmin && !memberUser)) {
+      setCommunityPosts([]);
+      setPostsLoading(false);
+      return undefined;
+    }
+    setPostsLoading(true);
+    const sourceDb = isAdmin ? firestore : memberFirestore;
+    const sourceQuery = isSuperAdmin
+      ? collection(sourceDb, 'communityPosts')
+      : query(collection(sourceDb, 'communityPosts'), where('groupId', '==', currentGroupId));
+    const unsubscribe = onSnapshot(sourceQuery, (snapshot) => {
       const next = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       next.sort((a, b) => {
         const aTime = a.createdAt?.toMillis?.() || 0;
@@ -438,7 +544,16 @@ export default function App() {
       setPostsLoading(false);
     });
     return unsubscribe;
-  }, []);
+  }, [currentGroupId, isAdmin, isSuperAdmin, memberUser]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    const legacyPosts = communityPosts.filter((post) => !post.groupId);
+    if (!legacyPosts.length) return;
+    Promise.all(legacyPosts.map((post) => updateDoc(doc(firestore, 'communityPosts', post.id), {
+      groupId: 'gfc', groupName: 'GFC 교회', updatedAt: serverTimestamp(),
+    }))).catch((error) => console.warn('Legacy post migration failed:', error));
+  }, [isSuperAdmin, communityPosts]);
 
   useEffect(() => {
     const load = async () => {
@@ -700,8 +815,9 @@ export default function App() {
     setAdminBusy(true);
     try {
       const credential = await signInWithEmailAndPassword(firebaseAuth, adminEmail.trim(), adminPassword);
+      const loginAdminDoc = credential.user.uid === ADMIN_UID ? null : await getDoc(doc(firestore, 'admins', credential.user.uid));
       const allowed = credential.user.uid === ADMIN_UID
-        || (await getDoc(doc(firestore, 'admins', credential.user.uid))).exists();
+        || (loginAdminDoc.exists() && loginAdminDoc.data()?.active !== false);
       if (!allowed) {
         await signOut(firebaseAuth);
         Alert.alert('권한 없음', '등록된 관리자 계정이 아닙니다.');
@@ -727,21 +843,45 @@ export default function App() {
   };
 
   const registerNewAdmin = async () => {
-    if (!canManageCurrentGroup) return;
+    if (!canManagePeople) return;
     if (!newAdminEmail.trim() || newAdminPassword.length < 6) {
       Alert.alert('입력 확인', '이메일과 6자리 이상의 임시 비밀번호를 입력해 주세요.');
       return;
     }
     setAdminBusy(true);
     try {
+      const assignedRole = isSuperAdmin ? 'manager' : 'subAdmin';
+      const existingAdmins = await getDocs(isSuperAdmin
+        ? query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()))
+        : query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()), where('groupIds', 'array-contains', currentGroupId)));
+      if (!existingAdmins.empty) {
+        const existingDoc = existingAdmins.docs[0];
+        const data = existingDoc.data();
+        if (data.active !== false && data.groupIds?.includes(currentGroupId)) {
+          Alert.alert('등록 확인', '이미 이 기관의 관리자로 등록된 이메일입니다.');
+          return;
+        }
+        await updateDoc(doc(firestore, 'admins', existingDoc.id), {
+          active: true,
+          groupIds: [...new Set([...(data.groupIds || []), currentGroupId])],
+          groupRoles: { ...(data.groupRoles || {}), [currentGroupId]: assignedRole },
+          updatedAt: serverTimestamp(),
+        });
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        setAdminRegisterOpen(false);
+        Alert.alert('관리자 등록 완료', `${assignedRole === 'manager' ? '그룹관리자' : '부관리자'} 권한을 다시 활성화했습니다.`);
+        return;
+      }
       const credential = await createUserWithEmailAndPassword(
         adminCreatorAuth, newAdminEmail.trim(), newAdminPassword,
       );
       await setDoc(doc(firestore, 'admins', credential.user.uid), {
         uid: credential.user.uid,
         email: newAdminEmail.trim(),
-        role: 'groupAdmin',
+        role: assignedRole === 'manager' ? 'groupAdmin' : 'subAdmin',
         groupIds: [currentGroupId],
+        groupRoles: { [currentGroupId]: assignedRole },
         createdBy: adminUser.uid,
         createdAt: serverTimestamp(),
       });
@@ -749,7 +889,7 @@ export default function App() {
       setNewAdminEmail('');
       setNewAdminPassword('');
       setAdminRegisterOpen(false);
-      Alert.alert('관리자 등록 완료', `새 관리자가 ${currentGroupName}의 공지사항을 관리할 수 있습니다.`);
+      Alert.alert('관리자 등록 완료', `${currentGroupName}의 ${assignedRole === 'manager' ? '그룹관리자' : '부관리자'}가 등록되었습니다.`);
     } catch (error) {
       console.warn('Admin registration failed:', error);
       const duplicate = String(error?.code || '').includes('email-already-in-use');
@@ -794,6 +934,57 @@ export default function App() {
     }
   };
 
+  const removeSubAdmin = (target) => {
+    const targetRole = target.groupRoles?.[currentGroupId] || (target.role === 'subAdmin' ? 'subAdmin' : 'manager');
+    if (!canManagePeople || (!isSuperAdmin && targetRole !== 'subAdmin')) return;
+    Alert.alert('관리자 권한 삭제', `${target.email}의 ${currentGroupName} 관리 권한을 삭제하시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '권한 삭제', style: 'destructive', onPress: async () => {
+        try {
+          const nextIds = [...new Set([...(target.groupIds || []), currentGroupId])];
+          const nextRoles = { ...(target.groupRoles || {}) };
+          delete nextRoles[currentGroupId];
+          await updateDoc(doc(firestore, 'admins', target.id), {
+            groupIds: nextIds, groupRoles: nextRoles, active: Object.keys(nextRoles).length > 0, updatedAt: serverTimestamp(),
+          });
+        } catch { Alert.alert('삭제 실패', '관리자 권한을 삭제하지 못했습니다.'); }
+      } },
+    ]);
+  };
+
+  const transferManagerRole = async () => {
+    if (!adminUser?.email || currentAdminRole !== 'manager' || !transferTarget) return;
+    if (!transferPassword) {
+      Alert.alert('입력 확인', '현재 비밀번호를 입력해 주세요.');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      await reauthenticateWithCredential(adminUser, EmailAuthProvider.credential(adminUser.email, transferPassword));
+      const batch = writeBatch(firestore);
+      batch.update(doc(firestore, 'admins', transferTarget.id), {
+        groupRoles: { ...(transferTarget.groupRoles || {}), [currentGroupId]: 'manager' },
+        role: 'groupAdmin', updatedAt: serverTimestamp(),
+      });
+      const myRoles = { ...(adminRecord?.groupRoles || {}), [currentGroupId]: 'subAdmin' };
+      batch.update(doc(firestore, 'admins', adminUser.uid), {
+        groupRoles: myRoles, role: 'subAdmin', updatedAt: serverTimestamp(),
+      });
+      await batch.commit();
+      setAdminRecord((previous) => ({ ...(previous || {}), groupRoles: myRoles, role: 'subAdmin' }));
+      setTransferPassword('');
+      setTransferTarget(null);
+      setAdminManagerOpen(false);
+      Alert.alert('권한 승계 완료', `${transferTarget.email} 관리자가 새 그룹관리자가 되었습니다. 본인은 부관리자로 변경되었습니다.`);
+    } catch (error) {
+      console.warn('Manager transfer failed:', error);
+      const code = String(error?.code || '');
+      Alert.alert('승계 실패', code.includes('invalid-credential') || code.includes('wrong-password') ? '현재 비밀번호가 올바르지 않습니다.' : '권한을 승계하지 못했습니다.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
   const selectCommunityGroup = async (groupId) => {
     setCurrentGroupId(groupId);
     setGroupPickerOpen(false);
@@ -803,6 +994,10 @@ export default function App() {
   };
 
   const joinCommunityGroup = async () => {
+    if (!memberUser) {
+      Alert.alert('잠시만 기다려 주세요', '회원번호를 준비하고 있습니다. 잠시 후 다시 눌러 주세요.');
+      return;
+    }
     const normalizedCode = joinCode.trim().toUpperCase().replace(/\s+/g, '');
     if (!normalizedCode) {
       Alert.alert('입력 확인', '초대 코드를 입력해 주세요.');
@@ -816,19 +1011,123 @@ export default function App() {
         return;
       }
       const groupDoc = snapshot.docs[0];
-      const nextIds = [...new Set([...joinedGroupIds, groupDoc.id])];
-      setJoinedGroupIds(nextIds);
-      setCurrentGroupId(groupDoc.id);
-      await AsyncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, groupDoc.id]]);
+      const membershipId = `${groupDoc.id}_${memberUser.uid}`;
+      const existing = await getDoc(doc(memberFirestore, 'memberships', membershipId));
+      if (existing.exists() && existing.data()?.removedByAdmin) {
+        Alert.alert('가입 제한', '기관 관리자에 의해 탈퇴 처리된 회원번호입니다. 기관 관리자에게 문의해 주세요.');
+        return;
+      }
       setJoinCode('');
       setJoinGroupOpen(false);
-      Alert.alert('기관 가입 완료', `${groupDoc.data().name} 공지사항을 볼 수 있습니다.`);
+      setPendingJoinGroup({ id: groupDoc.id, ...groupDoc.data() });
+      setNicknameTargetGroupId(groupDoc.id);
+      setNicknameDraft(existing.data()?.nickname || '');
+      setNicknameEditorOpen(true);
     } catch (error) {
       console.warn('Group join failed:', error);
       Alert.alert('가입 실패', '교회·기관 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
     } finally {
       setAdminBusy(false);
     }
+  };
+
+  const openNicknameEditor = (groupId = currentGroupId) => {
+    setNicknameTargetGroupId(groupId);
+    setNicknameDraft(myMemberships[groupId]?.nickname || '');
+    setPendingJoinGroup(null);
+    setNicknameEditorOpen(true);
+  };
+
+  const nicknameRemainingText = (membership) => {
+    const changedAt = membership?.nicknameChangedAt?.toMillis?.();
+    if (!changedAt) return '';
+    const remaining = (24 * 60 * 60 * 1000) - (Date.now() - changedAt);
+    if (remaining <= 0) return '';
+    const hours = Math.floor(remaining / 3600000);
+    const minutes = Math.ceil((remaining % 3600000) / 60000);
+    return `${hours}시간 ${minutes}분 후 다시 변경할 수 있습니다.`;
+  };
+
+  const saveMemberNickname = async () => {
+    if (!memberUser || !nicknameTargetGroupId) return;
+    const nickname = nicknameDraft.trim();
+    if (nickname.length < 2 || nickname.length > 20) {
+      Alert.alert('입력 확인', '닉네임은 2~20자로 입력해 주세요.');
+      return;
+    }
+    const membershipId = `${nicknameTargetGroupId}_${memberUser.uid}`;
+    const existing = myMemberships[nicknameTargetGroupId];
+    const remaining = nicknameRemainingText(existing);
+    if (existing?.nickname && existing.nickname !== nickname && remaining) {
+      Alert.alert('변경 대기 중', remaining);
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      await setDoc(doc(memberFirestore, 'memberships', membershipId), {
+        groupId: nicknameTargetGroupId,
+        memberUid: memberUser.uid,
+        nickname,
+        inviteCode: pendingJoinGroup?.normalizedInviteCode || existing?.inviteCode || currentGroup?.normalizedInviteCode || '',
+        previousNickname: existing?.nickname && existing.nickname !== nickname ? existing.nickname : (existing?.previousNickname || ''),
+        active: true,
+        removedByAdmin: false,
+        joinedAt: existing?.joinedAt || serverTimestamp(),
+        nicknameChangedAt: existing?.nickname && existing.nickname !== nickname ? serverTimestamp() : (existing?.nicknameChangedAt || null),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      const nextIds = [...new Set([...joinedGroupIds, nicknameTargetGroupId])];
+      setJoinedGroupIds(nextIds);
+      setCurrentGroupId(nicknameTargetGroupId);
+      await AsyncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, nicknameTargetGroupId]]);
+      const joinedName = pendingJoinGroup?.name;
+      setNicknameEditorOpen(false);
+      setPendingJoinGroup(null);
+      Alert.alert(existing?.nickname ? '닉네임 변경 완료' : '기관 가입 완료', existing?.nickname ? '닉네임이 변경되었습니다.' : `${joinedName || '선택한 기관'}에 가입했습니다.`);
+    } catch (error) {
+      console.warn('Nickname save failed:', error);
+      Alert.alert('저장 실패', '닉네임을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const leaveCurrentGroup = () => {
+    if (!currentGroupId || !memberUser) return;
+    const leavingId = currentGroupId;
+    Alert.alert('교회·기관 탈퇴', `${currentGroupName}에서 탈퇴하시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '탈퇴', style: 'destructive', onPress: async () => {
+        try {
+          await setDoc(doc(memberFirestore, 'memberships', `${leavingId}_${memberUser.uid}`), {
+            active: false, removedByAdmin: false, leftAt: serverTimestamp(), updatedAt: serverTimestamp(),
+          }, { merge: true });
+          const nextIds = joinedGroupIds.filter((id) => id !== leavingId);
+          setJoinedGroupIds(nextIds);
+          const nextId = nextIds[0] || null;
+          setCurrentGroupId(nextId);
+          await AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds));
+          if (nextId) await AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId);
+          else await AsyncStorage.removeItem(CURRENT_GROUP_KEY);
+          setScreen('today');
+          Alert.alert('탈퇴 완료', '개인사용자로 전환되었습니다. 초대 코드가 있으면 다시 가입할 수 있습니다.');
+        } catch { Alert.alert('탈퇴 실패', '잠시 후 다시 시도해 주세요.'); }
+      } },
+    ]);
+  };
+
+  const removeGroupMember = (member) => {
+    if (!canManagePeople) return;
+    Alert.alert('회원 탈퇴 처리', `${member.nickname} 회원을 기관에서 탈퇴 처리하시겠습니까?`, [
+      { text: '취소', style: 'cancel' },
+      { text: '탈퇴 처리', style: 'destructive', onPress: async () => {
+        try {
+          await updateDoc(doc(firestore, 'memberships', member.id), {
+            active: false, removedByAdmin: true, removedAt: serverTimestamp(), removedBy: adminUser.uid,
+          });
+        } catch { Alert.alert('처리 실패', '회원을 탈퇴 처리하지 못했습니다.'); }
+      } },
+    ]);
   };
 
   const createCommunityGroup = async () => {
@@ -1823,6 +2122,14 @@ export default function App() {
             <View style={styles.settingsCard}>
               <Text style={styles.settingsCardTitle}>기관 설정</Text>
               <Text style={styles.settingsDescription}>{joinedGroupIds.length ? `현재 공지 기관: ${currentGroupName}\n기관 변경은 공지사항 화면에서 할 수 있습니다.` : '교회·기관에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 기관 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
+              {!!currentGroupId && !isSuperAdmin && <View style={styles.memberProfileBox}>
+                <Text style={styles.memberProfileLabel}>내 닉네임</Text>
+                <Text style={styles.memberProfileName}>{currentMembership?.nickname || '닉네임 등록 필요'}</Text>
+                {currentMembership?.previousNickname ? <Text style={styles.memberProfileMeta}>이전 닉네임 · {currentMembership.previousNickname}</Text> : null}
+                <Text style={styles.memberProfileMeta}>회원번호 · {memberUser?.uid ? `M-${memberUser.uid.slice(-6).toUpperCase()}` : '준비 중'}</Text>
+                {nicknameRemainingText(currentMembership) ? <Text style={styles.nicknameWaitText}>{nicknameRemainingText(currentMembership)}</Text> : null}
+                <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => openNicknameEditor()} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>{currentMembership?.nickname ? '닉네임 변경' : '닉네임 등록'}</Text></TouchableOpacity><TouchableOpacity onPress={leaveCurrentGroup} style={styles.memberLeaveButton}><Text style={styles.memberLeaveButtonText}>기관 탈퇴</Text></TouchableOpacity></View>
+              </View>}
               <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 기관 가입</Text></TouchableOpacity>
               {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>}
               {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>교회·기관 수정 및 삭제</Text></TouchableOpacity>}
@@ -1864,7 +2171,9 @@ export default function App() {
                   <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
                 </TouchableOpacity>
                 {isAdmin && <TouchableOpacity onPress={() => setPasswordChangeOpen(true)} style={styles.changePasswordButton}><Text style={styles.changePasswordButtonText}>내 비밀번호 변경</Text></TouchableOpacity>}
-                {canManageCurrentGroup && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {currentGroupName} 관리자 등록</Text></TouchableOpacity>}
+                {canManagePeople && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>회원 목록 및 탈퇴 관리</Text></TouchableOpacity>}
+                {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>관리자 목록 및 권한 관리</Text></TouchableOpacity>}
+                {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text></TouchableOpacity>}
               </View>
             </View>
           </ScrollView>
@@ -1981,6 +2290,60 @@ export default function App() {
 
       <TranslationPicker />
 
+      <Modal visible={nicknameEditorOpen} transparent animationType="fade" onRequestClose={() => { setNicknameEditorOpen(false); setPendingJoinGroup(null); }}>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>{pendingJoinGroup ? `${pendingJoinGroup.name} 가입` : '내 닉네임 변경'}</Text>
+            <Text style={styles.adminModalDescription}>기관에서 사용할 닉네임을 입력해 주세요. 변경하면 24시간 동안 다시 변경할 수 없습니다.</Text>
+            <TextInput value={nicknameDraft} onChangeText={setNicknameDraft} maxLength={20} autoFocus placeholder="닉네임 (2~20자)" style={styles.adminInput} />
+            <View style={styles.adminModalActions}>
+              <TouchableOpacity disabled={adminBusy} onPress={() => { setNicknameEditorOpen(false); setPendingJoinGroup(null); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={saveMemberNickname} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '저장 중…' : pendingJoinGroup ? '가입' : '저장'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={memberManagerOpen} transparent animationType="fade" onRequestClose={() => setMemberManagerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.groupManagerCard}>
+            <Text style={styles.adminModalTitle}>{currentGroupName} 회원</Text>
+            <Text style={styles.adminModalDescription}>닉네임이 같아도 회원번호와 가입일로 구별할 수 있습니다.</Text>
+            <ScrollView style={styles.groupManagerList}>
+              {groupMembers.length ? groupMembers.map((member) => <View key={member.id} style={styles.groupManageRow}><View style={styles.groupManageInfo}><Text style={styles.groupManageName}>{member.nickname}</Text>{member.previousNickname ? <Text style={styles.groupManageMeta}>이전 닉네임 {member.previousNickname}</Text> : null}<Text style={styles.groupManageMeta}>회원번호 M-{String(member.memberUid || '').slice(-6).toUpperCase()}</Text><Text style={styles.groupManageMeta}>가입일 {member.joinedAt?.toDate?.().toLocaleDateString('ko-KR') || '확인 중'}</Text></View><TouchableOpacity onPress={() => removeGroupMember(member)} style={styles.groupDeleteButton}><Text style={styles.groupDeleteButtonText}>탈퇴 처리</Text></TouchableOpacity></View>) : <Text style={styles.managerEmptyText}>등록된 회원이 없습니다.</Text>}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setMemberManagerOpen(false)} style={styles.groupManagerClose}><Text style={styles.adminLoginText}>닫기</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={adminManagerOpen} transparent animationType="fade" onRequestClose={() => setAdminManagerOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.groupManagerCard}>
+            <Text style={styles.adminModalTitle}>{currentGroupName} 관리자</Text>
+            <Text style={styles.adminModalDescription}>그룹관리자는 회원과 부관리자를 관리하며, 부관리자는 게시글을 관리합니다.</Text>
+            <ScrollView style={styles.groupManagerList}>
+              {groupAdmins.length ? groupAdmins.map((item) => {
+                const role = item.groupRoles?.[currentGroupId] || (item.role === 'subAdmin' ? 'subAdmin' : 'manager');
+                return <View key={item.id} style={styles.adminManageRow}><View style={styles.groupManageInfo}><Text style={styles.groupManageName}>{item.email}</Text><Text style={styles.adminRoleText}>{role === 'manager' ? '그룹관리자' : '부관리자'}</Text></View><View style={styles.groupManageActions}>{currentAdminRole === 'manager' && role === 'subAdmin' && <TouchableOpacity onPress={() => { setAdminManagerOpen(false); setTransferTarget(item); }} style={styles.groupEditButton}><Text style={styles.groupEditButtonText}>권한 승계</Text></TouchableOpacity>}{(isSuperAdmin || role === 'subAdmin') && <TouchableOpacity onPress={() => removeSubAdmin(item)} style={styles.groupDeleteButton}><Text style={styles.groupDeleteButtonText}>권한 삭제</Text></TouchableOpacity>}</View></View>;
+              }) : <Text style={styles.managerEmptyText}>등록된 관리자가 없습니다.</Text>}
+            </ScrollView>
+            <TouchableOpacity onPress={() => setAdminManagerOpen(false)} style={styles.groupManagerClose}><Text style={styles.adminLoginText}>닫기</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!transferTarget} transparent animationType="fade" onRequestClose={() => setTransferTarget(null)}>
+        <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.adminModalCard}>
+            <Text style={styles.adminModalTitle}>그룹관리자 권한 승계</Text>
+            <Text style={styles.adminModalDescription}>{transferTarget?.email}에게 그룹관리자 권한을 넘깁니다. 승계 후 본인은 부관리자로 변경됩니다.</Text>
+            <TextInput value={transferPassword} onChangeText={setTransferPassword} secureTextEntry placeholder="현재 비밀번호 확인" style={styles.adminInput} />
+            <View style={styles.adminModalActions}><TouchableOpacity onPress={() => { setTransferPassword(''); setTransferTarget(null); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity><TouchableOpacity disabled={adminBusy} onPress={transferManagerRole} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '승계 중…' : '권한 승계'}</Text></TouchableOpacity></View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <Modal visible={groupManagerOpen} transparent animationType="fade" onRequestClose={() => setGroupManagerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.groupManagerCard}>
@@ -2079,8 +2442,8 @@ export default function App() {
       <Modal visible={adminRegisterOpen} transparent animationType="fade" onRequestClose={() => setAdminRegisterOpen(false)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>{currentGroupName} 관리자 등록</Text>
-            <Text style={styles.adminModalDescription}>이 관리자는 {currentGroupName}의 게시글만 관리합니다. 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
+            <Text style={styles.adminModalTitle}>{currentGroupName} {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text>
+            <Text style={styles.adminModalDescription}>{isSuperAdmin ? '그룹관리자는 회원과 부관리자까지 관리합니다.' : '부관리자는 게시글 작성·수정·삭제만 담당합니다.'} 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
             <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" style={styles.adminInput} />
             <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" style={styles.adminInput} />
             <View style={styles.adminModalActions}>
@@ -2245,6 +2608,7 @@ const styles = StyleSheet.create({
   settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
   settingsCardTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' },
   settingsDescription: { marginTop: 9, fontSize: 13, lineHeight: 20, color: '#747C86', fontWeight: '600' },
+  memberProfileBox: { marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: '#F4F1E9' }, memberProfileLabel: { color: '#777E88', fontSize: 11, fontWeight: '800' }, memberProfileName: { marginTop: 3, color: '#17223B', fontSize: 18, fontWeight: '900' }, memberProfileMeta: { marginTop: 3, color: '#7A7F87', fontSize: 10, fontWeight: '700' }, nicknameWaitText: { marginTop: 7, color: '#9A7C43', fontSize: 11, fontWeight: '800' }, memberProfileActions: { marginTop: 10, flexDirection: 'row', gap: 8 }, memberProfileButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, memberProfileButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, memberLeaveButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, memberLeaveButtonText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   importBibleButton: { marginTop: 18, minHeight: 52, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   importBibleButtonDisabled: { opacity: 0.55 },
   importBibleButtonText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
@@ -2264,6 +2628,7 @@ const styles = StyleSheet.create({
   adminModalCard: { width: '100%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 40 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
   groupManagerCard: { width: '100%', height: '78%', paddingHorizontal: 20, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 42 : 25, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' }, groupManagerList: { flex: 1 },
   groupManageRow: { marginBottom: 10, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: '#E2DDD2', backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center' }, groupManageInfo: { flex: 1 }, groupManageName: { color: '#17223B', fontSize: 16, fontWeight: '900' }, groupManageMeta: { marginTop: 3, color: '#7A7F87', fontSize: 10, fontWeight: '700' }, groupManageActions: { marginLeft: 8, gap: 6 }, groupEditButton: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9, backgroundColor: '#E8EEF6' }, groupEditButtonText: { color: '#173C70', fontSize: 11, fontWeight: '900' }, groupDeleteButton: { paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F3E8E5' }, groupDeleteButtonText: { color: '#A04B3C', fontSize: 11, fontWeight: '900' }, groupManagerClose: { marginTop: 10, minHeight: 46, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' },
+  adminManageRow: { marginBottom: 10, padding: 14, borderRadius: 15, borderWidth: 1, borderColor: '#E2DDD2', backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center' }, adminRoleText: { alignSelf: 'flex-start', marginTop: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, overflow: 'hidden', backgroundColor: '#EEEAE1', color: '#765F34', fontSize: 10, fontWeight: '900' }, managerEmptyText: { marginTop: 30, color: '#8A8F97', textAlign: 'center', fontWeight: '700' },
   managementCodeText: { marginBottom: 8, color: '#9A7C43', fontSize: 12, fontWeight: '900' }, regenerateCodeButton: { marginTop: 9, alignSelf: 'center', paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#173C70' }, regenerateCodeText: { color: '#173C70', fontSize: 12, fontWeight: '900' },
   keyboardModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' },
   postEditorCard: { width: '100%', height: '78%', paddingHorizontal: 22, paddingTop: 25, paddingBottom: Platform.OS === 'android' ? 52 : 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#F7F6F1' },
