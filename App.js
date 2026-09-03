@@ -49,6 +49,7 @@ const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
+const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 
 const BIBLE_DATA = { KRV: krv };
@@ -299,6 +300,7 @@ export default function App() {
   const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
   const [homologiaFontScale, setHomologiaFontScale] = useState(1);
   const [homologiaViewMode, setHomologiaViewMode] = useState('text');
+  const [homologiaPdfScale, setHomologiaPdfScale] = useState(1);
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
@@ -374,7 +376,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, CUSTOM_TRANSLATIONS_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, CUSTOM_TRANSLATIONS_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -390,6 +392,8 @@ export default function App() {
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
         setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
+        const savedPdfScale = Number(saved[HOMOLOGIA_PDF_SCALE_KEY] || 1);
+        setHomologiaPdfScale(Number.isFinite(savedPdfScale) ? Math.min(5, Math.max(1, savedPdfScale)) : 1);
         const imported = safeParseJson(saved[CUSTOM_TRANSLATIONS_KEY], []);
         const loadedBibles = {};
         const validImported = [];
@@ -1188,10 +1192,17 @@ export default function App() {
           <Pdf
             source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
             page={section.startPage}
+            scale={homologiaPdfScale}
             minScale={1}
             maxScale={5}
             enablePaging={false}
             enableAnnotationRendering
+            onScaleChanged={(scale) => {
+              const safeScale = Math.min(5, Math.max(1, Number(scale) || 1));
+              setHomologiaPdfScale(safeScale);
+              AsyncStorage.setItem(HOMOLOGIA_PDF_SCALE_KEY, String(safeScale))
+                .catch((error) => console.warn('Homologia PDF scale save failed:', error));
+            }}
             onPressLink={openHomologiaLink}
             onError={(error) => {
               console.warn('Homologia PDF open failed:', error);
