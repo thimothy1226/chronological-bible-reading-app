@@ -1288,6 +1288,22 @@ export default function App() {
     }
   };
 
+  const copyGroupInviteCode = async (group = adminGroup) => {
+    const code = group?.normalizedInviteCode;
+    if (!code) {
+      Alert.alert('초대 코드 없음', '먼저 초대 코드를 설정해 주세요.');
+      return;
+    }
+    try {
+      const Clipboard = require('expo-clipboard');
+      await Clipboard.setStringAsync(code);
+      Alert.alert('복사 완료', `${group.name} 초대 코드를 복사했습니다.`);
+    } catch (error) {
+      console.warn('Invite code copy failed:', error);
+      Alert.alert('복사 실패', '초대 코드를 복사하지 못했습니다.');
+    }
+  };
+
   const saveGroupChanges = async () => {
     if (!isSuperAdmin || !editingGroup) return;
     const name = editGroupName.trim();
@@ -1901,7 +1917,8 @@ export default function App() {
         )}
         {homologiaViewMode === 'pdf' ? (
           <Pdf
-            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
+            key={`homologia-pdf-${homologiaSectionIndex}`}
+            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64[homologiaSectionIndex]}` }}
             page={homologiaPdfStartPage}
             scale={homologiaPdfScale}
             minScale={1}
@@ -2217,11 +2234,12 @@ export default function App() {
               {adminRoomMode && canManageCurrentGroup && <View style={styles.settingsCard}>
                 <Text style={styles.settingsCardTitle}>{noticeGroupName} 관리</Text>
                 <Text style={styles.settingsDescription}>게시글 작성과 회원·관리자 관리는 이 관리실 안에서만 적용됩니다.</Text>
+                <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>기관 초대코드</Text><Text selectable style={styles.generatedCodeText}>{adminGroup?.normalizedInviteCode || '미설정'}</Text></View>
+                <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => copyGroupInviteCode(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>초대코드 복사</Text></TouchableOpacity><TouchableOpacity onPress={() => shareGroupInvite(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>카카오톡·문자로 공유</Text></TouchableOpacity></View>
                 {canManagePeople && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>회원 목록 및 탈퇴 관리</Text></TouchableOpacity>}
                 {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>관리자 목록 및 권한 관리</Text></TouchableOpacity>}
                 {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text></TouchableOpacity>}
                 {canManagePeople && <TouchableOpacity onPress={openGroupProfileEditor} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>기관 주소·소개 입력</Text></TouchableOpacity>}
-                <TouchableOpacity onPress={() => shareGroupInvite(adminGroup)} style={styles.shareInviteButton}><Text style={styles.shareInviteButtonText}>초대 코드 공유하기</Text></TouchableOpacity>
                 {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>}
                 {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 교회·기관 수정 및 삭제</Text></TouchableOpacity>}
               </View>}
@@ -2237,7 +2255,12 @@ export default function App() {
                   key={menu.title}
                   onPress={() => {
                     const savedPage = Number(homologiaPdfPositionsRef.current[String(menu.sectionIndex)]);
-                    setHomologiaPdfStartPage(Number.isFinite(savedPage) ? savedPage : homologiaData.sections[menu.sectionIndex].startPage);
+                    const section = homologiaData.sections[menu.sectionIndex];
+                    const sectionLength = section.endPage - section.startPage + 1;
+                    const restoredPage = savedPage >= section.startPage && savedPage <= section.endPage
+                      ? savedPage - section.startPage + 1
+                      : (savedPage >= 1 && savedPage <= sectionLength ? savedPage : 1);
+                    setHomologiaPdfStartPage(restoredPage);
                     setHomologiaSectionIndex(menu.sectionIndex);
                     setHomologiaViewMode('pdf');
                     setScreen('homologiaReader');
