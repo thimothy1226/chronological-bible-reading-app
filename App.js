@@ -1197,7 +1197,11 @@ export default function App() {
           await updateDoc(doc(firestore, 'memberships', member.id), {
             active: false, removedByAdmin: true, removedAt: serverTimestamp(), removedBy: adminUser.uid,
           });
-        } catch { Alert.alert('처리 실패', '회원을 탈퇴 처리하지 못했습니다.'); }
+          Alert.alert('탈퇴 처리 완료', `${member.nickname} 회원을 ${adminGroupName}에서 탈퇴 처리했습니다.`);
+        } catch (error) {
+          console.warn('Member removal failed:', error);
+          Alert.alert('처리 실패', '회원을 탈퇴 처리하지 못했습니다. 인터넷 연결과 관리자 권한을 확인해 주세요.');
+        }
       } },
     ]);
   };
@@ -2213,10 +2217,21 @@ export default function App() {
               )}
             </View>
           ) : (
-            <View style={styles.noticeMenuScreen}>
+            <ScrollView
+              style={styles.noticeMenuScroll}
+              contentContainerStyle={styles.noticeMenuScreen}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.placeholderTitle}>공지사항</Text>
               <TouchableOpacity onPress={() => adminRoomMode ? setAdminGroupPickerOpen(true) : setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>{adminRoomMode ? '🛠 관리자 관리실' : '🏠'} · {noticeGroupName}</Text><Text style={styles.groupSelectorHint}>기관 변경  ▼</Text></TouchableOpacity>
               <Text style={styles.placeholderText}>선택한 교회·기관의 공지사항입니다.</Text>
+              {adminRoomMode && canManagePeople && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.memberManagementShortcut}>
+                <View>
+                  <Text style={styles.memberManagementShortcutTitle}>👥 회원 목록 · 탈퇴 관리</Text>
+                  <Text style={styles.memberManagementShortcutDescription}>현재 가입 회원 {groupMembers.length}명</Text>
+                </View>
+                <Text style={styles.memberManagementShortcutArrow}>›</Text>
+              </TouchableOpacity>}
               <View style={styles.noticeMenuButtons}>
                 {[{ key: 'news', icon: '📢', title: `${noticeGroupName} 소식` }, { key: 'prayer', icon: '🙏', title: '중보기도' }].map((menu) => {
                   const previewPosts = postsForCurrentGroup.filter((post) => post.category === menu.key).slice(0, 5);
@@ -2243,7 +2258,7 @@ export default function App() {
                 {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>}
                 {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 교회·기관 수정 및 삭제</Text></TouchableOpacity>}
               </View>}
-            </View>
+            </ScrollView>
           )
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
@@ -2775,7 +2790,8 @@ const styles = StyleSheet.create({
   placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
   placeholderTitle: { width: '100%', textAlign: 'center', fontSize: 25, fontWeight: '900', color: '#17223B' },
   placeholderText: { width: '100%', marginTop: 10, fontSize: 14, lineHeight: 21, color: '#747C86', textAlign: 'center' },
-  noticeMenuScreen: { flex: 1, paddingHorizontal: 22, paddingTop: 30, alignItems: 'center' },
+  noticeMenuScroll: { flex: 1 },
+  noticeMenuScreen: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 30, paddingBottom: Platform.OS === 'android' ? 72 : 42, alignItems: 'center' },
   groupSelector: { width: '100%', marginTop: 16, marginBottom: 10, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD7CA', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   groupSelectorName: { flex: 1, color: '#17223B', fontSize: 16, fontWeight: '900' }, groupSelectorHint: { color: '#9A7C43', fontSize: 11, fontWeight: '800' },
   groupSelectorCompact: { alignSelf: 'center', marginBottom: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18, backgroundColor: '#EEEAE1' }, groupSelectorCompactText: { color: '#4F5664', fontSize: 12, fontWeight: '900' }, currentGroupLabel: { alignSelf: 'center', marginBottom: 8, color: '#9A7C43', fontSize: 12, fontWeight: '900' },
@@ -2787,6 +2803,10 @@ const styles = StyleSheet.create({
   noticePreviewList: { minHeight: 130, marginTop: 10, borderTopWidth: 1, borderTopColor: '#EEEAE1', paddingTop: 8 },
   noticePreviewRow: { minHeight: 25, flexDirection: 'row', alignItems: 'center' }, noticePreviewTitle: { flex: 1, fontSize: 11, color: '#4A5363', fontWeight: '700' }, noticePreviewDate: { marginLeft: 4, fontSize: 9, color: '#9A9EA5', fontWeight: '700' }, noticePreviewEmpty: { marginTop: 12, fontSize: 11, color: '#9A9EA5', textAlign: 'center' }, noticeMoreText: { marginTop: 8, color: '#9A7C43', fontSize: 11, fontWeight: '900', textAlign: 'right' },
   noticeMenuDescription: { marginTop: 6, fontSize: 12, lineHeight: 18, color: '#747C86', textAlign: 'center' },
+  memberManagementShortcut: { width: '100%', marginTop: 16, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 15, backgroundColor: '#173C70', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', elevation: 2 },
+  memberManagementShortcutTitle: { color: '#FFF', fontSize: 15, fontWeight: '900' },
+  memberManagementShortcutDescription: { marginTop: 4, color: '#D9E5F5', fontSize: 11, fontWeight: '700' },
+  memberManagementShortcutArrow: { color: '#FFF', fontSize: 28, fontWeight: '700' },
   noticeListScreen: { flex: 1, paddingTop: 18 },
   noticeListHeader: { paddingHorizontal: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noticeBackButton: { width: 82, paddingVertical: 8 }, noticeBackText: { color: '#9A7C43', fontSize: 13, fontWeight: '900' },
