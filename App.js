@@ -379,6 +379,8 @@ export default function App() {
   const [memberManagerOpen, setMemberManagerOpen] = useState(false);
   const [groupMembers, setGroupMembers] = useState([]);
   const [adminManagerOpen, setAdminManagerOpen] = useState(false);
+  const [churchManagementOpen, setChurchManagementOpen] = useState(false);
+  const [superGroupManagementOpen, setSuperGroupManagementOpen] = useState(false);
   const [groupAdmins, setGroupAdmins] = useState([]);
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferPassword, setTransferPassword] = useState('');
@@ -865,7 +867,7 @@ export default function App() {
   };
 
   const logoutAdmin = () => {
-    Alert.alert('관리자 로그아웃', '로그아웃하시겠습니까?', [
+    Alert.alert('로그아웃', '로그아웃하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       { text: '로그아웃', onPress: () => signOut(firebaseAuth).catch(() => {}) },
     ]);
@@ -2232,7 +2234,14 @@ export default function App() {
                 </View>
                 <Text style={styles.memberManagementShortcutArrow}>›</Text>
               </TouchableOpacity>}
-              <View style={styles.noticeMenuButtons}>
+              {adminRoomMode ? <View style={styles.adminNoticeMenus}>
+                <TouchableOpacity onPress={() => setNoticeCategory('news')} style={styles.adminNoticeMenuButton}>
+                  <View><Text style={styles.adminNoticeMenuTitle}>📢 {noticeGroupName} 소식관리</Text><Text style={styles.adminNoticeMenuDescription}>소식 작성과 전체 게시글 관리</Text></View><Text style={styles.adminNoticeMenuArrow}>›</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setNoticeCategory('prayer')} style={styles.adminNoticeMenuButton}>
+                  <View><Text style={styles.adminNoticeMenuTitle}>🙏 중보기도 관리</Text><Text style={styles.adminNoticeMenuDescription}>중보기도 작성과 전체 게시글 관리</Text></View><Text style={styles.adminNoticeMenuArrow}>›</Text>
+                </TouchableOpacity>
+              </View> : <View style={styles.noticeMenuButtons}>
                 {[{ key: 'news', icon: '📢', title: `${noticeGroupName} 소식` }, { key: 'prayer', icon: '🙏', title: '중보기도' }].map((menu) => {
                   const previewPosts = postsForCurrentGroup.filter((post) => post.category === menu.key).slice(0, 5);
                   return <View key={menu.key} style={styles.noticeMenuButton}>
@@ -2245,18 +2254,23 @@ export default function App() {
                     <TouchableOpacity onPress={() => setNoticeCategory(menu.key)}><Text style={styles.noticeMoreText}>전체보기 ›</Text></TouchableOpacity>
                   </View>;
                 })}
-              </View>
-              {adminRoomMode && canManageCurrentGroup && <View style={styles.settingsCard}>
-                <Text style={styles.settingsCardTitle}>{noticeGroupName} 관리</Text>
-                <Text style={styles.settingsDescription}>게시글 작성과 회원·관리자 관리는 이 관리실 안에서만 적용됩니다.</Text>
-                <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>기관 초대코드</Text><Text selectable style={styles.generatedCodeText}>{adminGroup?.normalizedInviteCode || '미설정'}</Text></View>
-                <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => copyGroupInviteCode(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>초대코드 복사</Text></TouchableOpacity><TouchableOpacity onPress={() => shareGroupInvite(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>카카오톡·문자로 공유</Text></TouchableOpacity></View>
-                {canManagePeople && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>회원 목록 및 탈퇴 관리</Text></TouchableOpacity>}
-                {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>관리자 목록 및 권한 관리</Text></TouchableOpacity>}
-                {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text></TouchableOpacity>}
-                {canManagePeople && <TouchableOpacity onPress={openGroupProfileEditor} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>기관 주소·소개 입력</Text></TouchableOpacity>}
-                {isSuperAdmin && <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>}
-                {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 교회·기관 수정 및 삭제</Text></TouchableOpacity>}
+              </View>}
+              {adminRoomMode && canManageCurrentGroup && <View style={styles.managementAccordionWrap}>
+                <TouchableOpacity onPress={() => setChurchManagementOpen((value) => !value)} style={styles.managementAccordionButton}><Text style={styles.managementAccordionTitle}>⛪ {noticeGroupName} 교회관리</Text><Text style={styles.managementAccordionArrow}>{churchManagementOpen ? '▲' : '▼'}</Text></TouchableOpacity>
+                {churchManagementOpen && <View style={styles.managementAccordionBody}>
+                  <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>기관 초대코드</Text><Text selectable style={styles.generatedCodeText}>{adminGroup?.normalizedInviteCode || '미설정'}</Text></View>
+                  <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => copyGroupInviteCode(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>초대코드 복사</Text></TouchableOpacity><TouchableOpacity onPress={() => shareGroupInvite(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>카카오톡·문자로 공유</Text></TouchableOpacity></View>
+                  {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>관리자 목록 및 권한 관리</Text></TouchableOpacity>}
+                  {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text></TouchableOpacity>}
+                  {canManagePeople && <TouchableOpacity onPress={openGroupProfileEditor} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>기관 주소·소개 입력</Text></TouchableOpacity>}
+                </View>}
+              </View>}
+              {adminRoomMode && isSuperAdmin && <View style={styles.managementAccordionWrap}>
+                <TouchableOpacity onPress={() => setSuperGroupManagementOpen((value) => !value)} style={[styles.managementAccordionButton, styles.superManagementAccordionButton]}><Text style={styles.superManagementAccordionTitle}>＋ 새 교회·기관 관리</Text><Text style={styles.superManagementAccordionArrow}>{superGroupManagementOpen ? '▲' : '▼'}</Text></TouchableOpacity>
+                {superGroupManagementOpen && <View style={styles.managementAccordionBody}>
+                  <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 교회·기관 수정 및 삭제</Text></TouchableOpacity>
+                </View>}
               </View>}
             </ScrollView>
           )
@@ -2336,13 +2350,13 @@ export default function App() {
             <View style={styles.adminSettingsBlock}>
               <Text style={styles.settingsSectionTitle}>관리자 관리실</Text>
               <View style={styles.settingsCard}>
-                <Text style={styles.settingsCardTitle}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '기관 관리자 로그인됨' : '관리자 로그인'}</Text>
+                <View style={styles.adminSettingsHeader}>
+                  <Text style={[styles.settingsCardTitle, styles.adminSettingsHeaderTitle]}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '기관 관리자 로그인됨' : '관리자 로그인'}</Text>
+                  {isAdmin && <View style={styles.adminSettingsActions}><TouchableOpacity onPress={() => setPasswordChangeOpen(true)} style={styles.adminSettingsActionButton}><Text style={styles.adminSettingsActionText}>수정</Text></TouchableOpacity><TouchableOpacity onPress={logoutAdmin} style={[styles.adminSettingsActionButton, styles.adminSettingsLogoutButton]}><Text style={styles.adminSettingsLogoutText}>로그아웃</Text></TouchableOpacity></View>}
+                </View>
                 <Text style={styles.settingsDescription}>{isSuperAdmin ? '일반 회원 화면과 분리된 관리실에서 모든 기관을 관리합니다.' : isAdmin ? '관리실에서 담당 기관을 선택해 게시글과 회원을 관리합니다.' : '지정된 관리자만 별도의 관리실에 들어갈 수 있습니다.'}</Text>
-                <TouchableOpacity onPress={isAdmin ? logoutAdmin : () => setAdminLoginOpen(true)} style={[styles.importBibleButton, isAdmin && styles.adminLogoutButton]}>
-                  <Text style={styles.importBibleButtonText}>{isAdmin ? '관리자 로그아웃' : '관리자 로그인'}</Text>
-                </TouchableOpacity>
-                {isAdmin && <TouchableOpacity onPress={() => setPasswordChangeOpen(true)} style={styles.changePasswordButton}><Text style={styles.changePasswordButtonText}>내 비밀번호 변경</Text></TouchableOpacity>}
-                {isAdmin && <TouchableOpacity disabled={!managedGroups.length} onPress={() => { setAdminRoomMode(true); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.superAdminButton, !managedGroups.length && styles.importBibleButtonDisabled]}><Text style={styles.superAdminButtonText}>관리자 관리실 들어가기</Text></TouchableOpacity>}
+                {!isAdmin && <TouchableOpacity onPress={() => setAdminLoginOpen(true)} style={styles.importBibleButton}><Text style={styles.importBibleButtonText}>관리자 로그인</Text></TouchableOpacity>}
+                {isAdmin && <TouchableOpacity disabled={!managedGroups.length} onPress={() => { setAdminRoomMode(true); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.superAdminButton, !managedGroups.length && styles.importBibleButtonDisabled]}><Text style={styles.superAdminButtonText}>관리자 모드</Text></TouchableOpacity>}
               </View>
             </View>
           </ScrollView>
@@ -2807,6 +2821,19 @@ const styles = StyleSheet.create({
   memberManagementShortcutTitle: { color: '#FFF', fontSize: 15, fontWeight: '900' },
   memberManagementShortcutDescription: { marginTop: 4, color: '#D9E5F5', fontSize: 11, fontWeight: '700' },
   memberManagementShortcutArrow: { color: '#FFF', fontSize: 28, fontWeight: '700' },
+  adminNoticeMenus: { width: '100%', marginTop: 10, gap: 10 },
+  adminNoticeMenuButton: { width: '100%', minHeight: 70, paddingHorizontal: 18, paddingVertical: 13, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DCE2E9', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  adminNoticeMenuTitle: { color: '#17223B', fontSize: 15, fontWeight: '900' },
+  adminNoticeMenuDescription: { marginTop: 4, color: '#7A828D', fontSize: 11, fontWeight: '700' },
+  adminNoticeMenuArrow: { color: '#173C70', fontSize: 28, fontWeight: '700' },
+  managementAccordionWrap: { width: '100%', marginTop: 12, borderRadius: 16, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E2DDD2', overflow: 'hidden' },
+  managementAccordionButton: { minHeight: 64, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F1EEE7' },
+  managementAccordionTitle: { flex: 1, color: '#463B29', fontSize: 15, fontWeight: '900' },
+  managementAccordionArrow: { marginLeft: 10, color: '#806A42', fontSize: 13, fontWeight: '900' },
+  managementAccordionBody: { paddingHorizontal: 15, paddingBottom: 15 },
+  superManagementAccordionButton: { backgroundColor: '#9A7C43' },
+  superManagementAccordionTitle: { flex: 1, color: '#FFF', fontSize: 15, fontWeight: '900' },
+  superManagementAccordionArrow: { marginLeft: 10, color: '#FFF', fontSize: 13, fontWeight: '900' },
   noticeListScreen: { flex: 1, paddingTop: 18 },
   noticeListHeader: { paddingHorizontal: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   noticeBackButton: { width: 82, paddingVertical: 8 }, noticeBackText: { color: '#9A7C43', fontSize: 13, fontWeight: '900' },
@@ -2839,6 +2866,13 @@ const styles = StyleSheet.create({
   importedBibleDelete: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' },
   importedBibleDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   adminSettingsBlock: { marginTop: 28 }, adminLogoutButton: { backgroundColor: '#6E7580' }, registerAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, registerAdminButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
+  adminSettingsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  adminSettingsHeaderTitle: { flex: 1, flexShrink: 1 },
+  adminSettingsActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  adminSettingsActionButton: { minWidth: 48, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 9, backgroundColor: '#E8EEF6', alignItems: 'center' },
+  adminSettingsActionText: { color: '#173C70', fontSize: 11, fontWeight: '900' },
+  adminSettingsLogoutButton: { backgroundColor: '#F0ECE6' },
+  adminSettingsLogoutText: { color: '#6E6459', fontSize: 11, fontWeight: '900' },
   changePasswordButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#E8EEF6', alignItems: 'center', justifyContent: 'center' }, changePasswordButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   superAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#9A7C43', alignItems: 'center', justifyContent: 'center' }, superAdminButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   groupManageButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#EEEAE1', alignItems: 'center', justifyContent: 'center' }, groupManageButtonText: { color: '#655332', fontSize: 14, fontWeight: '900' },
