@@ -1065,7 +1065,7 @@ export default function App() {
       setNicknameEditorOpen(true);
     } catch (error) {
       console.warn('Group join failed:', error);
-      Alert.alert('가입 실패', '교회·기관 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
+      Alert.alert('가입 실패', '그룹 정보를 확인하지 못했습니다. 인터넷 연결을 확인해 주세요.');
     } finally {
       setAdminBusy(false);
     }
@@ -1123,7 +1123,7 @@ export default function App() {
       const joinedName = pendingJoinGroup?.name;
       setNicknameEditorOpen(false);
       setPendingJoinGroup(null);
-      Alert.alert(existing?.nickname ? '닉네임 변경 완료' : '기관 가입 완료', existing?.nickname ? '닉네임이 변경되었습니다.' : `${joinedName || '선택한 기관'}에 가입했습니다.`);
+      Alert.alert(existing?.nickname ? '닉네임 변경 완료' : '그룹 가입 완료', existing?.nickname ? '닉네임이 변경되었습니다.' : `${joinedName || '선택한 그룹'}에 가입했습니다.`);
     } catch (error) {
       console.warn('Nickname save failed:', error);
       Alert.alert('저장 실패', '닉네임을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
@@ -1135,7 +1135,7 @@ export default function App() {
   const leaveCurrentGroup = () => {
     if (!currentGroupId || !memberUser) return;
     const leavingId = currentGroupId;
-    Alert.alert('교회·기관 탈퇴', `${currentGroupName}에서 탈퇴하시겠습니까?`, [
+    Alert.alert('그룹 탈퇴', `${currentGroupName}에서 탈퇴하시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '탈퇴', style: 'destructive', onPress: async () => {
         // 탈퇴 처리 중 관리자 로그아웃과 회원정보 구독이 순서대로 갱신되더라도
@@ -1184,7 +1184,7 @@ export default function App() {
           Alert.alert('탈퇴 완료', `${currentGroupName}에서 탈퇴했습니다.${isAdmin && !isSuperAdmin ? '\n해당 기관의 관리자 권한도 해제되었습니다.' : ''}${signedOutFromAdmin ? '\n관리자 계정에서 로그아웃되었습니다.' : ''}`);
         } catch (error) {
           console.warn('Group leave failed:', error);
-          Alert.alert('탈퇴 실패', '기관 탈퇴 또는 관리자 권한 해제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+          Alert.alert('탈퇴 실패', '그룹 탈퇴 또는 관리자 권한 해제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
         }
       } },
     ]);
@@ -2304,20 +2304,22 @@ export default function App() {
         ) : screen === 'settings' ? (
           <ScrollView contentContainerStyle={styles.settingsScreen}>
             <Text style={styles.settingsTitle}>설정</Text>
-            <Text style={styles.settingsSectionTitle}>교회·기관</Text>
+            <Text style={styles.settingsSectionTitle}>그룹</Text>
             <View style={styles.settingsCard}>
-              <Text style={styles.settingsCardTitle}>기관 설정</Text>
-              <Text style={styles.settingsDescription}>{joinedGroupIds.length ? `현재 공지 기관: ${currentGroupName}\n기관 변경은 공지사항 화면에서 할 수 있습니다.` : '교회·기관에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 기관 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
+              <Text style={styles.settingsCardTitle}>그룹 설정</Text>
+              {joinedGroupIds.length ? <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.currentGroupDropdown}>
+                <View><Text style={styles.currentGroupDropdownLabel}>현재 그룹</Text><Text numberOfLines={1} style={styles.currentGroupDropdownName}>{currentGroupName}</Text></View><Text style={styles.currentGroupDropdownArrow}>▼</Text>
+              </TouchableOpacity> : null}
+              <Text style={styles.settingsDescription}>{joinedGroupIds.length ? '그룹 변경은 공지사항 화면에서도 할 수 있습니다.' : '그룹에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 그룹 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
               {!!currentGroupId && currentMembership?.active !== false && <View style={styles.memberProfileBox}>
                 <Text style={styles.memberProfileLabel}>내 닉네임</Text>
                 <Text style={styles.memberProfileName}>{currentMembership?.nickname || '닉네임 등록 필요'}</Text>
                 {currentMembership?.previousNickname ? <Text style={styles.memberProfileMeta}>이전 닉네임 · {currentMembership.previousNickname}</Text> : null}
                 <Text style={styles.memberProfileMeta}>회원번호 · {memberUser?.uid ? `M-${memberUser.uid.slice(-6).toUpperCase()}` : '준비 중'}</Text>
                 {nicknameRemainingText(currentMembership) ? <Text style={styles.nicknameWaitText}>{nicknameRemainingText(currentMembership)}</Text> : null}
-                <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => openNicknameEditor()} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>{currentMembership?.nickname ? '닉네임 변경' : '닉네임 등록'}</Text></TouchableOpacity><TouchableOpacity onPress={leaveCurrentGroup} style={styles.memberLeaveButton}><Text style={styles.memberLeaveButtonText}>기관 탈퇴</Text></TouchableOpacity></View>
+                <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => openNicknameEditor()} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>{currentMembership?.nickname ? '닉네임 변경' : '닉네임 등록'}</Text></TouchableOpacity><TouchableOpacity onPress={leaveCurrentGroup} style={styles.memberLeaveButton}><Text style={styles.memberLeaveButtonText}>그룹 탈퇴</Text></TouchableOpacity></View>
               </View>}
-              {visibleGroups.length > 1 && <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>현재 기관 변경</Text></TouchableOpacity>}
-              <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 기관 가입</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
             </View>
             <View style={styles.settingsSectionGap} />
             <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
@@ -2587,12 +2589,12 @@ export default function App() {
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
             <Text style={styles.adminModalTitle}>공지사항 기관 선택</Text>
-            <Text style={styles.adminModalDescription}>가입한 교회·기관을 선택하면 해당 기관의 소식과 중보기도만 표시됩니다.</Text>
+            <Text style={styles.adminModalDescription}>가입한 그룹을 선택하면 해당 그룹의 소식과 중보기도만 표시됩니다.</Text>
             <ScrollView style={styles.groupPickerList}>
               {visibleGroups.map((group) => <TouchableOpacity key={group.id} onPress={() => selectCommunityGroup(group.id)} style={[styles.groupPickerRow, currentGroupId === group.id && styles.groupPickerRowActive]}><Text style={[styles.groupPickerRowText, currentGroupId === group.id && styles.groupPickerRowTextActive]}>{group.name}</Text>{currentGroupId === group.id && <Text style={styles.groupPickerCheck}>✓</Text>}</TouchableOpacity>)}
             </ScrollView>
             <View style={styles.adminModalActions}>
-              <TouchableOpacity onPress={() => { setGroupPickerOpen(false); setJoinGroupOpen(true); }} style={styles.registerAdminButtonInline}><Text style={styles.registerAdminButtonText}>＋ 기관 가입</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => { setGroupPickerOpen(false); setJoinGroupOpen(true); }} style={styles.registerAdminButtonInline}><Text style={styles.registerAdminButtonText}>＋ 그룹 가입</Text></TouchableOpacity>
               <TouchableOpacity onPress={() => setGroupPickerOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>닫기</Text></TouchableOpacity>
             </View>
           </View>
@@ -2619,8 +2621,8 @@ export default function App() {
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.adminModalCard}>
-              <Text style={styles.adminModalTitle}>교회·기관 가입</Text>
-              <Text style={styles.adminModalDescription}>교회·기관 관리자에게 받은 초대 코드를 입력해 주세요. 공유받은 안내문 전체를 붙여 넣어도 됩니다.</Text>
+              <Text style={styles.adminModalTitle}>그룹 가입</Text>
+              <Text style={styles.adminModalDescription}>그룹 관리자에게 받은 초대 코드를 입력해 주세요. 공유받은 안내문 전체를 붙여 넣어도 됩니다.</Text>
               <TextInput value={joinCode} onChangeText={setJoinCode} autoCapitalize="characters" autoCorrect={false} placeholder="초대 코드" returnKeyType="done" onSubmitEditing={joinCommunityGroup} style={styles.adminInput} />
               <View style={styles.adminModalActions}>
                 <TouchableOpacity disabled={adminBusy} onPress={() => setJoinGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
@@ -2852,6 +2854,10 @@ const styles = StyleSheet.create({
   settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
   settingsCardTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' },
   settingsDescription: { marginTop: 9, fontSize: 13, lineHeight: 20, color: '#747C86', fontWeight: '600' },
+  currentGroupDropdown: { alignSelf: 'flex-start', maxWidth: '100%', marginTop: 13, paddingLeft: 14, paddingRight: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: '#F1EEE7', borderWidth: 1, borderColor: '#E1DBCF', flexDirection: 'row', alignItems: 'center', gap: 16 },
+  currentGroupDropdownLabel: { color: '#8A8170', fontSize: 10, fontWeight: '800' },
+  currentGroupDropdownName: { maxWidth: 210, marginTop: 2, color: '#17223B', fontSize: 14, fontWeight: '900' },
+  currentGroupDropdownArrow: { color: '#806A42', fontSize: 11, fontWeight: '900' },
   memberProfileBox: { marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: '#F4F1E9' }, memberProfileLabel: { color: '#777E88', fontSize: 11, fontWeight: '800' }, memberProfileName: { marginTop: 3, color: '#17223B', fontSize: 18, fontWeight: '900' }, memberProfileMeta: { marginTop: 3, color: '#7A7F87', fontSize: 10, fontWeight: '700' }, nicknameWaitText: { marginTop: 7, color: '#9A7C43', fontSize: 11, fontWeight: '800' }, memberProfileActions: { marginTop: 10, flexDirection: 'row', gap: 8 }, memberProfileButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, memberProfileButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, memberLeaveButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, memberLeaveButtonText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   importBibleButton: { marginTop: 18, minHeight: 52, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   importBibleButtonDisabled: { opacity: 0.55 },
