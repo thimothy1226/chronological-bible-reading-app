@@ -58,6 +58,35 @@ const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
+const LEGAL_DOCUMENTS = {
+  privacy: {
+    title: '개인정보 처리방침',
+    sections: [
+      ['1. 처리 목적', '그룹 가입과 회원 관리, 공지사항·중보기도 제공, 관리자 인증 및 서비스 운영을 위해 필요한 최소한의 정보를 처리합니다.'],
+      ['2. 처리하는 정보', '일반 회원: Firebase 익명 식별값(회원번호), 닉네임, 가입 그룹, 가입·탈퇴 상태와 일시\n관리자: 이메일 주소, Firebase 인증 식별값, 담당 그룹과 권한\n게시글 작성 시: 제목, 내용, 작성자 식별정보와 작성일시'],
+      ['3. 휴대폰에만 저장되는 정보', '성경 통독 완료기록, 말씀 메모, 글자 크기와 읽던 위치, 사용자가 직접 등록한 BDF 성경 데이터는 해당 휴대폰에만 저장되며 서버로 전송하지 않습니다.'],
+      ['4. 보유 및 파기', '개인정보는 서비스 이용 또는 그룹 가입 기간 동안 보관하며, 목적이 달성되거나 삭제 요청이 확인되면 지체 없이 파기합니다. 관리자에 의해 탈퇴 처리된 경우 재가입 제한과 분쟁 대응에 필요한 최소 기록은 서비스 운영 기간 동안 보관될 수 있습니다.'],
+      ['5. 외부 서비스 이용', '인증과 데이터 저장을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
+      ['6. 이용자의 권리', '이용자는 닉네임 변경, 그룹 탈퇴를 직접 할 수 있으며 개인정보 열람·정정·삭제·처리정지를 앱 운영자 또는 소속 그룹 관리자에게 요청할 수 있습니다.'],
+      ['7. 안전성 확보', '접근 권한 구분, Firebase 인증과 보안 규칙 등 합리적인 보호조치를 적용합니다.'],
+      ['8. 문의 및 변경', '개인정보 관련 문의는 앱 운영자 또는 소속 그룹 관리자에게 해 주세요. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
+      ['시행일', '2026년 9월 4일'],
+    ],
+  },
+  terms: {
+    title: '이용약관',
+    sections: [
+      ['1. 목적', '이 약관은 연대기별 성경통독 일정표 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
+      ['2. 서비스 이용', '이용자는 본 약관과 관계 법령을 준수하여 서비스를 이용해야 합니다. 서비스 일부 기능은 그룹 가입 또는 관리자 권한이 필요할 수 있습니다.'],
+      ['3. 이용자의 책임', '이용자는 타인의 권리를 침해하거나 불법·유해한 게시물을 등록해서는 안 되며, 자신이 작성한 게시물과 등록한 자료에 대한 책임을 집니다.'],
+      ['4. 게시물 관리', '운영자 또는 그룹 관리자는 관계 법령이나 공동체 운영 기준에 어긋나는 게시물을 사전 통지 없이 숨기거나 삭제할 수 있습니다.'],
+      ['5. 서비스 변경과 중단', '점검, 장애, 운영상 필요에 따라 서비스의 일부가 변경되거나 일시 중단될 수 있습니다. 중요한 변경은 가능한 범위에서 미리 안내합니다.'],
+      ['6. 책임의 제한', '천재지변, 통신 장애, 이용자의 기기 또는 네트워크 문제 등 운영자가 합리적으로 통제하기 어려운 사유로 발생한 손해에 대해서는 관련 법령이 허용하는 범위에서 책임이 제한될 수 있습니다.'],
+      ['7. 약관의 변경', '약관이 변경되면 앱 또는 공지사항을 통해 안내합니다. 변경 후 계속 이용하는 경우 변경된 약관에 동의한 것으로 봅니다.'],
+      ['시행일', '2026년 9월 4일'],
+    ],
+  },
+};
 const createInviteCode = () => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({ length: 12 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join('');
@@ -381,6 +410,7 @@ export default function App() {
   const [adminManagerOpen, setAdminManagerOpen] = useState(false);
   const [churchManagementOpen, setChurchManagementOpen] = useState(false);
   const [superGroupManagementOpen, setSuperGroupManagementOpen] = useState(false);
+  const [legalDocument, setLegalDocument] = useState(null);
   const [groupAdmins, setGroupAdmins] = useState([]);
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferPassword, setTransferPassword] = useState('');
@@ -2308,7 +2338,7 @@ export default function App() {
             <View style={styles.settingsCard}>
               <Text style={styles.settingsCardTitle}>그룹 설정</Text>
               {joinedGroupIds.length ? <TouchableOpacity onPress={() => setGroupPickerOpen(true)} style={styles.currentGroupDropdown}>
-                <View><Text style={styles.currentGroupDropdownLabel}>현재 그룹</Text><Text numberOfLines={1} style={styles.currentGroupDropdownName}>{currentGroupName}</Text></View><Text style={styles.currentGroupDropdownArrow}>▼</Text>
+                <View style={styles.currentGroupInline}><Text style={styles.currentGroupDropdownLabel}>현재 그룹</Text><Text style={styles.currentGroupSeparator}>·</Text><Text numberOfLines={1} style={styles.currentGroupDropdownName}>{currentGroupName}</Text></View><Text style={styles.currentGroupDropdownArrow}>▼</Text>
               </TouchableOpacity> : null}
               <Text style={styles.settingsDescription}>{joinedGroupIds.length ? '그룹 변경은 공지사항 화면에서도 할 수 있습니다.' : '그룹에 가입하지 않아도 성경 통독 기능은 모두 사용할 수 있습니다. 그룹 공지가 필요할 때만 초대 코드를 입력하세요.'}</Text>
               {!!currentGroupId && currentMembership?.active !== false && <View style={styles.memberProfileBox}>
@@ -2359,6 +2389,14 @@ export default function App() {
                 <Text style={styles.settingsDescription}>{isSuperAdmin ? '일반 회원 화면과 분리된 관리실에서 모든 기관을 관리합니다.' : isAdmin ? '관리실에서 담당 기관을 선택해 게시글과 회원을 관리합니다.' : '지정된 관리자만 별도의 관리실에 들어갈 수 있습니다.'}</Text>
                 {!isAdmin && <TouchableOpacity onPress={() => setAdminLoginOpen(true)} style={styles.importBibleButton}><Text style={styles.importBibleButtonText}>관리자 로그인</Text></TouchableOpacity>}
                 {isAdmin && <TouchableOpacity disabled={!managedGroups.length} onPress={() => { setAdminRoomMode(true); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.superAdminButton, !managedGroups.length && styles.importBibleButtonDisabled]}><Text style={styles.superAdminButtonText}>관리자 모드</Text></TouchableOpacity>}
+              </View>
+            </View>
+            <View style={styles.legalSettingsBlock}>
+              <Text style={styles.settingsSectionTitle}>서비스 안내</Text>
+              <View style={styles.legalMenuCard}>
+                <TouchableOpacity onPress={() => setLegalDocument('privacy')} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>개인정보 처리방침</Text><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
+                <TouchableOpacity onPress={() => setLegalDocument('terms')} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>이용약관</Text><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
               </View>
             </View>
           </ScrollView>
@@ -2716,6 +2754,16 @@ export default function App() {
         </KeyboardAvoidingView>
       </Modal>
 
+      <Modal visible={!!legalDocument} animationType="slide" onRequestClose={() => setLegalDocument(null)}>
+        <SafeAreaView style={styles.legalSafeArea}>
+          <View style={styles.legalHeader}><TouchableOpacity onPress={() => setLegalDocument(null)} style={styles.legalBackButton}><Text style={styles.legalBackText}>‹ 설정</Text></TouchableOpacity><Text style={styles.legalTitle}>{LEGAL_DOCUMENTS[legalDocument]?.title}</Text><View style={styles.legalHeaderSpacer} /></View>
+          <ScrollView contentContainerStyle={styles.legalContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? '연대기별 성경통독 일정표는 이용자의 정보를 소중하게 보호합니다.' : '연대기별 성경통독 일정표를 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
+            {LEGAL_DOCUMENTS[legalDocument]?.sections.map(([heading, body]) => <View key={heading} style={styles.legalSection}><Text style={styles.legalSectionTitle}>{heading}</Text><Text style={styles.legalSectionBody}>{body}</Text></View>)}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
       <Modal visible={!!completionModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.celebrateBackdrop}>
           <View style={styles.celebrateCard}>
@@ -2854,9 +2902,11 @@ const styles = StyleSheet.create({
   settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
   settingsCardTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' },
   settingsDescription: { marginTop: 9, fontSize: 13, lineHeight: 20, color: '#747C86', fontWeight: '600' },
-  currentGroupDropdown: { alignSelf: 'flex-start', maxWidth: '100%', marginTop: 13, paddingLeft: 14, paddingRight: 12, paddingVertical: 9, borderRadius: 12, backgroundColor: '#F1EEE7', borderWidth: 1, borderColor: '#E1DBCF', flexDirection: 'row', alignItems: 'center', gap: 16 },
-  currentGroupDropdownLabel: { color: '#8A8170', fontSize: 10, fontWeight: '800' },
-  currentGroupDropdownName: { maxWidth: 210, marginTop: 2, color: '#17223B', fontSize: 14, fontWeight: '900' },
+  currentGroupDropdown: { alignSelf: 'flex-start', maxWidth: '100%', marginTop: 13, paddingLeft: 14, paddingRight: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F1EEE7', borderWidth: 1, borderColor: '#E1DBCF', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  currentGroupInline: { maxWidth: '92%', flexDirection: 'row', alignItems: 'center' },
+  currentGroupDropdownLabel: { color: '#7F7666', fontSize: 12, fontWeight: '800' },
+  currentGroupSeparator: { marginHorizontal: 7, color: '#B0A895', fontSize: 12, fontWeight: '900' },
+  currentGroupDropdownName: { flexShrink: 1, maxWidth: 210, color: '#17223B', fontSize: 14, fontWeight: '900' },
   currentGroupDropdownArrow: { color: '#806A42', fontSize: 11, fontWeight: '900' },
   memberProfileBox: { marginTop: 14, padding: 14, borderRadius: 14, backgroundColor: '#F4F1E9' }, memberProfileLabel: { color: '#777E88', fontSize: 11, fontWeight: '800' }, memberProfileName: { marginTop: 3, color: '#17223B', fontSize: 18, fontWeight: '900' }, memberProfileMeta: { marginTop: 3, color: '#7A7F87', fontSize: 10, fontWeight: '700' }, nicknameWaitText: { marginTop: 7, color: '#9A7C43', fontSize: 11, fontWeight: '800' }, memberProfileActions: { marginTop: 10, flexDirection: 'row', gap: 8 }, memberProfileButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, memberProfileButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, memberLeaveButton: { flex: 1, minHeight: 40, borderRadius: 10, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, memberLeaveButtonText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   importBibleButton: { marginTop: 18, minHeight: 52, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
@@ -2879,6 +2929,23 @@ const styles = StyleSheet.create({
   adminSettingsActionText: { color: '#173C70', fontSize: 11, fontWeight: '900' },
   adminSettingsLogoutButton: { backgroundColor: '#F0ECE6' },
   adminSettingsLogoutText: { color: '#6E6459', fontSize: 11, fontWeight: '900' },
+  legalSettingsBlock: { marginTop: 28, marginBottom: 10 },
+  legalMenuCard: { borderRadius: 16, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' },
+  legalMenuRow: { minHeight: 54, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  legalMenuText: { color: '#303B52', fontSize: 14, fontWeight: '800' },
+  legalMenuArrow: { color: '#9A7C43', fontSize: 23, fontWeight: '700' },
+  legalMenuDivider: { height: 1, marginHorizontal: 17, backgroundColor: '#EEEAE1' },
+  legalSafeArea: { flex: 1, backgroundColor: '#F7F6F1' },
+  legalHeader: { minHeight: 62, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#E5E1D8', backgroundColor: '#FFFEFB' },
+  legalBackButton: { width: 72, paddingVertical: 10 },
+  legalBackText: { color: '#9A7C43', fontSize: 14, fontWeight: '900' },
+  legalTitle: { flex: 1, textAlign: 'center', color: '#17223B', fontSize: 18, fontWeight: '900' },
+  legalHeaderSpacer: { width: 72 },
+  legalContent: { paddingHorizontal: 22, paddingTop: 22, paddingBottom: Platform.OS === 'android' ? 70 : 40 },
+  legalIntro: { marginBottom: 18, padding: 16, borderRadius: 14, backgroundColor: '#EEEAE1', color: '#4F5868', fontSize: 13, lineHeight: 20, fontWeight: '700' },
+  legalSection: { marginBottom: 20 },
+  legalSectionTitle: { color: '#17223B', fontSize: 15, fontWeight: '900', marginBottom: 7 },
+  legalSectionBody: { color: '#596270', fontSize: 13, lineHeight: 21, fontWeight: '600' },
   changePasswordButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#E8EEF6', alignItems: 'center', justifyContent: 'center' }, changePasswordButtonText: { color: '#173C70', fontSize: 14, fontWeight: '900' },
   superAdminButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#9A7C43', alignItems: 'center', justifyContent: 'center' }, superAdminButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   groupManageButton: { marginTop: 10, minHeight: 48, borderRadius: 14, backgroundColor: '#EEEAE1', alignItems: 'center', justifyContent: 'center' }, groupManageButtonText: { color: '#655332', fontSize: 14, fontWeight: '900' },
