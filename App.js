@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
+import * as Notifications from 'expo-notifications';
 import { Buffer } from 'buffer';
 import iconv from 'iconv-lite';
 import Pdf from 'react-native-pdf';
@@ -43,6 +44,17 @@ const memberApp = initializeApp(FIREBASE_CONFIG, 'memberClient');
 const memberAuth = initializeAuth(memberApp, { persistence: getReactNativePersistence(AsyncStorage) });
 const memberFirestore = getFirestore(memberApp);
 const ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
+const COMMUNITY_NOTIFICATION_CATEGORY = 'community-post';
+const OPEN_POST_ACTION = 'OPEN_POST';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
 const COMPLETIONS_KEY = '@chronological_bible/completions';
@@ -63,14 +75,14 @@ const LEGAL_DOCUMENTS = {
     title: '개인정보 처리방침',
     sections: [
       ['1. 처리 목적', '그룹 가입과 회원 관리, 공지사항·중보기도 제공, 관리자 인증 및 서비스 운영을 위해 필요한 최소한의 정보를 처리합니다.'],
-      ['2. 처리하는 정보', '일반 회원: Firebase 익명 식별값(회원번호), 닉네임, 가입 그룹, 가입·탈퇴 상태와 일시\n관리자: 이메일 주소, Firebase 인증 식별값, 담당 그룹과 권한\n게시글 작성 시: 제목, 내용, 작성자 식별정보와 작성일시'],
+      ['2. 처리하는 정보', '일반 회원: Firebase 익명 식별값(회원번호), 닉네임, 가입 그룹, 가입·탈퇴 상태와 일시\n알림 이용 시: 휴대폰의 푸시 알림 토큰, 기기 종류, 알림을 받을 그룹\n관리자: 이메일 주소, Firebase 인증 식별값, 담당 그룹과 권한\n게시글 작성 시: 제목, 내용, 작성자 식별정보와 작성일시'],
       ['3. 휴대폰에만 저장되는 정보', '성경 통독 완료기록, 말씀 메모, 글자 크기와 읽던 위치, 사용자가 직접 등록한 BDF 성경 데이터는 해당 휴대폰에만 저장되며 서버로 전송하지 않습니다.'],
       ['4. 보유 및 파기', '개인정보는 서비스 이용 또는 그룹 가입 기간 동안 보관하며, 목적이 달성되거나 삭제 요청이 확인되면 지체 없이 파기합니다. 관리자에 의해 탈퇴 처리된 경우 재가입 제한과 분쟁 대응에 필요한 최소 기록은 서비스 운영 기간 동안 보관될 수 있습니다.'],
-      ['5. 외부 서비스 이용', '인증과 데이터 저장을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
+      ['5. 외부 서비스 이용', '인증, 데이터 저장 및 푸시 알림 전송을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
       ['6. 이용자의 권리', '이용자는 닉네임 변경, 그룹 탈퇴를 직접 할 수 있으며 개인정보 열람·정정·삭제·처리정지를 앱 운영자 또는 소속 그룹 관리자에게 요청할 수 있습니다.'],
       ['7. 안전성 확보', '접근 권한 구분, Firebase 인증과 보안 규칙 등 합리적인 보호조치를 적용합니다.'],
       ['8. 문의 및 변경', '개인정보 관련 문의는 앱 운영자 또는 소속 그룹 관리자에게 해 주세요. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
-      ['시행일', '2026년 9월 4일'],
+      ['시행일', '2026년 9월 5일'],
     ],
   },
   terms: {
@@ -411,6 +423,7 @@ export default function App() {
   const [churchManagementOpen, setChurchManagementOpen] = useState(false);
   const [superGroupManagementOpen, setSuperGroupManagementOpen] = useState(false);
   const [legalDocument, setLegalDocument] = useState(null);
+  const [pendingNotificationPost, setPendingNotificationPost] = useState(null);
   const [groupAdmins, setGroupAdmins] = useState([]);
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferPassword, setTransferPassword] = useState('');
@@ -424,6 +437,7 @@ export default function App() {
   const homologiaPdfScaleRef = useRef(1);
   const homologiaPdfPositionsRef = useRef({});
   const nicknamePromptedRef = useRef(new Set());
+  const handledNotificationRef = useRef(null);
 
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
@@ -537,6 +551,74 @@ export default function App() {
       }
     }, (error) => console.warn('Membership load failed:', error));
   }, [memberUser, currentGroupId]);
+
+  useEffect(() => {
+    if (!memberUser || !memberSnapshotReady || Platform.OS !== 'android') return undefined;
+    let cancelled = false;
+    const registerNotifications = async () => {
+      try {
+        await Notifications.setNotificationChannelAsync('group-posts', {
+          name: '그룹 새 글 알림',
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 180, 250],
+        });
+        await Notifications.setNotificationCategoryAsync(COMMUNITY_NOTIFICATION_CATEGORY, [{
+          identifier: OPEN_POST_ACTION,
+          buttonTitle: '앱에서 보기',
+          options: { opensAppToForeground: true },
+        }]);
+        let permission = await Notifications.getPermissionsAsync();
+        if (permission.status === 'undetermined') permission = await Notifications.requestPermissionsAsync();
+        if (permission.status !== 'granted' || cancelled) return;
+        const pushToken = await Notifications.getDevicePushTokenAsync();
+        if (cancelled || !pushToken?.data) return;
+        const activeGroupIds = joinedGroupIds.filter((groupId) => myMemberships[groupId]?.active !== false);
+        await setDoc(doc(memberFirestore, 'pushDevices', memberUser.uid), {
+          memberUid: memberUser.uid,
+          token: String(pushToken.data),
+          tokenType: pushToken.type || 'fcm',
+          platform: Platform.OS,
+          groupIds: activeGroupIds,
+          notificationsEnabled: true,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      } catch (error) {
+        console.warn('Push notification registration failed:', error);
+      }
+    };
+    registerNotifications();
+    return () => { cancelled = true; };
+  }, [memberUser?.uid, memberSnapshotReady, joinedGroupIds.join('|'), Object.keys(myMemberships).join('|')]);
+
+  useEffect(() => {
+    const openPost = (response) => {
+      if (!response || response.actionIdentifier !== OPEN_POST_ACTION) return;
+      const notificationId = response.notification?.request?.identifier;
+      if (notificationId && handledNotificationRef.current === notificationId) return;
+      handledNotificationRef.current = notificationId || `${Date.now()}`;
+      const data = response.notification?.request?.content?.data || {};
+      if (!data.groupId || !data.postId || !['news', 'prayer'].includes(data.category)) return;
+      setAdminRoomMode(false);
+      setSelectedNoticePost(null);
+      setCurrentGroupId(data.groupId);
+      AsyncStorage.setItem(CURRENT_GROUP_KEY, data.groupId).catch(() => {});
+      setNoticeCategory(data.category);
+      setPendingNotificationPost({ postId: data.postId, groupId: data.groupId });
+      setScreen('notice');
+    };
+    const subscription = Notifications.addNotificationResponseReceivedListener(openPost);
+    Notifications.getLastNotificationResponseAsync().then(openPost).catch(() => {});
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!pendingNotificationPost || noticeGroupId !== pendingNotificationPost.groupId) return;
+    const post = communityPosts.find((item) => item.id === pendingNotificationPost.postId);
+    if (!post) return;
+    setSelectedNoticePost(post);
+    setPendingNotificationPost(null);
+  }, [pendingNotificationPost, noticeGroupId, communityPosts]);
 
   useEffect(() => {
     const savedMembership = currentGroupId ? myMemberships[currentGroupId] : null;
