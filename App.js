@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, BackHandler, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, SafeAreaView, ScrollView, Share, StatusBar,
+  Alert, AppState, BackHandler, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, SafeAreaView, ScrollView, Share, StatusBar,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -336,6 +336,35 @@ function migrateCompletions(raw) {
   return out;
 }
 
+function renderPostBodyWithLinks(body) {
+  const text = String(body || '');
+  const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+  const parts = [];
+  let cursor = 0;
+  let match;
+  let key = 0;
+  while ((match = urlPattern.exec(text)) !== null) {
+    if (match.index > cursor) parts.push(<Text key={`text-${key++}`}>{text.slice(cursor, match.index)}</Text>);
+    const rawUrl = match[0];
+    const trailing = rawUrl.match(/[),.!?;:'"”’]+$/)?.[0] || '';
+    const displayUrl = trailing ? rawUrl.slice(0, -trailing.length) : rawUrl;
+    const targetUrl = /^https?:\/\//i.test(displayUrl) ? displayUrl : `https://${displayUrl}`;
+    parts.push(
+      <Text
+        key={`url-${key++}`}
+        onPress={() => Linking.openURL(targetUrl).catch(() => Alert.alert('링크 열기 실패', '입력된 인터넷 주소를 열 수 없습니다.'))}
+        style={styles.noticePostLink}
+      >
+        {displayUrl}
+      </Text>,
+    );
+    if (trailing) parts.push(<Text key={`trail-${key++}`}>{trailing}</Text>);
+    cursor = match.index + rawUrl.length;
+  }
+  if (cursor < text.length) parts.push(<Text key={`text-${key++}`}>{text.slice(cursor)}</Text>);
+  return parts.length ? parts : text;
+}
+
 export default function App() {
   const [screen, setScreen] = useState('today');
   const [currentDay, setCurrentDay] = useState(1);
@@ -424,6 +453,8 @@ export default function App() {
   const [superGroupManagementOpen, setSuperGroupManagementOpen] = useState(false);
   const [legalDocument, setLegalDocument] = useState(null);
   const [pendingNotificationPost, setPendingNotificationPost] = useState(null);
+  const [notificationDetailMode, setNotificationDetailMode] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState('unknown');
   const [groupAdmins, setGroupAdmins] = useState([]);
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferPassword, setTransferPassword] = useState('');
@@ -524,6 +555,42 @@ export default function App() {
   }), []);
 
   useEffect(() => {
+    if (Platform.OS !== 'android') return undefined;
+    let mounted = true;
+    const syncNotificationPermission = async (requestOnFirstInstall = false) => {
+      try {
+        await Notifications.setNotificationChannelAsync('group-posts', {
+          name: '그룹 새 글 알림',
+          importance: Notifications.AndroidImportance.HIGH,
+          sound: 'default',
+          vibrationPattern: [0, 250, 180, 250],
+        });
+        await Notifications.setNotificationCategoryAsync(COMMUNITY_NOTIFICATION_CATEGORY, [{
+          identifier: OPEN_POST_ACTION,
+          buttonTitle: '앱에서 보기',
+          options: { opensAppToForeground: true },
+        }]);
+        let permission = await Notifications.getPermissionsAsync();
+        if (requestOnFirstInstall && permission.status === 'undetermined') {
+          permission = await Notifications.requestPermissionsAsync();
+        }
+        if (mounted) setNotificationPermission(permission.status);
+      } catch (error) {
+        console.warn('Notification permission setup failed:', error);
+        if (mounted) setNotificationPermission('unavailable');
+      }
+    };
+    syncNotificationPermission(true);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') syncNotificationPermission(false);
+    });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!memberUser) return undefined;
     return onSnapshot(query(collection(memberFirestore, 'memberships'), where('memberUid', '==', memberUser.uid)), (snapshot) => {
       const next = {};
@@ -557,19 +624,8 @@ export default function App() {
     let cancelled = false;
     const registerNotifications = async () => {
       try {
-        await Notifications.setNotificationChannelAsync('group-posts', {
-          name: '그룹 새 글 알림',
-          importance: Notifications.AndroidImportance.HIGH,
-          sound: 'default',
-          vibrationPattern: [0, 250, 180, 250],
-        });
-        await Notifications.setNotificationCategoryAsync(COMMUNITY_NOTIFICATION_CATEGORY, [{
-          identifier: OPEN_POST_ACTION,
-          buttonTitle: '앱에서 보기',
-          options: { opensAppToForeground: true },
-        }]);
-        let permission = await Notifications.getPermissionsAsync();
-        if (permission.status === 'undetermined') permission = await Notifications.requestPermissionsAsync();
+        const permission = await Notifications.getPermissionsAsync();
+        setNotificationPermission(permission.status);
         if (permission.status !== 'granted' || cancelled) return;
         const pushToken = await Notifications.getDevicePushTokenAsync();
         if (cancelled || !pushToken?.data) return;
@@ -589,17 +645,18 @@ export default function App() {
     };
     registerNotifications();
     return () => { cancelled = true; };
-  }, [memberUser?.uid, memberSnapshotReady, joinedGroupIds.join('|'), Object.keys(myMemberships).join('|')]);
+  }, [memberUser?.uid, memberSnapshotReady, notificationPermission, joinedGroupIds.join('|'), Object.keys(myMemberships).join('|')]);
 
   useEffect(() => {
     const openPost = (response) => {
-      if (!response || response.actionIdentifier !== OPEN_POST_ACTION) return;
+      if (!response || ![OPEN_POST_ACTION, Notifications.DEFAULT_ACTION_IDENTIFIER].includes(response.actionIdentifier)) return;
       const notificationId = response.notification?.request?.identifier;
       if (notificationId && handledNotificationRef.current === notificationId) return;
       handledNotificationRef.current = notificationId || `${Date.now()}`;
       const data = response.notification?.request?.content?.data || {};
       if (!data.groupId || !data.postId || !['news', 'prayer'].includes(data.category)) return;
       setAdminRoomMode(false);
+      setNotificationDetailMode(true);
       setSelectedNoticePost(null);
       setCurrentGroupId(data.groupId);
       AsyncStorage.setItem(CURRENT_GROUP_KEY, data.groupId).catch(() => {});
@@ -1550,6 +1607,36 @@ export default function App() {
     ]);
   };
 
+  const closeNoticeDetail = () => {
+    setSelectedNoticePost(null);
+    if (notificationDetailMode) {
+      setNoticeCategory(null);
+      setNotificationDetailMode(false);
+    }
+  };
+
+  const openNotificationSettings = async () => {
+    if (Platform.OS !== 'android') {
+      Alert.alert('알림 설정', '현재 알림 설정은 Android 앱에서 사용할 수 있습니다.');
+      return;
+    }
+    try {
+      let permission = await Notifications.getPermissionsAsync();
+      if (permission.status === 'undetermined') {
+        permission = await Notifications.requestPermissionsAsync();
+        setNotificationPermission(permission.status);
+        if (permission.status === 'granted') {
+          Alert.alert('알림 설정 완료', '그룹의 새 소식과 중보기도 알림을 받을 수 있습니다.');
+          return;
+        }
+      }
+      await Linking.openSettings();
+    } catch (error) {
+      console.warn('Open notification settings failed:', error);
+      Alert.alert('설정 열기 실패', '휴대폰 설정의 앱 알림에서 직접 허용해 주세요.');
+    }
+  };
+
   const confirmAppExit = () => {
     if (Platform.OS !== 'android') {
       Alert.alert('종료 안내', 'iPhone에서는 홈 화면으로 이동해 주세요.');
@@ -1568,7 +1655,7 @@ export default function App() {
         setHomologiaPdfScale(homologiaPdfScaleRef.current);
         setScreen('homologia');
       }
-      else if (screen === 'notice' && selectedNoticePost) setSelectedNoticePost(null);
+      else if (screen === 'notice' && selectedNoticePost) closeNoticeDetail();
       else if (screen === 'notice' && noticeCategory) setNoticeCategory(null);
       else if (screen === 'notice' && adminRoomMode) {
         setAdminRoomMode(false);
@@ -1584,7 +1671,7 @@ export default function App() {
       return true;
     });
     return () => subscription.remove();
-  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost, currentDay, adminRoomMode]);
+  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost, notificationDetailMode, currentDay, adminRoomMode]);
 
   const completeDay = async (day, advanceIfCurrent = false, destination = 'today') => {
     const key = String(day);
@@ -2282,7 +2369,7 @@ export default function App() {
         </View>
 
         <View style={styles.tabs}>
-          <TouchableOpacity disabled={visibleGroups.length === 0} onPress={() => { setAdminRoomMode(false); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && !adminRoomMode && styles.tabActive, visibleGroups.length === 0 && styles.tabDisabled]}><Text style={[styles.tabText, screen === 'notice' && !adminRoomMode && styles.tabTextActive, visibleGroups.length === 0 && styles.tabTextDisabled]}>공지사항</Text></TouchableOpacity>
+          <TouchableOpacity disabled={visibleGroups.length === 0} onPress={() => { setAdminRoomMode(false); setNotificationDetailMode(false); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && !adminRoomMode && styles.tabActive, visibleGroups.length === 0 && styles.tabDisabled]}><Text style={[styles.tabText, screen === 'notice' && !adminRoomMode && styles.tabTextActive, visibleGroups.length === 0 && styles.tabTextDisabled]}>공지사항</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
@@ -2294,15 +2381,15 @@ export default function App() {
           selectedNoticePost ? (
             <ScrollView contentContainerStyle={styles.noticeDetailScreen}>
               <Text style={styles.currentGroupLabel}>{adminRoomMode ? '관리자 관리실 · ' : ''}{noticeGroupName}</Text>
-              <TouchableOpacity onPress={() => setSelectedNoticePost(null)} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ {noticeCategory === 'news' ? `${noticeGroupName} 소식` : '중보기도'}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={closeNoticeDetail} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ {notificationDetailMode ? '공지사항' : noticeCategory === 'news' ? `${noticeGroupName} 소식` : '중보기도'}</Text></TouchableOpacity>
               <View style={styles.noticePostCard}>
                 <Text style={styles.noticePostTitle}>{selectedNoticePost.title}</Text>
                 <Text style={styles.noticePostDate}>{selectedNoticePost.createdAt?.toDate?.().toLocaleDateString('ko-KR') || '방금 전'}</Text>
                 {isSuperAdmin && <Text style={styles.noticePostAuthor}>작성 관리자 · {selectedNoticePost.authorEmail || adminDirectory[selectedNoticePost.authorUid] || selectedNoticePost.authorUid || '확인할 수 없음'}</Text>}
-                <Text style={styles.noticePostBody}>{selectedNoticePost.body}</Text>
+                <Text style={styles.noticePostBody}>{renderPostBodyWithLinks(selectedNoticePost.body)}</Text>
                 {adminRoomMode && canManageCurrentGroup && <View style={styles.noticePostActions}>
                   <TouchableOpacity onPress={() => openPostEditor(selectedNoticePost)} style={styles.noticeEditButton}><Text style={styles.noticeEditText}>수정</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => { removeCommunityPost(selectedNoticePost); setSelectedNoticePost(null); }} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => { removeCommunityPost(selectedNoticePost); closeNoticeDetail(); }} style={styles.noticeDeleteButton}><Text style={styles.noticeDeleteText}>삭제</Text></TouchableOpacity>
                 </View>}
               </View>
             </ScrollView>
@@ -2321,7 +2408,7 @@ export default function App() {
                   contentContainerStyle={styles.noticeListContent}
                   ListEmptyComponent={<View style={styles.noticeEmptyCard}><Text style={styles.noticeEmptyTitle}>아직 등록된 글이 없습니다.</Text><Text style={styles.placeholderText}>{adminRoomMode ? '오른쪽 위의 글쓰기 버튼으로 첫 글을 등록해 주세요.' : '새로운 글이 등록되면 이곳에 표시됩니다.'}</Text></View>}
                   renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => setSelectedNoticePost(item)} style={styles.noticeTitleRow}>
+                    <TouchableOpacity onPress={() => { setNotificationDetailMode(false); setSelectedNoticePost(item); }} style={styles.noticeTitleRow}>
                       <Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticeTitleRowText}>{item.title}</Text>
                       <Text style={styles.noticeTitleRowDate}>{formatPostDate(item.createdAt)}</Text>
                       <Text style={styles.noticeTitleArrow}>›</Text>
@@ -2361,7 +2448,7 @@ export default function App() {
                       <Text style={styles.noticeMenuIcon}>{menu.icon}</Text><Text style={styles.noticeMenuTitle}>{menu.title}</Text>
                     </TouchableOpacity>
                     <View style={styles.noticePreviewList}>
-                      {previewPosts.length ? previewPosts.map((post) => <TouchableOpacity key={post.id} onPress={() => { setNoticeCategory(menu.key); setSelectedNoticePost(post); }} style={styles.noticePreviewRow}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticePreviewTitle}>• {post.title}</Text><Text style={styles.noticePreviewDate}>{formatPostDate(post.createdAt)}</Text></TouchableOpacity>) : <Text style={styles.noticePreviewEmpty}>등록된 글이 없습니다.</Text>}
+                      {previewPosts.length ? previewPosts.map((post) => <TouchableOpacity key={post.id} onPress={() => { setNotificationDetailMode(false); setNoticeCategory(menu.key); setSelectedNoticePost(post); }} style={styles.noticePreviewRow}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.noticePreviewTitle}>• {post.title}</Text><Text style={styles.noticePreviewDate}>{formatPostDate(post.createdAt)}</Text></TouchableOpacity>) : <Text style={styles.noticePreviewEmpty}>등록된 글이 없습니다.</Text>}
                     </View>
                     <TouchableOpacity onPress={() => setNoticeCategory(menu.key)}><Text style={styles.noticeMoreText}>전체보기 ›</Text></TouchableOpacity>
                   </View>;
@@ -2432,6 +2519,20 @@ export default function App() {
                 <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => openNicknameEditor()} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>{currentMembership?.nickname ? '닉네임 변경' : '닉네임 등록'}</Text></TouchableOpacity><TouchableOpacity onPress={leaveCurrentGroup} style={styles.memberLeaveButton}><Text style={styles.memberLeaveButtonText}>그룹 탈퇴</Text></TouchableOpacity></View>
               </View>}
               <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
+            </View>
+            <View style={styles.settingsSectionGap} />
+            <Text style={styles.settingsSectionTitle}>알림</Text>
+            <View style={styles.settingsCard}>
+              <View style={styles.notificationSettingsHeader}>
+                <View style={styles.notificationSettingsTitleWrap}>
+                  <Text style={styles.settingsCardTitle}>그룹 새 글 알림</Text>
+                  <Text style={styles.settingsDescription}>가입한 그룹의 새 소식과 중보기도가 등록되면 알려드립니다.</Text>
+                </View>
+                <View style={[styles.notificationStatusPill, notificationPermission === 'granted' ? styles.notificationStatusPillOn : styles.notificationStatusPillOff]}>
+                  <Text style={[styles.notificationStatusText, notificationPermission === 'granted' ? styles.notificationStatusTextOn : styles.notificationStatusTextOff]}>{notificationPermission === 'granted' ? '허용됨' : notificationPermission === 'denied' ? '꺼짐' : '확인 필요'}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={openNotificationSettings} style={styles.notificationSettingsButton}><Text style={styles.notificationSettingsButtonText}>{notificationPermission === 'undetermined' ? '알림 허용하기' : '휴대폰 알림 설정 열기'}</Text></TouchableOpacity>
             </View>
             <View style={styles.settingsSectionGap} />
             <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
@@ -2976,6 +3077,7 @@ const styles = StyleSheet.create({
   noticeDetailScreen: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 100 }, noticeTitleRow: { minHeight: 58, marginBottom: 8, paddingHorizontal: 17, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC', flexDirection: 'row', alignItems: 'center' }, noticeTitleRowText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#283245' }, noticeTitleRowDate: { marginLeft: 8, fontSize: 11, color: '#8D929A', fontWeight: '700' }, noticeTitleArrow: { marginLeft: 8, color: '#9A7C43', fontSize: 24, fontWeight: '700' },
   noticeEmptyCard: { marginTop: 22, padding: 24, borderRadius: 18, backgroundColor: '#FFF', alignItems: 'center' }, noticeEmptyTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' },
   noticePostCard: { marginBottom: 12, padding: 18, borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E9E5DC' }, noticePostTitle: { fontSize: 18, lineHeight: 25, fontWeight: '900', color: '#17223B' }, noticePostDate: { marginTop: 5, fontSize: 11, color: '#9A7C43', fontWeight: '700' }, noticePostAuthor: { marginTop: 5, fontSize: 11, color: '#687386', fontWeight: '800' }, noticePostBody: { marginTop: 15, fontSize: 15, lineHeight: 24, color: '#3F4859' },
+  noticePostLink: { color: '#1769AA', fontWeight: '800', textDecorationLine: 'underline' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
   settingsSectionGap: { height: 24 },
@@ -2984,6 +3086,16 @@ const styles = StyleSheet.create({
   settingsCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E7E2D8' },
   settingsCardTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' },
   settingsDescription: { marginTop: 9, fontSize: 13, lineHeight: 20, color: '#747C86', fontWeight: '600' },
+  notificationSettingsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  notificationSettingsTitleWrap: { flex: 1 },
+  notificationStatusPill: { marginTop: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  notificationStatusPillOn: { backgroundColor: '#E4F2E9' },
+  notificationStatusPillOff: { backgroundColor: '#F2ECE5' },
+  notificationStatusText: { fontSize: 11, fontWeight: '900' },
+  notificationStatusTextOn: { color: '#286242' },
+  notificationStatusTextOff: { color: '#806A51' },
+  notificationSettingsButton: { marginTop: 16, minHeight: 48, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' },
+  notificationSettingsButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   currentGroupDropdown: { alignSelf: 'flex-start', maxWidth: '100%', marginTop: 13, paddingLeft: 14, paddingRight: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F1EEE7', borderWidth: 1, borderColor: '#E1DBCF', flexDirection: 'row', alignItems: 'center', gap: 12 },
   currentGroupInline: { maxWidth: '92%', flexDirection: 'row', alignItems: 'center' },
   currentGroupDropdownLabel: { color: '#7F7666', fontSize: 12, fontWeight: '800' },
