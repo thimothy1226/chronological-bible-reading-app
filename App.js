@@ -720,7 +720,7 @@ export default function App() {
   }, [canManagePeople, adminGroupId]);
 
   useEffect(() => {
-    if (!noticeGroupId || (adminRoomMode ? !canManageCurrentGroup : (!memberUser || currentMembership?.active === false))) {
+    if (screen !== 'notice' || !noticeGroupId || (adminRoomMode ? !canManageCurrentGroup : (!memberUser || currentMembership?.active === false))) {
       setCommunityPosts([]);
       setPostsLoading(false);
       return undefined;
@@ -744,7 +744,7 @@ export default function App() {
       setPostsLoading(false);
     });
     return unsubscribe;
-  }, [noticeGroupId, adminRoomMode, memberUser, currentMembership?.active, canManageCurrentGroup]);
+  }, [screen, noticeGroupId, adminRoomMode, memberUser, currentMembership?.active, canManageCurrentGroup]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -2521,7 +2521,7 @@ export default function App() {
               <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
             </View>
             <View style={styles.settingsSectionGap} />
-            <Text style={styles.settingsSectionTitle}>알림</Text>
+            <Text style={styles.settingsSectionTitle}>알림 설정</Text>
             <View style={styles.settingsCard}>
               <View style={styles.notificationSettingsHeader}>
                 <View style={styles.notificationSettingsTitleWrap}>
