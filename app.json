@@ -2,12 +2,12 @@
   "expo": {
     "name": "연대기별 성경통독 일정표",
     "slug": "chronological-bible-reading-365",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.biblereading.chronological365",
-      "versionCode": 3,
+      "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize"
     },
