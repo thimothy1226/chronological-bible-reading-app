@@ -20,8 +20,8 @@ replaceOnce(
 );
 
 replaceOnce(
-  "            <Text style={styles.finalCongrats}>365일 연대기별 성경통독 일정을 모두 완료했습니다!</Text>",
-  "            <Text style={styles.finalCongrats}>{activeReadingPlan.name} {activeSchedule.length}일 일정을 모두 완료했습니다!</Text>",
+  "            {completionModal?.finalDay ? <Text style={styles.finalCongrats}>365일 연대기별 성경통독 일정을 모두 완료했습니다!</Text> : null}",
+  "            {completionModal?.finalDay ? <Text style={styles.finalCongrats}>{activeReadingPlan.name} {activeSchedule.length}일 일정을 모두 완료했습니다!</Text> : null}",
   'dynamic completion congratulations',
 );
 
