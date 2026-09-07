@@ -23,6 +23,7 @@ service cloud.firestore {
         && (!('active' in adminData()) || adminData().active == true);
     }
 
+    // 대표관리자(manager) 또는 부대표관리자(subAdmin). 기존 문서 형식도 계속 허용한다.
     function managesGroup(groupId) {
       return isSuperAdmin()
         || (isActiveAdmin() && (
@@ -35,6 +36,7 @@ service cloud.firestore {
         ));
     }
 
+    // 대표관리자(manager). 과거 관리자 문서는 role/subAdmin 여부로 호환한다.
     function isGroupManager(groupId) {
       return isSuperAdmin()
         || (isActiveAdmin() && (
@@ -48,6 +50,12 @@ service cloud.firestore {
             )
           )
         ));
+    }
+
+    function isRepresentativeAdmin() {
+      return isSuperAdmin()
+        || (isActiveAdmin()
+          && (!('role' in adminData()) || adminData().role != 'subAdmin'));
     }
 
     function isMember(groupId) {
@@ -65,9 +73,14 @@ service cloud.firestore {
 
     match /groups/{groupId} {
       allow read: if true;
-      allow create, delete: if isSuperAdmin();
+
+      // 최고관리자와 대표관리자는 새 그룹을 만들 수 있다.
+      allow create: if isRepresentativeAdmin();
+      allow delete: if isSuperAdmin() || isGroupManager(groupId);
+
+      // 대표/부대표 모두 담당 그룹의 주소와 소개를 수정할 수 있다.
       allow update: if isSuperAdmin()
-        || (isGroupManager(groupId)
+        || (managesGroup(groupId)
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['address', 'description', 'updatedAt']));
     }
@@ -75,7 +88,7 @@ service cloud.firestore {
     match /memberships/{membershipId} {
       allow read: if signedIn() && (
         resource.data.memberUid == request.auth.uid
-        || isGroupManager(resource.data.groupId)
+        || managesGroup(resource.data.groupId)
       );
 
       allow create: if signedIn()
@@ -84,7 +97,8 @@ service cloud.firestore {
         && request.resource.data.removedByAdmin == false
         && request.resource.data.inviteCode == get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.normalizedInviteCode;
 
-      allow update: if isGroupManager(resource.data.groupId)
+      // 대표/부대표 모두 회원 탈퇴/복구 등 회원 관리를 할 수 있다.
+      allow update: if managesGroup(resource.data.groupId)
         || (
           signedIn()
           && resource.data.memberUid == request.auth.uid
@@ -116,8 +130,10 @@ service cloud.firestore {
           && ('groupIds' in adminData())
           && resource.data.groupIds.hasAny(adminData().groupIds));
 
+      // 대표관리자는 자신의 한 그룹에 부대표관리자를 등록할 수 있다.
       allow create: if isSuperAdmin()
         || (request.resource.data.groupIds.size() == 1
+          && request.resource.data.role == 'subAdmin'
           && isGroupManager(request.resource.data.groupIds[0]));
 
       allow update: if isSuperAdmin()
@@ -126,9 +142,15 @@ service cloud.firestore {
           && ('groupIds' in adminData())
           && resource.data.groupIds.hasAny(adminData().groupIds)
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['groupIds', 'groupRoles', 'active', 'role', 'updatedAt']));
+            .hasOnly(['groupIds', 'groupRoles', 'active', 'role', 'updatedAt'])
+          && (resource.data.get('role', '') == 'subAdmin' || request.resource.data.get('role', '') == 'subAdmin'));
 
-      allow delete: if isSuperAdmin();
+      // 대표관리자는 자신의 그룹에 속한 부대표관리자를 삭제할 수 있다.
+      allow delete: if isSuperAdmin()
+        || (resource.data.get('role', '') == 'subAdmin'
+          && ('groupIds' in resource.data)
+          && resource.data.groupIds.size() == 1
+          && isGroupManager(resource.data.groupIds[0]));
     }
   }
 }
