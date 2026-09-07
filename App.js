@@ -9,7 +9,7 @@ import * as Notifications from 'expo-notifications';
 import { Buffer } from 'buffer';
 import iconv from 'iconv-lite';
 import Pdf from 'react-native-pdf';
-import schedule from './assets/schedule.json';
+import { DEFAULT_READING_PLAN_ID, READING_PLAN_DEFINITIONS, READING_PLANS } from './assets/readingPlans';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
@@ -58,6 +58,9 @@ Notifications.setNotificationHandler({
 
 const CURRENT_DAY_KEY = '@chronological_bible/current_day';
 const COMPLETIONS_KEY = '@chronological_bible/completions';
+const READING_PLAN_KEY = '@gf_bible/reading_plan';
+const READING_PLAN_PROGRESS_PREFIX = '@gf_bible/plan_progress/';
+const readingPlanProgressKey = (planId) => `${READING_PLAN_PROGRESS_PREFIX}${planId}`;
 const TRANSLATION_KEY = '@chronological_bible/translation';
 const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
@@ -88,7 +91,7 @@ const LEGAL_DOCUMENTS = {
   terms: {
     title: '이용약관',
     sections: [
-      ['1. 목적', '이 약관은 연대기별 성경통독 일정표 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
+      ['1. 목적', '이 약관은 GF 바이블 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
       ['2. 서비스 이용', '이용자는 본 약관과 관계 법령을 준수하여 서비스를 이용해야 합니다. 서비스 일부 기능은 그룹 가입 또는 관리자 권한이 필요할 수 있습니다.'],
       ['3. 이용자의 책임', '이용자는 타인의 권리를 침해하거나 불법·유해한 게시물을 등록해서는 안 되며, 자신이 작성한 게시물과 등록한 자료에 대한 책임을 집니다.'],
       ['4. 게시물 관리', '운영자 또는 그룹 관리자는 관계 법령이나 공동체 운영 기준에 어긋나는 게시물을 사전 통지 없이 숨기거나 삭제할 수 있습니다.'],
@@ -367,6 +370,8 @@ function renderPostBodyWithLinks(body) {
 
 export default function App() {
   const [screen, setScreen] = useState('today');
+  const [readingPlanId, setReadingPlanId] = useState(DEFAULT_READING_PLAN_ID);
+  const [readingPlanPickerOpen, setReadingPlanPickerOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
   const [displayDay, setDisplayDay] = useState(1);
   const [completions, setCompletions] = useState({});
@@ -494,6 +499,8 @@ export default function App() {
   const noticeGroupId = adminRoomMode ? adminGroupId : currentGroupId;
   const noticeGroupName = adminRoomMode ? adminGroupName : currentGroupName;
   const postsForCurrentGroup = communityPosts.filter((post) => (post.groupId || 'gfc') === noticeGroupId);
+  const activeReadingPlan = READING_PLANS[readingPlanId] || READING_PLANS[DEFAULT_READING_PLAN_ID];
+  const activeSchedule = activeReadingPlan.schedule;
 
   useEffect(() => {
     if (!isAdmin) {
@@ -759,20 +766,31 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, READING_PLAN_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
         ]);
         const saved = Object.fromEntries(rows);
-        const d = Number(saved[CURRENT_DAY_KEY] || 1);
-        const safeDay = Number.isFinite(d) && d >= 1 && d <= 365 ? d : 1;
+        const savedPlanId = READING_PLANS[saved[READING_PLAN_KEY]] ? saved[READING_PLAN_KEY] : DEFAULT_READING_PLAN_ID;
+        const savedPlan = READING_PLANS[savedPlanId] || READING_PLANS[DEFAULT_READING_PLAN_ID];
+        const persistedPlanProgress = safeParseJson(await AsyncStorage.getItem(readingPlanProgressKey(savedPlanId)), null);
+        const legacyDay = Number(saved[CURRENT_DAY_KEY] || 1);
+        const legacyCompletions = migrateCompletions(safeParseJson(saved[COMPLETIONS_KEY], {}));
+        const d = Number(persistedPlanProgress?.currentDay || (savedPlanId === DEFAULT_READING_PLAN_ID ? legacyDay : 1));
+        const safeDay = Number.isFinite(d) && d >= 1 && d <= savedPlan.schedule.length ? d : 1;
         const savedGroups = safeParseJson(saved[COMMUNITY_GROUPS_KEY], []);
         const validGroups = Array.isArray(savedGroups) ? [...new Set(savedGroups)] : [];
         const savedCurrentGroup = saved[CURRENT_GROUP_KEY] || null;
         setJoinedGroupIds(validGroups);
         setCurrentGroupId(validGroups.includes(savedCurrentGroup) ? savedCurrentGroup : (validGroups[0] || null));
+        setReadingPlanId(savedPlanId);
         setCurrentDay(safeDay);
         setDisplayDay(safeDay);
-        const migrated = migrateCompletions(safeParseJson(saved[COMPLETIONS_KEY], {}));
+        const migrated = persistedPlanProgress?.completions
+          ? migrateCompletions(persistedPlanProgress.completions)
+          : (savedPlanId === DEFAULT_READING_PLAN_ID ? legacyCompletions : {});
         setCompletions(migrated);
+        if (!persistedPlanProgress && savedPlanId === DEFAULT_READING_PLAN_ID) {
+          await AsyncStorage.setItem(readingPlanProgressKey(savedPlanId), JSON.stringify({ currentDay: safeDay, completions: migrated }));
+        }
         setTranslationId(saved[TRANSLATION_KEY] || 'KRV');
         const f = Number(saved[FONT_SIZE_KEY] || 19);
         setFontSize(Number.isFinite(f) ? Math.min(48, Math.max(15, f)) : 19);
@@ -822,9 +840,37 @@ export default function App() {
     load();
   }, []);
 
-  const displayed = schedule[displayDay - 1];
+  const displayed = activeSchedule[displayDay - 1];
+
+  const changeReadingPlan = async (nextPlanId) => {
+    if (!READING_PLANS[nextPlanId] || nextPlanId === readingPlanId) {
+      setReadingPlanPickerOpen(false);
+      return;
+    }
+    try {
+      await AsyncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions }));
+      if (readingPlanId === DEFAULT_READING_PLAN_ID) {
+        await AsyncStorage.multiSet([[CURRENT_DAY_KEY, String(currentDay)], [COMPLETIONS_KEY, JSON.stringify(completions)]]);
+      }
+      const nextPlan = READING_PLANS[nextPlanId];
+      const raw = await AsyncStorage.getItem(readingPlanProgressKey(nextPlanId));
+      const savedProgress = safeParseJson(raw, {});
+      const nextDayRaw = Number(savedProgress.currentDay || 1);
+      const nextDay = Number.isFinite(nextDayRaw) && nextDayRaw >= 1 && nextDayRaw <= nextPlan.schedule.length ? nextDayRaw : 1;
+      const nextCompletions = migrateCompletions(savedProgress.completions || {});
+      setReadingPlanId(nextPlanId);
+      setCurrentDay(nextDay);
+      setDisplayDay(nextDay);
+      setCompletions(nextCompletions);
+      setReadingPlanPickerOpen(false);
+      await AsyncStorage.setItem(READING_PLAN_KEY, nextPlanId);
+    } catch (error) {
+      console.warn('Reading plan change failed:', error);
+      Alert.alert('통독 방식 변경 실패', '통독 방식을 변경하지 못했습니다. 다시 시도해 주세요.');
+    }
+  };
   const completedCount = Object.values(completions).filter((x) => x?.active).length;
-  const progress = completedCount / schedule.length;
+  const progress = completedCount / activeSchedule.length;
   const availableTranslations = useMemo(() => [
     ...translations,
     ...customTranslations.map((item) => ({ ...item, enabled: true })),
@@ -833,7 +879,7 @@ export default function App() {
   const selectedTranslation = availableTranslations.find((t) => t.id === translationId) || availableTranslations[0];
 
   const completedRows = useMemo(() => (
-    schedule
+    activeSchedule
       .filter((i) => completions[String(i.day)]?.dates?.length)
       .map((i) => ({ ...i, completion: completions[String(i.day)] }))
       .sort((a, b) => a.day - b.day)
@@ -879,7 +925,7 @@ export default function App() {
     if (!readerContext) return [];
     const data = allBibleData[translationId];
     if (readerContext.type === 'day') {
-      const item = schedule[readerContext.day - 1];
+      const item = activeSchedule[readerContext.day - 1];
       return (item?.passages || []).map((p) => ({
         passage: p,
         verses: getVersesForPassage(data, p),
@@ -907,7 +953,7 @@ export default function App() {
   const readerTitle = useMemo(() => {
     if (!readerContext) return '';
     if (readerContext.type === 'day') {
-      const item = schedule[readerContext.day - 1];
+      const item = activeSchedule[readerContext.day - 1];
       return `${item?.dayLabel || ''} 본문`;
     }
     return `${readerContext.bookKo} ${readerContext.chapter}장`;
@@ -915,7 +961,7 @@ export default function App() {
 
   const readerRange = useMemo(() => {
     if (!readerContext) return '';
-    if (readerContext.type === 'day') return schedule[readerContext.day - 1]?.reading || '';
+    if (readerContext.type === 'day') return activeSchedule[readerContext.day - 1]?.reading || '';
     return `${readerContext.bookKo} ${readerContext.chapter}장`;
   }, [readerContext]);
 
@@ -1687,26 +1733,30 @@ export default function App() {
     };
 
     let nextDay = currentDay;
-    if (advanceIfCurrent && day === currentDay && currentDay < schedule.length) nextDay = currentDay + 1;
+    if (advanceIfCurrent && day === currentDay && currentDay < activeSchedule.length) nextDay = currentDay + 1;
 
     if (screen === 'reader') {
       await saveCurrentPosition();
       setScreen('today');
     }
-    await AsyncStorage.multiSet([
-      [COMPLETIONS_KEY, JSON.stringify(next)],
-      [CURRENT_DAY_KEY, String(nextDay)],
-    ]);
+    const progressWrites = [
+      [readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay: nextDay, completions: next })],
+      [READING_PLAN_KEY, readingPlanId],
+    ];
+    if (readingPlanId === DEFAULT_READING_PLAN_ID) {
+      progressWrites.push([COMPLETIONS_KEY, JSON.stringify(next)], [CURRENT_DAY_KEY, String(nextDay)]);
+    }
+    await AsyncStorage.multiSet(progressWrites);
     setCompletions(next);
     setCurrentDay(nextDay);
 
-    const item = schedule[day - 1];
+    const item = activeSchedule[day - 1];
     setCompletionModal({
       item,
       nextDay,
       advanceIfCurrent: advanceIfCurrent && day === currentDay,
       destination,
-      finalDay: day === schedule.length && advanceIfCurrent,
+      finalDay: day === activeSchedule.length && advanceIfCurrent,
     });
   };
 
@@ -1715,7 +1765,7 @@ export default function App() {
     setCompletionModal(null);
     if (!info) return;
     if (info.advanceIfCurrent) {
-      if (info.item?.day < schedule.length) setDisplayDay(info.nextDay);
+      if (info.item?.day < activeSchedule.length) setDisplayDay(info.nextDay);
       setScreen('today');
       return;
     }
@@ -1725,7 +1775,7 @@ export default function App() {
   const cancelCompletion = (day) => {
     Alert.alert(
       '완료 취소',
-      `${schedule[day - 1]?.dayLabel} 완료 표시를 취소할까요?\n오늘 일정은 그대로 유지됩니다.`,
+      `${activeSchedule[day - 1]?.dayLabel} 완료 표시를 취소할까요?\n오늘 일정은 그대로 유지됩니다.`,
       [
         { text: '아니요', style: 'cancel' },
         {
@@ -1743,7 +1793,8 @@ export default function App() {
                 canceledAt: formatKoreanDateTime(),
               },
             };
-            await AsyncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(next));
+            await AsyncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions: next }));
+            if (readingPlanId === DEFAULT_READING_PLAN_ID) await AsyncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(next));
             setCompletions(next);
           },
         },
@@ -2204,7 +2255,7 @@ export default function App() {
 
   if (screen === 'reader' && readerContext) {
     const savedY = readerKey ? (readerPositions[readerKey] || 0) : 0;
-    const dayItem = readerContext.type === 'day' ? schedule[readerContext.day - 1] : null;
+    const dayItem = readerContext.type === 'day' ? activeSchedule[readerContext.day - 1] : null;
     const dayCompletion = dayItem ? completions[String(dayItem.day)] : null;
     const isCurrentReaderDay = dayItem?.day === currentDay;
 
@@ -2322,7 +2373,7 @@ export default function App() {
             <TouchableOpacity onPress={() => moveChapter(-1)} style={styles.chapterNavButton}>
               <Text style={styles.chapterNavButtonText}>‹ 이전 장</Text>
             </TouchableOpacity>
-            <Text style={styles.chapterNavCurrent}>{readerContext.bookKo} {readerContext.chapter}장</Text>
+            <TouchableOpacity onPress={() => closeReader('bibleIndex')} style={styles.chapterSearchButton}><Text style={styles.chapterSearchButtonText}>성경찾기</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => moveChapter(1)} style={styles.chapterNavButton}>
               <Text style={styles.chapterNavButtonText}>다음 장 ›</Text>
             </TouchableOpacity>
@@ -2364,14 +2415,14 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.app}>
         <View style={styles.header}>
-          <View><Text style={styles.eyebrow}>365-DAY BIBLE READING</Text><Text style={styles.title}>연대기별 성경통독 일정표</Text></View>
+          <View><Text style={styles.eyebrow}>GF BIBLE</Text><Text style={styles.title}>GF 바이블</Text></View>
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
         <View style={styles.tabs}>
           <TouchableOpacity disabled={visibleGroups.length === 0} onPress={() => { setAdminRoomMode(false); setNotificationDetailMode(false); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && !adminRoomMode && styles.tabActive, visibleGroups.length === 0 && styles.tabDisabled]}><Text style={[styles.tabText, screen === 'notice' && !adminRoomMode && styles.tabTextActive, visibleGroups.length === 0 && styles.tabTextDisabled]}>공지사항</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
+          <TouchableOpacity onPress={openChapterReader} style={[styles.tab, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabActive]}><Text style={[styles.tabText, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료기록</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>설정</Text></TouchableOpacity>
@@ -2585,8 +2636,15 @@ export default function App() {
           </ScrollView>
         ) : screen === 'today' && displayed ? (
           <View style={styles.content}>
+            <View style={styles.planSelectorRow}>
+              <TouchableOpacity onPress={() => setReadingPlanPickerOpen(true)} style={styles.planSelectorButton}>
+                <Text style={styles.planSelectorLabel}>통독 방식</Text>
+                <Text numberOfLines={1} style={styles.planSelectorValue}>{activeReadingPlan.name} ▼</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setScreen('records')} style={styles.todayRecordsButton}><Text style={styles.todayRecordsButtonText}>완료 기록</Text></TouchableOpacity>
+            </View>
             <View style={styles.progressBlock}>
-              <View style={styles.progressTextRow}><Text style={styles.progressLabel}>통독 진행률</Text><Text style={styles.progressValue}>{completedCount} / 365</Text></View>
+              <View style={styles.progressTextRow}><Text style={styles.progressLabel}>통독 진행률</Text><Text style={styles.progressValue}>{completedCount} / {activeSchedule.length}</Text></View>
               <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.min(progress * 100, 100)}%` }]} /></View>
             </View>
 
@@ -2596,7 +2654,7 @@ export default function App() {
               </TouchableOpacity>
               {displayDay !== currentDay && (
                 <View style={styles.pastNotice}>
-                  <Text style={styles.pastNoticeText}>지난 일정 보기 · 오늘 일정은 {schedule[currentDay - 1]?.dayLabel} 그대로 유지됩니다.</Text>
+                  <Text style={styles.pastNoticeText}>지난 일정 보기 · 오늘 일정은 {activeSchedule[currentDay - 1]?.dayLabel} 그대로 유지됩니다.</Text>
                   <TouchableOpacity onPress={() => setDisplayDay(currentDay)}><Text style={styles.returnTodayText}>오늘로 돌아가기</Text></TouchableOpacity>
                 </View>
               )}
@@ -2695,6 +2753,23 @@ export default function App() {
       </View>
 
       <TranslationPicker />
+
+      <Modal visible={readingPlanPickerOpen} transparent animationType="fade" onRequestClose={() => setReadingPlanPickerOpen(false)}>
+        <TouchableOpacity activeOpacity={1} onPress={() => setReadingPlanPickerOpen(false)} style={styles.pickerBackdrop}>
+          <View style={styles.translationPickerCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <View><Text style={styles.modalTitle}>통독 방식 선택</Text><Text style={styles.modalSubtitle}>각 통독 방식의 진행률과 완료 기록은 따로 저장됩니다.</Text></View>
+              <TouchableOpacity onPress={() => setReadingPlanPickerOpen(false)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
+            </View>
+            <View style={styles.translationPickerList}>
+              {READING_PLAN_DEFINITIONS.map((plan) => {
+                const active = plan.id === readingPlanId;
+                return <TouchableOpacity key={plan.id} onPress={() => changeReadingPlan(plan.id)} style={[styles.translationPickerRow, active && styles.translationPickerRowActive]}><Text style={[styles.translationPickerName, active && styles.translationPickerNameActive]}>{plan.name}</Text><Text style={[styles.translationPickerCheck, active && styles.translationPickerCheckActive]}>{active ? '✓' : ''}</Text></TouchableOpacity>;
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={nicknameEditorOpen} transparent animationType="fade" onRequestClose={() => { setNicknameEditorOpen(false); setPendingJoinGroup(null); }}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -2941,7 +3016,7 @@ export default function App() {
         <SafeAreaView style={styles.legalSafeArea}>
           <View style={styles.legalHeader}><TouchableOpacity onPress={() => setLegalDocument(null)} style={styles.legalBackButton}><Text style={styles.legalBackText}>‹ 설정</Text></TouchableOpacity><Text style={styles.legalTitle}>{LEGAL_DOCUMENTS[legalDocument]?.title}</Text><View style={styles.legalHeaderSpacer} /></View>
           <ScrollView contentContainerStyle={styles.legalContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? '연대기별 성경통독 일정표는 이용자의 정보를 소중하게 보호합니다.' : '연대기별 성경통독 일정표를 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
+            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? 'GF 바이블은 이용자의 정보를 소중하게 보호합니다.' : 'GF 바이블을 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
             {LEGAL_DOCUMENTS[legalDocument]?.sections.map(([heading, body]) => <View key={heading} style={styles.legalSection}><Text style={styles.legalSectionTitle}>{heading}</Text><Text style={styles.legalSectionBody}>{body}</Text></View>)}
           </ScrollView>
         </SafeAreaView>
@@ -3000,10 +3075,10 @@ export default function App() {
               <TouchableOpacity onPress={() => setDayPickerOpen(false)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
             </View>
             <FlatList
-              data={schedule}
+              data={activeSchedule}
               keyExtractor={(i) => String(i.day)}
               contentContainerStyle={styles.dayList}
-              initialScrollIndex={Math.max(0, Math.min(currentDay - 1, schedule.length - 1))}
+              initialScrollIndex={Math.max(0, Math.min(currentDay - 1, activeSchedule.length - 1))}
               getItemLayout={(_, index) => ({ length: 68, offset: 68 * index, index })}
               renderItem={({ item }) => (
                 <TouchableOpacity onPress={() => chooseDay(item.day)} style={[styles.dayPickerRow, completions[String(item.day)]?.active && styles.dayPickerRowCompleted, item.day === displayDay && styles.dayPickerRowActive]}>
@@ -3165,7 +3240,7 @@ const styles = StyleSheet.create({
   homologiaGrid: { width: '100%', alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
-  content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
+  content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, planSelectorRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10, marginBottom: 14 }, planSelectorButton: { flex: 1, minHeight: 58, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DED9CE', justifyContent: 'center' }, planSelectorLabel: { color: '#8A8170', fontSize: 10, fontWeight: '800', marginBottom: 3 }, planSelectorValue: { color: '#17223B', fontSize: 14, fontWeight: '900' }, todayRecordsButton: { minWidth: 92, paddingHorizontal: 13, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, todayRecordsButtonText: { color: '#FFF', fontSize: 13, fontWeight: '900' }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
   progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#E3E0D7', overflow: 'hidden' }, progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#B28A48' },
   card: { backgroundColor: '#FFF', borderRadius: 24, padding: 22, borderWidth: 1, borderColor: '#ECE8DE' }, dayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, dayBadgeText: { color: '#FFF', fontWeight: '900' },
   pastNotice: { backgroundColor: '#EEF1F5', borderRadius: 12, padding: 11, marginBottom: 14 }, pastNoticeText: { fontSize: 11, color: '#5D6777', lineHeight: 17, fontWeight: '700' }, returnTodayText: { marginTop: 5, color: '#9A7C43', fontWeight: '900', fontSize: 12 },
@@ -3179,7 +3254,7 @@ const styles = StyleSheet.create({
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
   readerContent: { padding: 20, paddingBottom: 40 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
-  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 48 : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterNavCurrent: { minWidth: 88, textAlign: 'center', color: '#17223B', fontSize: 13, fontWeight: '900' },
+  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 28 : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
