@@ -1,0 +1,48 @@
+name: Standardize GF Bible Name
+
+on:
+  push:
+    branches:
+      - gf-bible-update-20260907
+    paths:
+      - .github/workflows/fix-gf-bible-name.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: gf-bible-update-20260907
+          fetch-depth: 0
+
+      - name: Replace old display names
+        shell: bash
+        run: |
+          mapfile -t files < <(git grep -Il -e 'GF 바이블' -e 'GF Bilbe' -- ':!scripts/**' ':!.github/**' || true)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo 'No old GF Bible names found.'
+            exit 0
+          fi
+          for file in "${files[@]}"; do
+            sed -i 's/GF 바이블/GF Bible/g; s/GF Bilbe/GF Bible/g' "$file"
+          done
+          git diff --check
+
+      - name: Commit name updates
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: standardize user-facing name as GF Bible"
+          git push origin HEAD:gf-bible-update-20260907
