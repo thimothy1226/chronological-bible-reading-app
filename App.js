@@ -25,6 +25,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot,
   query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDjboFxfiXUBNVGiT-ecGhyc5_tH_vpq04',
@@ -39,6 +40,7 @@ const firebaseAuth = initializeAuth(firebaseApp, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 const firestore = getFirestore(firebaseApp);
+const firebaseFunctions = getFunctions(firebaseApp, 'asia-northeast3');
 const adminCreatorApp = initializeApp(FIREBASE_CONFIG, 'adminCreator');
 const adminCreatorAuth = initializeAuth(adminCreatorApp, { persistence: inMemoryPersistence });
 const memberApp = initializeApp(FIREBASE_CONFIG, 'memberClient');
@@ -68,6 +70,12 @@ const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 const VERSE_BOOKMARKS_KEY = '@gf_bible/verse_bookmarks';
 const VERSE_HIGHLIGHTS_KEY = '@gf_bible/verse_highlights';
+const HIGHLIGHT_COLORS = [
+  { key: 'yellow', label: '노랑', color: '#FFF3A8' },
+  { key: 'pink', label: '분홍', color: '#FFD6E5' },
+  { key: 'green', label: '연두', color: '#DDF3C4' },
+  { key: 'blue', label: '하늘', color: '#D9ECFF' },
+];
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
@@ -471,6 +479,7 @@ export default function App() {
   const [transferTarget, setTransferTarget] = useState(null);
   const [transferPassword, setTransferPassword] = useState('');
   const [memberSnapshotReady, setMemberSnapshotReady] = useState(false);
+  const [highlightPickerOpen, setHighlightPickerOpen] = useState(false);
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -481,6 +490,7 @@ export default function App() {
   const homologiaPdfPositionsRef = useRef({});
   const nicknamePromptedRef = useRef(new Set());
   const handledNotificationRef = useRef(null);
+  const savedVerseReturnRef = useRef(null);
 
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
@@ -511,6 +521,22 @@ export default function App() {
   const activeReadingPlan = READING_PLANS[readingPlanId] || READING_PLANS[DEFAULT_READING_PLAN_ID];
   const activeSchedule = activeReadingPlan.schedule;
 
+  const resolveAdminRecordForUser = async (user) => {
+    if (!user) return null;
+    if (user.uid === ADMIN_UID) return { role: 'superAdmin', groupIds: [] };
+    let snapshot = await getDoc(doc(firestore, 'admins', user.uid));
+    if (snapshot.exists()) return snapshot.data()?.active === false ? null : snapshot.data();
+    try {
+      const repairLegacyAdminAccess = httpsCallable(firebaseFunctions, 'repairLegacyAdminAccess');
+      await repairLegacyAdminAccess({});
+      snapshot = await getDoc(doc(firestore, 'admins', user.uid));
+      return snapshot.exists() && snapshot.data()?.active !== false ? snapshot.data() : null;
+    } catch (error) {
+      console.warn('Legacy admin repair failed:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!isAdmin) {
       setAdminRoomMode(false);
@@ -533,10 +559,10 @@ export default function App() {
       return;
     }
     try {
-      const adminRecord = await getDoc(doc(firestore, 'admins', user.uid));
-      const allowed = adminRecord.exists() && adminRecord.data()?.active !== false;
+      const resolvedRecord = await resolveAdminRecordForUser(user);
+      const allowed = !!resolvedRecord;
       setAdminAuthorized(allowed);
-      setAdminRecord(allowed ? adminRecord.data() : null);
+      setAdminRecord(resolvedRecord);
       if (!allowed) await signOut(firebaseAuth);
     } catch (error) {
       console.warn('Admin permission check failed:', error);
@@ -547,11 +573,18 @@ export default function App() {
 
   useEffect(() => {
     if (!adminUser || isSuperAdmin) return undefined;
-    return onSnapshot(doc(firestore, 'admins', adminUser.uid), (snapshot) => {
-      const allowed = snapshot.exists() && snapshot.data()?.active !== false;
-      setAdminAuthorized(allowed);
-      setAdminRecord(allowed ? snapshot.data() : null);
-      if (!allowed) signOut(firebaseAuth).catch(() => {});
+    return onSnapshot(doc(firestore, 'admins', adminUser.uid), async (snapshot) => {
+      if (snapshot.exists()) {
+        const allowed = snapshot.data()?.active !== false;
+        setAdminAuthorized(allowed);
+        setAdminRecord(allowed ? snapshot.data() : null);
+        if (!allowed) signOut(firebaseAuth).catch(() => {});
+        return;
+      }
+      const repaired = await resolveAdminRecordForUser(adminUser);
+      setAdminAuthorized(!!repaired);
+      setAdminRecord(repaired);
+      if (!repaired) signOut(firebaseAuth).catch(() => {});
     }, (error) => console.warn('Admin permission listener failed:', error));
   }, [adminUser?.uid, isSuperAdmin]);
 
@@ -1060,6 +1093,20 @@ export default function App() {
 
   const closeReader = async (destination = readerReturnScreen) => {
     setSelectedVerses([]);
+    const transient = savedVerseReturnRef.current;
+    if (transient) {
+      savedVerseReturnRef.current = null;
+      setTranslationId(transient.translationId);
+      setTestament(transient.testament);
+      setSelectedBookKey(transient.book);
+      setSelectedChapter(transient.chapter);
+      setSelectedVerse(transient.verse);
+      setReaderContext(null);
+      restoredKey.current = null;
+      pendingTargetY.current = null;
+      setScreen(destination);
+      return;
+    }
     await saveCurrentPosition();
     setScreen(destination);
   };
@@ -1074,9 +1121,8 @@ export default function App() {
     try {
       const credential = await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, adminPassword);
       await credential.user.getIdToken(true);
-      const loginAdminDoc = credential.user.uid === ADMIN_UID ? null : await getDoc(doc(firestore, 'admins', credential.user.uid));
-      const record = loginAdminDoc?.exists() ? loginAdminDoc.data() : null;
-      const allowed = credential.user.uid === ADMIN_UID || (record && record.active !== false);
+      const record = credential.user.uid === ADMIN_UID ? { role: 'superAdmin', groupIds: [] } : await resolveAdminRecordForUser(credential.user);
+      const allowed = credential.user.uid === ADMIN_UID || !!record;
       if (!allowed) {
         await signOut(firebaseAuth);
         Alert.alert('관리자 권한 확인 필요', record?.active === false
@@ -1749,7 +1795,7 @@ export default function App() {
         setDisplayDay(currentDay);
         setScreen('today');
       }
-      else if (screen === 'reader') closeReader(readerContext?.type === 'chapter' ? 'bibleIndex' : 'today');
+      else if (screen === 'reader') closeReader(savedVerseReturnRef.current ? 'more' : (readerContext?.type === 'chapter' ? 'bibleIndex' : 'today'));
       else confirmAppExit();
       return true;
     });
@@ -1860,16 +1906,51 @@ export default function App() {
     await AsyncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
   };
 
-  const toggleHighlightForSelection = async () => {
+  const applyHighlightColor = async (colorKey) => {
     if (!selectedVerses.length) return;
-    const allHighlighted = selectedVerses.every((v) => verseHighlights[v.key]);
+    const color = HIGHLIGHT_COLORS.find((item) => item.key === colorKey)?.color || HIGHLIGHT_COLORS[0].color;
     const next = { ...verseHighlights };
     selectedVerses.forEach((v) => {
-      if (allHighlighted) delete next[v.key];
-      else next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime() };
+      next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime(), colorKey, color };
     });
     setVerseHighlights(next);
     await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    setHighlightPickerOpen(false);
+    setSelectedVerses([]);
+  };
+
+  const removeHighlightForSelection = async () => {
+    if (!selectedVerses.length) return;
+    const next = { ...verseHighlights };
+    selectedVerses.forEach((v) => delete next[v.key]);
+    setVerseHighlights(next);
+    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    setHighlightPickerOpen(false);
+    setSelectedVerses([]);
+  };
+
+  const openSavedVerse = (key) => {
+    const [savedTranslationId, bookKo, chapterText, verseText] = String(key).split(':');
+    const chapter = Number(chapterText);
+    const verse = Number(verseText);
+    const targetTranslation = allBibleData[savedTranslationId] ? savedTranslationId : translationId;
+    const targetBooks = BIBLE_BOOKS.map((meta) => ({ ...meta, data: getBook(allBibleData[targetTranslation], meta.book, meta.ko) })).filter((item) => item.data);
+    const target = targetBooks.find((item) => item.ko === bookKo || item.book === bookKo);
+    if (!target || !chapter || !verse) {
+      Alert.alert('본문 열기 실패', '저장된 구절의 성경 위치를 찾지 못했습니다.');
+      return;
+    }
+    savedVerseReturnRef.current = {
+      translationId, testament, book: selectedBookKey, chapter: selectedChapter, verse: selectedVerse,
+    };
+    setTranslationId(targetTranslation);
+    setReaderReturnScreen('more');
+    setReaderContext({ type: 'chapter', book: target.book, bookKo: target.ko, chapter, verse });
+    restoredKey.current = null;
+    pendingTargetY.current = 0;
+    lastScrollY.current = 0;
+    setSelectedVerses([]);
+    setScreen('reader');
   };
 
   const copySelectedVerses = async () => {
@@ -2383,7 +2464,7 @@ export default function App() {
             <Text style={styles.selectionCount}>{selectedVerses.length}절 선택</Text>
             <TouchableOpacity onPress={copySelectedVerses} style={styles.selectionAction}><Text style={styles.selectionActionText}>복사</Text></TouchableOpacity>
             <TouchableOpacity onPress={toggleBookmarkForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>북마크</Text></TouchableOpacity>
-            <TouchableOpacity onPress={toggleHighlightForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>형광펜</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setHighlightPickerOpen(true)} style={styles.selectionAction}><Text style={styles.selectionActionText}>형광펜</Text></TouchableOpacity>
             <TouchableOpacity onPress={openNoteForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>메모</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setSelectedVerses([])} style={styles.selectionClear}><Text style={styles.selectionClearText}>해제</Text></TouchableOpacity>
           </View>
@@ -2424,7 +2505,7 @@ export default function App() {
                         }, 180);
                       }
                     }}
-                    style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && styles.highlightedVerseWrap, selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
+                    style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && [styles.highlightedVerseWrap, { backgroundColor: verseHighlights[verseKey(v)]?.color || '#FFF3A8' }], selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
                     {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
                     <TouchableOpacity
@@ -2471,6 +2552,22 @@ export default function App() {
         )}
 
         <TranslationPicker />
+
+        <Modal visible={highlightPickerOpen} transparent animationType="fade" onRequestClose={() => setHighlightPickerOpen(false)}>
+          <View style={styles.highlightPickerBackdrop}>
+            <View style={styles.highlightPickerCard}>
+              <Text style={styles.highlightPickerTitle}>형광펜 색상</Text>
+              <Text style={styles.highlightPickerSubtitle}>선택한 {selectedVerses.length}절에 표시할 색을 골라 주세요.</Text>
+              <View style={styles.highlightColorRow}>
+                {HIGHLIGHT_COLORS.map((item) => <TouchableOpacity key={item.key} onPress={() => applyHighlightColor(item.key)} style={[styles.highlightColorButton, { backgroundColor: item.color }]}><Text style={styles.highlightColorText}>{item.label}</Text></TouchableOpacity>)}
+              </View>
+              <View style={styles.highlightPickerActions}>
+                <TouchableOpacity onPress={removeHighlightForSelection} style={styles.highlightRemoveButton}><Text style={styles.highlightRemoveText}>형광펜 해제</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setHighlightPickerOpen(false)} style={styles.highlightCancelButton}><Text style={styles.highlightCancelText}>취소</Text></TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={!!noteModal} transparent animationType="fade" onRequestClose={() => setNoteModal(null)}>
           <View style={styles.noteModalBackdrop}>
@@ -2661,7 +2758,7 @@ export default function App() {
                   const parts = key.split(':');
                   const label = value?.label || `${parts[1] || ''} ${parts[2] || ''}:${parts[3] || ''}`;
                   const body = typeof value === 'string' ? value : (value?.text || '');
-                  return <View key={key} style={styles.savedVerseCard}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}</View>;
+                  return <TouchableOpacity key={key} onPress={() => openSavedVerse(key)} style={[styles.savedVerseCard, moreMode === 'highlights' && { borderLeftWidth: 7, borderLeftColor: value?.color || '#FFF3A8' }]}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}<Text style={styles.savedVerseOpenHint}>본문으로 이동 ›</Text></TouchableOpacity>;
                 }) : <View style={styles.emptyCard}><Text style={styles.emptyText}>아직 저장된 내용이 없습니다.</Text></View>}
               </View>
             )}
@@ -3271,7 +3368,7 @@ const styles = StyleSheet.create({
   noticePostLink: { color: '#1769AA', fontWeight: '800', textDecorationLine: 'underline' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
-  moreScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 }, moreHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }, moreBackButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E9E5DC' }, moreBackButtonText: { color: '#655332', fontSize: 12, fontWeight: '900' }, moreMenuCard: { borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' }, moreMenuRow: { minHeight: 76, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, moreMenuTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' }, moreMenuDescription: { marginTop: 4, color: '#7A7F87', fontSize: 11, fontWeight: '700' }, savedVerseList: { gap: 10 }, savedVerseCard: { padding: 16, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' }, savedVerseLabel: { color: '#8B6B35', fontSize: 13, fontWeight: '900', marginBottom: 7 }, savedVerseText: { color: '#303B52', fontSize: 14, lineHeight: 21, fontWeight: '700' }, savedVerseDate: { marginTop: 8, color: '#93979E', fontSize: 10, fontWeight: '700' },
+  moreScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 }, moreHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }, moreBackButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E9E5DC' }, moreBackButtonText: { color: '#655332', fontSize: 12, fontWeight: '900' }, moreMenuCard: { borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' }, moreMenuRow: { minHeight: 76, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, moreMenuTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' }, moreMenuDescription: { marginTop: 4, color: '#7A7F87', fontSize: 11, fontWeight: '700' }, savedVerseList: { gap: 10 }, savedVerseCard: { padding: 16, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' }, savedVerseLabel: { color: '#8B6B35', fontSize: 13, fontWeight: '900', marginBottom: 7 }, savedVerseText: { color: '#303B52', fontSize: 14, lineHeight: 21, fontWeight: '700' }, savedVerseDate: { marginTop: 8, color: '#93979E', fontSize: 10, fontWeight: '700' }, savedVerseOpenHint: { marginTop: 9, color: '#173C70', fontSize: 11, fontWeight: '900', textAlign: 'right' },
   settingsSectionGap: { height: 24 },
   settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
   settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
@@ -3369,9 +3466,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 22, paddingTop: Platform.OS === 'android' ? 90 : 40, paddingBottom: 120 }, recordCard: { backgroundColor: '#FFF', borderRadius: 17, padding: 16, marginBottom: 10 }, recordCardCanceled: { backgroundColor: '#F2F1ED' }, recordTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }, recordDay: { fontSize: 14, fontWeight: '900', color: '#17223B' }, recordStatus: { fontSize: 11, fontWeight: '900', color: '#8B6B35' }, canceledStatus: { color: '#9A9A95' }, recordStage: { fontSize: 11, color: '#838993', marginBottom: 4 }, recordReading: { fontSize: 15, lineHeight: 21, fontWeight: '800', color: '#303B52' }, recordDate: { fontSize: 11, lineHeight: 17, fontWeight: '700', color: '#9A7C43' }, mutedText: { color: '#A8AAA8' }, cancelDate: { marginTop: 3, fontSize: 11, color: '#A8AAA8', fontWeight: '700' }, dateHistoryBox: { marginTop: 9 }, recordActions: { marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end' }, cancelButton: { borderWidth: 1, borderColor: '#D8CFC2', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 9 }, cancelButtonText: { fontSize: 12, fontWeight: '900', color: '#7F6750' }, readAgainButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, readAgainButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, emptyCard: { marginTop: 24, backgroundColor: '#FFF', borderRadius: 16, padding: 22, alignItems: 'center' }, emptyText: { color: '#777', fontWeight: '700' },
   bibleHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E8E4DA', gap: 8 }, backButton: { paddingVertical: 8, paddingRight: 6 }, backText: { fontSize: 15, fontWeight: '900', color: '#9A7C43' }, bibleTitle: { flex: 1, fontSize: 18, fontWeight: '900', color: '#17223B' }, homeButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }, homeButtonText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
-  readerContent: { padding: 20, paddingBottom: 40 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
+  readerContent: { padding: 20, paddingBottom: Platform.OS === 'android' ? 110 : 72 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
-  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 28 : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
+  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? Math.max(18, Math.round((StatusBar.currentHeight || 24) * 0.9)) : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
@@ -3387,10 +3484,11 @@ const styles = StyleSheet.create({
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
-  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  highlightPickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, highlightPickerCard: { width: '100%', maxWidth: 430, padding: 20, borderRadius: 20, backgroundColor: '#FFFEFB' }, highlightPickerTitle: { color: '#17223B', fontSize: 20, fontWeight: '900' }, highlightPickerSubtitle: { marginTop: 5, color: '#747C86', fontSize: 12, lineHeight: 18 }, highlightColorRow: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, highlightColorButton: { width: '47%', minHeight: 52, borderRadius: 13, borderWidth: 1, borderColor: '#D8D2C7', alignItems: 'center', justifyContent: 'center' }, highlightColorText: { color: '#3E4350', fontWeight: '900' }, highlightPickerActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, highlightRemoveButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, highlightRemoveText: { color: '#A04B3C', fontWeight: '900' }, highlightCancelButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, highlightCancelText: { color: '#5E6570', fontWeight: '900' },
   indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
-  homologiaReaderSafe: { flex: 1, backgroundColor: '#F4F1E9' },
-  homologiaReaderHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
+  homologiaReaderSafe: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F4F1E9' },
+  homologiaReaderHeader: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
   homologiaBackButton: { paddingHorizontal: 8, paddingVertical: 10 },
   homologiaBackText: { color: '#0E5947', fontSize: 15, fontWeight: '900' },
   homologiaReaderHeading: { flex: 1, alignItems: 'center' },
