@@ -1,6 +1,17 @@
-name: Build Android APK
+name: Build GF Bible Android APK
 
 on:
+  push:
+    branches:
+      - gf-bible-update-20260907
+    paths:
+      - App.js
+      - app.json
+      - package.json
+      - assets/**
+      - functions/**
+      - firestore.rules
+      - .github/workflows/build-apk.yml
   workflow_dispatch:
 
 jobs:
@@ -11,6 +22,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          ref: gf-bible-update-20260907
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,7 +46,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p assets/bibles
-          curl -fL --retry 3             "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json"             -o assets/bibles/krv.json
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json" \
+            -o assets/bibles/krv.json
           echo "Downloaded KRV data:"
           ls -lh assets/bibles/krv.json
           test -s assets/bibles/krv.json
@@ -57,11 +72,11 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp android/app/build/outputs/apk/release/app-release.apk "output/연대기별-성경통독-일정표-v2.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "output/GF-Bible-v1.2.0.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chronological-bible-reading-v2-release-apk
-          path: output/*.apk
+          name: GF-Bible-v1.2.0-release-apk
+          path: output/GF-Bible-v1.2.0.apk
           retention-days: 30
