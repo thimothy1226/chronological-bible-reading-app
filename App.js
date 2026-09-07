@@ -2751,7 +2751,7 @@ export default function App() {
             </View>
           </ScrollView>
         ) : screen === 'today' && displayed ? (
-          <View style={styles.content}>
+          <ScrollView style={styles.todayScroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.planSelectorRow}>
               <TouchableOpacity onPress={() => setReadingPlanPickerOpen(true)} style={styles.planSelectorButton}>
                 <Text style={styles.planSelectorLabel}>통독 방식</Text>
@@ -2788,7 +2788,7 @@ export default function App() {
                 <Text style={styles.completeButtonText}>{displayDay === currentDay ? '✓ 오늘 통독 완료' : '✓ 선택한 일정 완료'}</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         ) : screen === 'records' ? (
           <View style={styles.recordsWrap}>
             <View style={styles.recordsHeader}>
@@ -3152,7 +3152,7 @@ export default function App() {
               <Text style={styles.celebrateReading}>{completionModal?.item?.reading}</Text>
             </View>
             <Text style={styles.celebrateSuccess}>성경읽기에 성공하셨습니다.!!!</Text>
-            {completionModal?.finalDay ? <Text style={styles.finalCongrats}>365일 연대기별 성경통독 일정을 모두 완료했습니다!</Text> : null}
+            {completionModal?.finalDay ? <Text style={styles.finalCongrats}>{activeReadingPlan.name} {activeSchedule.length}일 일정을 모두 완료했습니다!</Text> : null}
             <TouchableOpacity onPress={closeCompletionModal} style={styles.celebrateButton}><Text style={styles.celebrateButtonText}>확인</Text></TouchableOpacity>
           </View>
         </View>
@@ -3187,7 +3187,7 @@ export default function App() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <View><Text style={styles.modalTitle}>일정 선택</Text><Text style={styles.modalSubtitle}>Day 001부터 Day 365까지 선택할 수 있습니다. 오늘 일정은 그대로 유지됩니다.</Text></View>
+              <View style={{ flex: 1 }}><Text style={styles.modalTitle}>일정 선택</Text><Text style={styles.modalSubtitle}>Day 001부터 Day {String(activeSchedule.length).padStart(activeSchedule.length >= 100 ? 3 : 2, '0')}까지 선택할 수 있습니다. 오늘 일정은 그대로 유지됩니다.</Text></View>
               <TouchableOpacity onPress={() => setDayPickerOpen(false)} style={styles.modalClose}><Text style={styles.modalCloseText}>닫기</Text></TouchableOpacity>
             </View>
             <FlatList
@@ -3214,15 +3214,15 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
-  tabs: { marginHorizontal: 22, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
-  tab: { width: '33.333%', paddingHorizontal: 5, paddingVertical: 9, borderRadius: 11, alignItems: 'center' },
+  tabs: { marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
+  tab: { width: '33.333%', minHeight: 42, paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   tabDisabled: { opacity: 0.35 },
   tabActive: { backgroundColor: '#FFF' },
-  tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 13, textAlign: 'center' },
+  tabText: { color: '#7A7F87', fontWeight: '800', fontSize: 12, lineHeight: 17, textAlign: 'center', flexShrink: 1 },
   tabTextDisabled: { color: '#A8AAA8' },
   tabTextActive: { color: '#17223B' },
   placeholderScreen: { flex: 1, alignSelf: 'stretch', margin: 22, padding: 24, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center' },
@@ -3357,7 +3357,7 @@ const styles = StyleSheet.create({
   homologiaGrid: { width: '100%', alignSelf: 'center', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   homologiaButton: { width: '48.5%', minHeight: 68, paddingHorizontal: 10, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   homologiaButtonText: { color: '#FFF', fontSize: 18, fontWeight: '900', textAlign: 'center' },
-  content: { flex: 1, paddingHorizontal: 22, paddingTop: 22 }, planSelectorRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10, marginBottom: 14 }, planSelectorButton: { flex: 1, minHeight: 58, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DED9CE', justifyContent: 'center' }, planSelectorLabel: { color: '#8A8170', fontSize: 10, fontWeight: '800', marginBottom: 3 }, planSelectorValue: { color: '#17223B', fontSize: 14, fontWeight: '900' }, todayRecordsButton: { minWidth: 92, paddingHorizontal: 13, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, todayRecordsButtonText: { color: '#FFF', fontSize: 13, fontWeight: '900' }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
+  todayScroll: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 22, paddingBottom: Platform.OS === 'android' ? 96 : 72 }, planSelectorRow: { flexDirection: 'row', alignItems: 'stretch', gap: 10, marginBottom: 14 }, planSelectorButton: { flex: 1, minHeight: 58, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DED9CE', justifyContent: 'center' }, planSelectorLabel: { color: '#8A8170', fontSize: 10, fontWeight: '800', marginBottom: 3 }, planSelectorValue: { color: '#17223B', fontSize: 14, fontWeight: '900' }, todayRecordsButton: { minWidth: 92, paddingHorizontal: 13, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' }, todayRecordsButtonText: { color: '#FFF', fontSize: 13, fontWeight: '900' }, progressBlock: { marginBottom: 18 }, progressTextRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }, progressLabel: { fontSize: 13, fontWeight: '800', color: '#626A75' }, progressValue: { fontSize: 13, fontWeight: '900', color: '#17223B' },
   progressTrack: { height: 8, borderRadius: 99, backgroundColor: '#E3E0D7', overflow: 'hidden' }, progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#B28A48' },
   card: { backgroundColor: '#FFF', borderRadius: 24, padding: 22, borderWidth: 1, borderColor: '#ECE8DE' }, dayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, dayBadgeText: { color: '#FFF', fontWeight: '900' },
   pastNotice: { backgroundColor: '#EEF1F5', borderRadius: 12, padding: 11, marginBottom: 14 }, pastNoticeText: { fontSize: 11, color: '#5D6777', lineHeight: 17, fontWeight: '700' }, returnTodayText: { marginTop: 5, color: '#9A7C43', fontWeight: '900', fontSize: 12 },
