@@ -5,11 +5,16 @@
     "version": "1.2.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.biblereading.chronological365",
       "versionCode": 5,
       "googleServicesFile": "./google-services.json",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#F7F6F1"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.biblereading.chronological365",
@@ -22,10 +27,6 @@
           "defaultChannel": "group-posts"
         }
       ]
-    ],
-    "extra": {
-      "supportName": "다락방",
-      "supportEmail": "thimothy1226@naver.com"
-    }
+    ]
   }
 }
