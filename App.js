@@ -483,7 +483,7 @@ export default function App() {
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
   const currentGroup = availableGroups.find((group) => group.id === currentGroupId) || null;
-  const currentGroupName = currentGroup?.name || '가입한 기관 없음';
+  const currentGroupName = currentGroup?.name || '가입한 그룹 없음';
   const visibleGroups = availableGroups.filter((group) => joinedGroupIds.includes(group.id));
   const managedGroupIds = isSuperAdmin
     ? availableGroups.map((group) => group.id)
@@ -491,7 +491,7 @@ export default function App() {
       .filter((id) => ['manager', 'subAdmin'].includes(adminRecord?.groupRoles?.[id]) || (!adminRecord?.groupRoles && adminRecord?.groupIds?.includes(id)));
   const managedGroups = availableGroups.filter((group) => managedGroupIds.includes(group.id));
   const adminGroup = availableGroups.find((group) => group.id === adminGroupId) || null;
-  const adminGroupName = adminGroup?.name || '관리 기관 선택';
+  const adminGroupName = adminGroup?.name || '관리 그룹 선택';
   const canManageCurrentGroup = !!adminGroupId && (isSuperAdmin || (isAdmin && (
     adminRecord?.groupRoles
       ? ['manager', 'subAdmin'].includes(adminRecord.groupRoles[adminGroupId])
@@ -500,6 +500,8 @@ export default function App() {
   const currentAdminRole = isSuperAdmin ? 'superAdmin' : (adminRecord?.groupRoles?.[adminGroupId]
     || (adminRecord?.groupIds?.includes(adminGroupId) ? (adminRecord?.role === 'subAdmin' ? 'subAdmin' : 'manager') : null));
   const canManagePeople = isSuperAdmin || currentAdminRole === 'manager';
+  const isRepresentativeAdmin = isSuperAdmin || currentAdminRole === 'manager';
+  const canManageMembers = canManageCurrentGroup;
   const currentMembership = currentGroupId ? myMemberships[currentGroupId] : null;
   const noticeGroupId = adminRoomMode ? adminGroupId : currentGroupId;
   const noticeGroupName = adminRoomMode ? adminGroupName : currentGroupName;
@@ -1061,28 +1063,37 @@ export default function App() {
   };
 
   const loginAsAdmin = async () => {
-    if (!adminEmail.trim() || !adminPassword) {
+    const normalizedEmail = adminEmail.trim().toLowerCase();
+    if (!normalizedEmail || !adminPassword) {
       Alert.alert('입력 확인', '관리자 이메일과 비밀번호를 입력해 주세요.');
       return;
     }
     setAdminBusy(true);
     try {
-      const credential = await signInWithEmailAndPassword(firebaseAuth, adminEmail.trim(), adminPassword);
+      const credential = await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, adminPassword);
+      await credential.user.getIdToken(true);
       const loginAdminDoc = credential.user.uid === ADMIN_UID ? null : await getDoc(doc(firestore, 'admins', credential.user.uid));
-      const allowed = credential.user.uid === ADMIN_UID
-        || (loginAdminDoc.exists() && loginAdminDoc.data()?.active !== false);
+      const record = loginAdminDoc?.exists() ? loginAdminDoc.data() : null;
+      const allowed = credential.user.uid === ADMIN_UID || (record && record.active !== false);
       if (!allowed) {
         await signOut(firebaseAuth);
-        Alert.alert('권한 없음', '등록된 관리자 계정이 아닙니다.');
+        Alert.alert('관리자 권한 확인 필요', record?.active === false
+          ? '이 관리자 계정은 현재 비활성 상태입니다. 대표관리자 또는 최고관리자에게 문의해 주세요.'
+          : '로그인은 되었지만 관리자 권한 정보가 연결되어 있지 않습니다. 관리자 등록을 다시 확인해 주세요.');
         return;
       }
       setAdminAuthorized(true);
+      if (record) setAdminRecord(record);
       setAdminPassword('');
       setAdminLoginOpen(false);
-      Alert.alert('로그인 완료', credential.user.uid === ADMIN_UID ? '최고 관리자로 로그인했습니다.' : '담당 기관의 공지사항을 관리할 수 있습니다.');
+      const role = credential.user.uid === ADMIN_UID ? '최고관리자' : ((record?.groupRoles && Object.values(record.groupRoles).includes('manager')) || record?.role !== 'subAdmin' ? '대표관리자' : '부대표관리자');
+      Alert.alert('로그인 완료', `${role}로 로그인했습니다.`);
     } catch (error) {
       console.warn('Admin login failed:', error);
-      Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해 주세요.');
+      const code = String(error?.code || '');
+      Alert.alert('로그인 실패', code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')
+        ? '이메일 또는 비밀번호를 확인해 주세요.'
+        : '관리자 로그인 중 오류가 발생했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.');
     } finally {
       setAdminBusy(false);
     }
@@ -1123,7 +1134,7 @@ export default function App() {
         setNewAdminEmail('');
         setNewAdminPassword('');
         setAdminRegisterOpen(false);
-        Alert.alert('관리자 등록 완료', `${assignedRole === 'manager' ? '그룹관리자' : '부관리자'} 권한을 다시 활성화했습니다.`);
+        Alert.alert('관리자 등록 완료', `${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'} 권한을 다시 활성화했습니다.`);
         return;
       }
       const credential = await createUserWithEmailAndPassword(
@@ -1142,7 +1153,7 @@ export default function App() {
       setNewAdminEmail('');
       setNewAdminPassword('');
       setAdminRegisterOpen(false);
-      Alert.alert('관리자 등록 완료', `${adminGroupName}의 ${assignedRole === 'manager' ? '그룹관리자' : '부관리자'}가 등록되었습니다.`);
+      Alert.alert('관리자 등록 완료', `${adminGroupName}의 ${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'}가 등록되었습니다.`);
     } catch (error) {
       console.warn('Admin registration failed:', error);
       const duplicate = String(error?.code || '').includes('email-already-in-use');
@@ -1228,7 +1239,7 @@ export default function App() {
       setTransferPassword('');
       setTransferTarget(null);
       setAdminManagerOpen(false);
-      Alert.alert('권한 승계 완료', `${transferTarget.email} 관리자가 새 그룹관리자가 되었습니다. 본인은 부관리자로 변경되었습니다.`);
+      Alert.alert('권한 승계 완료', `${transferTarget.email} 관리자가 새 대표관리자가 되었습니다. 본인은 부대표관리자로 변경되었습니다.`);
     } catch (error) {
       console.warn('Manager transfer failed:', error);
       const code = String(error?.code || '');
@@ -1269,14 +1280,14 @@ export default function App() {
         });
       }
       if (!groupDoc) {
-        Alert.alert('기관을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
+        Alert.alert('그룹을 찾을 수 없음', '초대 코드를 다시 확인해 주세요.');
         return;
       }
       // 존재하지 않는 회원 문서를 먼저 읽으면 Firestore 규칙상 권한 오류가 납니다.
       // 내 회원목록 구독에서 이미 확인한 값만 사용하고 새 가입은 바로 진행합니다.
       const existing = myMemberships[groupDoc.id];
       if (existing?.removedByAdmin) {
-        Alert.alert('가입 제한', '기관 관리자에 의해 탈퇴 처리된 회원번호입니다. 기관 관리자에게 문의해 주세요.');
+        Alert.alert('가입 제한', '그룹 관리자에 의해 탈퇴 처리된 회원번호입니다. 그룹 관리자에게 문의해 주세요.');
         return;
       }
       setJoinCode('');
@@ -1403,7 +1414,7 @@ export default function App() {
           if (nextId) await AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId);
           else await AsyncStorage.removeItem(CURRENT_GROUP_KEY);
           setScreen('today');
-          Alert.alert('탈퇴 완료', `${currentGroupName}에서 탈퇴했습니다.${isAdmin && !isSuperAdmin ? '\n해당 기관의 관리자 권한도 해제되었습니다.' : ''}${signedOutFromAdmin ? '\n관리자 계정에서 로그아웃되었습니다.' : ''}`);
+          Alert.alert('탈퇴 완료', `${currentGroupName}에서 탈퇴했습니다.${isAdmin && !isSuperAdmin ? '\n해당 그룹의 관리자 권한도 해제되었습니다.' : ''}${signedOutFromAdmin ? '\n관리자 계정에서 로그아웃되었습니다.' : ''}`);
         } catch (error) {
           console.warn('Group leave failed:', error);
           Alert.alert('탈퇴 실패', '그룹 탈퇴 또는 관리자 권한 해제에 실패했습니다. 잠시 후 다시 시도해 주세요.');
@@ -1413,7 +1424,7 @@ export default function App() {
   };
 
   const removeGroupMember = (member) => {
-    if (!canManagePeople) return;
+    if (!canManageMembers) return;
     Alert.alert('회원 탈퇴 처리', `${member.nickname} 회원을 기관에서 탈퇴 처리하시겠습니까?`, [
       { text: '취소', style: 'cancel' },
       { text: '탈퇴 처리', style: 'destructive', onPress: async () => {
@@ -1431,11 +1442,11 @@ export default function App() {
   };
 
   const createCommunityGroup = async () => {
-    if (!isSuperAdmin) return;
+    if (!isRepresentativeAdmin) return;
     const name = newGroupName.trim();
     const normalizedCode = newGroupCode || createInviteCode();
     if (!name) {
-      Alert.alert('입력 확인', '교회·기관 이름을 입력해 주세요.');
+      Alert.alert('입력 확인', '그룹 이름을 입력해 주세요.');
       return;
     }
     setAdminBusy(true);
@@ -1451,16 +1462,28 @@ export default function App() {
       });
       const managementCode = `ORG-${created.id.slice(0, 6).toUpperCase()}`;
       await updateDoc(doc(firestore, 'groups', created.id), { managementCode });
+      if (!isSuperAdmin && adminUser?.uid) {
+        const nextGroupIds = [...new Set([...(adminRecord?.groupIds || []), created.id])];
+        const nextGroupRoles = { ...(adminRecord?.groupRoles || {}), [created.id]: 'manager' };
+        await updateDoc(doc(firestore, 'admins', adminUser.uid), {
+          groupIds: nextGroupIds,
+          groupRoles: nextGroupRoles,
+          role: 'groupAdmin',
+          active: true,
+          updatedAt: serverTimestamp(),
+        });
+        setAdminRecord((previous) => ({ ...(previous || {}), groupIds: nextGroupIds, groupRoles: nextGroupRoles, role: 'groupAdmin', active: true }));
+      }
       setNewGroupName('');
       setNewGroupCode('');
       setCreateGroupOpen(false);
       setAdminGroupId(created.id);
       const Clipboard = require('expo-clipboard');
       await Clipboard.setStringAsync(normalizedCode);
-      Alert.alert('기관 생성 완료', `${name}이 만들어졌습니다.\n관리번호: ${managementCode}\n\n초대 코드: ${normalizedCode}\n\n초대 코드를 클립보드에 복사했습니다.`);
+      Alert.alert('그룹 생성 완료', `${name}이 만들어졌습니다.\n관리번호: ${managementCode}\n\n초대 코드: ${normalizedCode}\n\n초대 코드를 클립보드에 복사했습니다.`);
     } catch (error) {
       console.warn('Group creation failed:', error);
-      Alert.alert('생성 실패', '교회·기관을 만들지 못했습니다.');
+      Alert.alert('생성 실패', '그룹을 만들지 못했습니다.');
     } finally {
       setAdminBusy(false);
     }
@@ -2513,9 +2536,9 @@ export default function App() {
               showsVerticalScrollIndicator={false}
             >
               <Text style={styles.placeholderTitle}>공지사항</Text>
-              <TouchableOpacity onPress={() => adminRoomMode ? setAdminGroupPickerOpen(true) : setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>{adminRoomMode ? '🛠 관리자 관리실' : '🏠'} · {noticeGroupName}</Text><Text style={styles.groupSelectorHint}>기관 변경  ▼</Text></TouchableOpacity>
-              <Text style={styles.placeholderText}>선택한 교회·기관의 공지사항입니다.</Text>
-              {adminRoomMode && canManagePeople && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.memberManagementShortcut}>
+              <TouchableOpacity onPress={() => adminRoomMode ? setAdminGroupPickerOpen(true) : setGroupPickerOpen(true)} style={styles.groupSelector}><Text style={styles.groupSelectorName}>{adminRoomMode ? '🛠 관리자 관리실' : '🏠'} · {noticeGroupName}</Text><Text style={styles.groupSelectorHint}>그룹 변경  ▼</Text></TouchableOpacity>
+              <Text style={styles.placeholderText}>선택한 그룹의 공지사항입니다.</Text>
+              {adminRoomMode && canManageMembers && <TouchableOpacity onPress={() => setMemberManagerOpen(true)} style={styles.memberManagementShortcut}>
                 <View>
                   <Text style={styles.memberManagementShortcutTitle}>👥 회원 목록 · 탈퇴 관리</Text>
                   <Text style={styles.memberManagementShortcutDescription}>현재 가입 회원 {groupMembers.length}명</Text>
@@ -2546,18 +2569,18 @@ export default function App() {
               {adminRoomMode && canManageCurrentGroup && <View style={styles.managementAccordionWrap}>
                 <TouchableOpacity onPress={() => setChurchManagementOpen((value) => !value)} style={styles.managementAccordionButton}><Text style={styles.managementAccordionTitle}>⛪ {noticeGroupName} 교회관리</Text><Text style={styles.managementAccordionArrow}>{churchManagementOpen ? '▲' : '▼'}</Text></TouchableOpacity>
                 {churchManagementOpen && <View style={styles.managementAccordionBody}>
-                  <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>기관 초대코드</Text><Text selectable style={styles.generatedCodeText}>{adminGroup?.normalizedInviteCode || '미설정'}</Text></View>
+                  <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>그룹 초대코드</Text><Text selectable style={styles.generatedCodeText}>{adminGroup?.normalizedInviteCode || '미설정'}</Text></View>
                   <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => copyGroupInviteCode(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>초대코드 복사</Text></TouchableOpacity><TouchableOpacity onPress={() => shareGroupInvite(adminGroup)} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>카카오톡·문자로 공유</Text></TouchableOpacity></View>
-                  {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>관리자 목록 및 권한 관리</Text></TouchableOpacity>}
-                  {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text></TouchableOpacity>}
-                  {canManagePeople && <TouchableOpacity onPress={openGroupProfileEditor} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>기관 주소·소개 입력</Text></TouchableOpacity>}
+                  {canManagePeople && <TouchableOpacity onPress={() => setAdminManagerOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>부대표관리자 목록 및 권한 관리</Text></TouchableOpacity>}
+                  {canManagePeople && <TouchableOpacity onPress={() => setAdminRegisterOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ {isSuperAdmin ? '대표관리자' : '부대표관리자'} 등록</Text></TouchableOpacity>}
+                  {canManageCurrentGroup && <TouchableOpacity onPress={openGroupProfileEditor} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>그룹 주소·소개 입력</Text></TouchableOpacity>}
                 </View>}
               </View>}
-              {adminRoomMode && isSuperAdmin && <View style={styles.managementAccordionWrap}>
-                <TouchableOpacity onPress={() => setSuperGroupManagementOpen((value) => !value)} style={[styles.managementAccordionButton, styles.superManagementAccordionButton]}><Text style={styles.superManagementAccordionTitle}>＋ 새 교회·기관 관리</Text><Text style={styles.superManagementAccordionArrow}>{superGroupManagementOpen ? '▲' : '▼'}</Text></TouchableOpacity>
+              {adminRoomMode && isRepresentativeAdmin && <View style={styles.managementAccordionWrap}>
+                <TouchableOpacity onPress={() => setSuperGroupManagementOpen((value) => !value)} style={[styles.managementAccordionButton, styles.superManagementAccordionButton]}><Text style={styles.superManagementAccordionTitle}>＋ 새 그룹 관리</Text><Text style={styles.superManagementAccordionArrow}>{superGroupManagementOpen ? '▲' : '▼'}</Text></TouchableOpacity>
                 {superGroupManagementOpen && <View style={styles.managementAccordionBody}>
-                  <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 교회·기관 만들기</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 교회·기관 수정 및 삭제</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setNewGroupCode(createInviteCode()); setCreateGroupOpen(true); }} style={styles.superAdminButton}><Text style={styles.superAdminButtonText}>＋ 새 그룹 만들기</Text></TouchableOpacity>
+                  {isSuperAdmin && <TouchableOpacity onPress={() => setGroupManagerOpen(true)} style={styles.groupManageButton}><Text style={styles.groupManageButtonText}>전체 그룹 수정 및 삭제</Text></TouchableOpacity>}
                 </View>}
               </View>}
             </ScrollView>
@@ -2681,10 +2704,10 @@ export default function App() {
               <Text style={styles.settingsSectionTitle}>관리자 관리실</Text>
               <View style={styles.settingsCard}>
                 <View style={styles.adminSettingsHeader}>
-                  <Text style={[styles.settingsCardTitle, styles.adminSettingsHeaderTitle]}>{isSuperAdmin ? '최고 관리자 로그인됨' : isAdmin ? '기관 관리자 로그인됨' : '관리자 로그인'}</Text>
+                  <Text style={[styles.settingsCardTitle, styles.adminSettingsHeaderTitle]}>{isSuperAdmin ? '최고관리자 로그인됨' : isAdmin ? currentAdminRole === 'manager' ? '대표관리자 로그인됨' : '부대표관리자 로그인됨' : '관리자 로그인'}</Text>
                   {isAdmin && <View style={styles.adminSettingsActions}><TouchableOpacity onPress={() => setPasswordChangeOpen(true)} style={styles.adminSettingsActionButton}><Text style={styles.adminSettingsActionText}>수정</Text></TouchableOpacity><TouchableOpacity onPress={logoutAdmin} style={[styles.adminSettingsActionButton, styles.adminSettingsLogoutButton]}><Text style={styles.adminSettingsLogoutText}>로그아웃</Text></TouchableOpacity></View>}
                 </View>
-                <Text style={styles.settingsDescription}>{isSuperAdmin ? '일반 회원 화면과 분리된 관리실에서 모든 기관을 관리합니다.' : isAdmin ? '관리실에서 담당 기관을 선택해 게시글과 회원을 관리합니다.' : '지정된 관리자만 별도의 관리실에 들어갈 수 있습니다.'}</Text>
+                <Text style={styles.settingsDescription}>{isSuperAdmin ? '일반 회원 화면과 분리된 관리실에서 모든 그룹을 관리합니다.' : isAdmin ? '관리자 모드에서 담당 그룹의 게시글과 회원을 관리합니다.' : '지정된 관리자만 별도의 관리실에 들어갈 수 있습니다.'}</Text>
                 {!isAdmin && <TouchableOpacity onPress={() => setAdminLoginOpen(true)} style={styles.importBibleButton}><Text style={styles.importBibleButtonText}>관리자 로그인</Text></TouchableOpacity>}
                 {isAdmin && <TouchableOpacity disabled={!managedGroups.length} onPress={() => { setAdminRoomMode(true); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.superAdminButton, !managedGroups.length && styles.importBibleButtonDisabled]}><Text style={styles.superAdminButtonText}>관리자 모드</Text></TouchableOpacity>}
               </View>
