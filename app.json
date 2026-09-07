@@ -22,6 +22,10 @@
           "defaultChannel": "group-posts"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "supportName": "다락방",
+      "supportEmail": "thimothy1226@naver.com"
+    }
   }
 }
