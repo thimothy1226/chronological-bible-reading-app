@@ -27,21 +27,32 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
     throw error;
   }
 
-  const devices = await db.collection('pushDevices')
-    .where('groupIds', 'array-contains', post.groupId)
+  // 멤버의 pushDevices.groupIds 값이 오래된 경우에도 누락되지 않도록
+  // 실제 활성 membership을 기준으로 수신자를 결정한다.
+  const membershipSnapshot = await db.collection('memberships')
+    .where('groupId', '==', post.groupId)
     .get();
-  const candidates = devices.docs
+  const activeMemberUids = [...new Set(membershipSnapshot.docs
     .map((item) => item.data())
-    .filter((item) => item.notificationsEnabled !== false && item.platform === 'android' && item.token && item.memberUid);
-  const memberships = candidates.length
-    ? await db.getAll(...candidates.map((item) => db.collection('memberships').doc(`${post.groupId}_${item.memberUid}`)))
+    .filter((item) => item.active === true && item.memberUid)
+    .map((item) => String(item.memberUid)))];
+
+  const deviceSnapshots = activeMemberUids.length
+    ? await db.getAll(...activeMemberUids.map((uid) => db.collection('pushDevices').doc(uid)))
     : [];
-  const tokens = [...new Set(candidates
-    .filter((item, index) => memberships[index]?.exists && memberships[index].data()?.active === true)
-    .map((item) => item.token))];
+
+  const tokens = [...new Set(deviceSnapshots
+    .filter((item) => item.exists)
+    .map((item) => item.data())
+    .filter((item) => item.notificationsEnabled !== false && item.token && (item.platform === 'android' || item.tokenType === 'fcm'))
+    .map((item) => String(item.token)))];
 
   if (!tokens.length) {
-    await deliveryRef.set({ status: 'complete', sent: 0, failed: 0, completedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await deliveryRef.set({
+      status: 'complete', sent: 0, failed: 0,
+      activeMembers: activeMemberUids.length,
+      completedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
     return;
   }
 
@@ -51,6 +62,7 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
   const body = `${post.title}\n${String(post.body || '').replace(/\s+/g, ' ').trim()}`.slice(0, 700);
   let sent = 0;
   let failed = 0;
+  const invalidTokens = [];
 
   for (const tokenBatch of chunk(tokens, 500)) {
     const response = await getMessaging().sendEachForMulticast({
@@ -74,7 +86,19 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
     });
     sent += response.successCount;
     failed += response.failureCount;
+    response.responses.forEach((result, index) => {
+      const code = result.error?.code || '';
+      if (code.includes('registration-token-not-registered') || code.includes('invalid-registration-token')) {
+        invalidTokens.push(tokenBatch[index]);
+      }
+    });
   }
 
-  await deliveryRef.set({ status: 'complete', sent, failed, completedAt: FieldValue.serverTimestamp() }, { merge: true });
+  await deliveryRef.set({
+    status: 'complete', sent, failed,
+    activeMembers: activeMemberUids.length,
+    tokenCount: tokens.length,
+    invalidTokenCount: invalidTokens.length,
+    completedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
 });
