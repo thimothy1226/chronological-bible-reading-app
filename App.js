@@ -91,12 +91,12 @@ const LEGAL_DOCUMENTS = {
     sections: [
       ['1. 처리 목적', '그룹 가입과 회원 관리, 공지사항·중보기도 제공, 관리자 인증 및 서비스 운영을 위해 필요한 최소한의 정보를 처리합니다.'],
       ['2. 처리하는 정보', '일반 회원: Firebase 익명 식별값(회원번호), 닉네임, 가입 그룹, 가입·탈퇴 상태와 일시\n알림 이용 시: 휴대폰의 푸시 알림 토큰, 기기 종류, 알림을 받을 그룹\n관리자: 이메일 주소, Firebase 인증 식별값, 담당 그룹과 권한\n게시글 작성 시: 제목, 내용, 작성자 식별정보와 작성일시'],
-      ['3. 휴대폰에만 저장되는 정보', '성경 통독 완료기록, 말씀 메모, 글자 크기와 읽던 위치, 사용자가 직접 등록한 BDF 성경 데이터는 해당 휴대폰에만 저장되며 서버로 전송하지 않습니다.'],
+      ['3. 휴대폰에만 저장되는 정보', '성경 통독 완료기록, 북마크, 형광펜 표시, 말씀 메모, 글자 크기와 읽던 위치, 사용자가 직접 등록한 BDF 성경 데이터는 해당 휴대폰에만 저장되며 서버로 전송하지 않습니다.'],
       ['4. 보유 및 파기', '개인정보는 서비스 이용 또는 그룹 가입 기간 동안 보관하며, 목적이 달성되거나 삭제 요청이 확인되면 지체 없이 파기합니다. 관리자에 의해 탈퇴 처리된 경우 재가입 제한과 분쟁 대응에 필요한 최소 기록은 서비스 운영 기간 동안 보관될 수 있습니다.'],
       ['5. 외부 서비스 이용', '인증, 데이터 저장 및 푸시 알림 전송을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
       ['6. 이용자의 권리', '이용자는 닉네임 변경, 그룹 탈퇴를 직접 할 수 있으며 개인정보 열람·정정·삭제·처리정지를 앱 운영자 또는 소속 그룹 관리자에게 요청할 수 있습니다.'],
       ['7. 안전성 확보', '접근 권한 구분, Firebase 인증과 보안 규칙 등 합리적인 보호조치를 적용합니다.'],
-      ['8. 문의 및 변경', '개인정보 관련 문의는 앱 운영자 또는 소속 그룹 관리자에게 해 주세요. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
+      ['8. 문의 및 변경', '개인정보 관련 문의: 다락방 · thimothy1226@naver.com\n소속 그룹 운영과 관련한 사항은 해당 그룹 관리자에게도 문의할 수 있습니다. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
       ['시행일', '2026년 9월 5일'],
     ],
   },
@@ -110,6 +110,7 @@ const LEGAL_DOCUMENTS = {
       ['5. 서비스 변경과 중단', '점검, 장애, 운영상 필요에 따라 서비스의 일부가 변경되거나 일시 중단될 수 있습니다. 중요한 변경은 가능한 범위에서 미리 안내합니다.'],
       ['6. 책임의 제한', '천재지변, 통신 장애, 이용자의 기기 또는 네트워크 문제 등 운영자가 합리적으로 통제하기 어려운 사유로 발생한 손해에 대해서는 관련 법령이 허용하는 범위에서 책임이 제한될 수 있습니다.'],
       ['7. 약관의 변경', '약관이 변경되면 앱 또는 공지사항을 통해 안내합니다. 변경 후 계속 이용하는 경우 변경된 약관에 동의한 것으로 봅니다.'],
+      ['8. 운영자 및 문의', '운영자: 다락방\n이메일: thimothy1226@naver.com'],
       ['시행일', '2026년 9월 4일'],
     ],
   },
@@ -1561,10 +1562,10 @@ export default function App() {
         address: groupAddress.trim(), description: groupDescription.trim(), updatedAt: serverTimestamp(),
       }, { merge: true });
       setGroupProfileOpen(false);
-      Alert.alert('저장 완료', '교회·기관 소개가 저장되었습니다.');
+      Alert.alert('저장 완료', '그룹 소개가 저장되었습니다.');
     } catch (error) {
       console.warn('Group profile update failed:', error);
-      Alert.alert('저장 실패', '교회·기관 소개를 저장하지 못했습니다.');
+      Alert.alert('저장 실패', '그룹 소개를 저장하지 못했습니다.');
     } finally {
       setAdminBusy(false);
     }
@@ -3015,11 +3016,11 @@ export default function App() {
         <View style={styles.modalBackdrop}>
           <View style={styles.groupManagerCard}>
             <Text style={styles.adminModalTitle}>{adminGroupName} 관리자</Text>
-            <Text style={styles.adminModalDescription}>그룹관리자는 회원과 부관리자를 관리하며, 부관리자는 게시글을 관리합니다.</Text>
+            <Text style={styles.adminModalDescription}>대표관리자는 회원과 부대표관리자를 관리하며, 부대표관리자는 게시글을 관리합니다.</Text>
             <ScrollView style={styles.groupManagerList}>
               {groupAdmins.length ? groupAdmins.map((item) => {
                 const role = item.groupRoles?.[adminGroupId] || (item.role === 'subAdmin' ? 'subAdmin' : 'manager');
-                return <View key={item.id} style={styles.adminManageRow}><View style={styles.groupManageInfo}><Text style={styles.groupManageName}>{item.email}</Text><Text style={styles.adminRoleText}>{role === 'manager' ? '그룹관리자' : '부관리자'}</Text></View><View style={styles.groupManageActions}>{currentAdminRole === 'manager' && role === 'subAdmin' && <TouchableOpacity onPress={() => { setAdminManagerOpen(false); setTransferTarget(item); }} style={styles.groupEditButton}><Text style={styles.groupEditButtonText}>권한 승계</Text></TouchableOpacity>}{(isSuperAdmin || role === 'subAdmin') && <TouchableOpacity onPress={() => removeSubAdmin(item)} style={styles.groupDeleteButton}><Text style={styles.groupDeleteButtonText}>권한 삭제</Text></TouchableOpacity>}</View></View>;
+                return <View key={item.id} style={styles.adminManageRow}><View style={styles.groupManageInfo}><Text style={styles.groupManageName}>{item.email}</Text><Text style={styles.adminRoleText}>{role === 'manager' ? '대표관리자' : '부대표관리자'}</Text></View><View style={styles.groupManageActions}>{currentAdminRole === 'manager' && role === 'subAdmin' && <TouchableOpacity onPress={() => { setAdminManagerOpen(false); setTransferTarget(item); }} style={styles.groupEditButton}><Text style={styles.groupEditButtonText}>권한 승계</Text></TouchableOpacity>}{(isSuperAdmin || role === 'subAdmin') && <TouchableOpacity onPress={() => removeSubAdmin(item)} style={styles.groupDeleteButton}><Text style={styles.groupDeleteButtonText}>권한 삭제</Text></TouchableOpacity>}</View></View>;
               }) : <Text style={styles.managerEmptyText}>등록된 관리자가 없습니다.</Text>}
             </ScrollView>
             <TouchableOpacity onPress={() => setAdminManagerOpen(false)} style={styles.groupManagerClose}><Text style={styles.adminLoginText}>닫기</Text></TouchableOpacity>
@@ -3030,8 +3031,8 @@ export default function App() {
       <Modal visible={!!transferTarget} transparent animationType="fade" onRequestClose={() => setTransferTarget(null)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>그룹관리자 권한 승계</Text>
-            <Text style={styles.adminModalDescription}>{transferTarget?.email}에게 그룹관리자 권한을 넘깁니다. 승계 후 본인은 부관리자로 변경됩니다.</Text>
+            <Text style={styles.adminModalTitle}>대표관리자 권한 승계</Text>
+            <Text style={styles.adminModalDescription}>{transferTarget?.email}에게 대표관리자 권한을 넘깁니다. 승계 후 본인은 부대표관리자로 변경됩니다.</Text>
             <TextInput value={transferPassword} onChangeText={setTransferPassword} secureTextEntry placeholder="현재 비밀번호 확인" style={styles.adminInput} />
             <View style={styles.adminModalActions}><TouchableOpacity onPress={() => { setTransferPassword(''); setTransferTarget(null); }} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity><TouchableOpacity disabled={adminBusy} onPress={transferManagerRole} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '승계 중…' : '권한 승계'}</Text></TouchableOpacity></View>
           </View>
@@ -3041,7 +3042,7 @@ export default function App() {
       <Modal visible={groupManagerOpen} transparent animationType="fade" onRequestClose={() => setGroupManagerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.groupManagerCard}>
-            <Text style={styles.adminModalTitle}>교회·기관 관리</Text>
+            <Text style={styles.adminModalTitle}>그룹 관리</Text>
             <Text style={styles.adminModalDescription}>이름이 같아도 고유 관리번호로 구별할 수 있습니다.</Text>
             <ScrollView style={styles.groupManagerList}>
               {availableGroups.map((group) => {
@@ -3061,8 +3062,8 @@ export default function App() {
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.adminModalCard}>
-              <Text style={styles.adminModalTitle}>교회·기관 소개</Text>
-              <Text style={styles.adminModalDescription}>최고 관리자가 같은 이름의 기관을 구분할 수 있도록 주소와 간단한 소개를 적어 주세요.</Text>
+              <Text style={styles.adminModalTitle}>그룹 소개</Text>
+              <Text style={styles.adminModalDescription}>최고 관리자가 같은 이름의 그룹을 구분할 수 있도록 주소와 간단한 소개를 적어 주세요.</Text>
               <TextInput value={groupAddress} onChangeText={setGroupAddress} placeholder="주소 (선택)" style={styles.adminInput} />
               <TextInput value={groupDescription} onChangeText={setGroupDescription} placeholder="간단한 소개 (선택)" multiline textAlignVertical="top" style={[styles.adminInput, styles.groupDescriptionInput]} />
               <View style={styles.adminModalActions}>
@@ -3078,9 +3079,9 @@ export default function App() {
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>교회·기관 수정</Text>
+            <Text style={styles.adminModalTitle}>그룹 수정</Text>
             <Text style={styles.managementCodeText}>관리번호 {editingGroup?.managementCode}</Text>
-            <TextInput value={editGroupName} onChangeText={setEditGroupName} placeholder="교회·기관 이름" style={styles.adminInput} />
+            <TextInput value={editGroupName} onChangeText={setEditGroupName} placeholder="그룹 이름" style={styles.adminInput} />
             <TextInput value={editGroupAddress} onChangeText={setEditGroupAddress} placeholder="주소 (선택)" style={styles.adminInput} />
             <TextInput value={editGroupDescription} onChangeText={setEditGroupDescription} placeholder="간단한 소개 (선택)" multiline textAlignVertical="top" style={[styles.adminInput, styles.groupDescriptionInput]} />
             <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>초대 코드</Text><Text style={styles.generatedCodeText}>{editGroupCode}</Text></View>
@@ -3097,7 +3098,7 @@ export default function App() {
       <Modal visible={groupPickerOpen} transparent animationType="fade" onRequestClose={() => setGroupPickerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>공지사항 기관 선택</Text>
+            <Text style={styles.adminModalTitle}>공지사항 그룹 선택</Text>
             <Text style={styles.adminModalDescription}>가입한 그룹을 선택하면 해당 그룹의 소식과 중보기도만 표시됩니다.</Text>
             <ScrollView style={styles.groupPickerList}>
               {visibleGroups.map((group) => <TouchableOpacity key={group.id} onPress={() => selectCommunityGroup(group.id)} style={[styles.groupPickerRow, currentGroupId === group.id && styles.groupPickerRowActive]}><Text style={[styles.groupPickerRowText, currentGroupId === group.id && styles.groupPickerRowTextActive]}>{group.name}</Text>{currentGroupId === group.id && <Text style={styles.groupPickerCheck}>✓</Text>}</TouchableOpacity>)}
@@ -3113,8 +3114,8 @@ export default function App() {
       <Modal visible={adminGroupPickerOpen} transparent animationType="fade" onRequestClose={() => setAdminGroupPickerOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>관리할 교회·기관 선택</Text>
-            <Text style={styles.adminModalDescription}>이 선택은 일반 회원 화면의 현재 기관에는 영향을 주지 않습니다.</Text>
+            <Text style={styles.adminModalTitle}>관리할 그룹 선택</Text>
+            <Text style={styles.adminModalDescription}>이 선택은 일반 회원 화면의 현재 그룹에는 영향을 주지 않습니다.</Text>
             <ScrollView style={styles.groupPickerList}>
               {managedGroups.map((group) => <TouchableOpacity key={group.id} onPress={() => { setAdminGroupId(group.id); setSelectedNoticePost(null); setNoticeCategory(null); setAdminGroupPickerOpen(false); }} style={[styles.groupPickerRow, adminGroupId === group.id && styles.groupPickerRowActive]}>
                 <View style={styles.groupManageInfo}><Text style={[styles.groupPickerRowText, adminGroupId === group.id && styles.groupPickerRowTextActive]}>{group.name}</Text>{group.address ? <Text numberOfLines={1} style={styles.groupManageMeta}>주소 · {group.address}</Text> : null}{group.description ? <Text numberOfLines={2} style={styles.groupManageDescription}>소개 · {group.description}</Text> : null}</View>
@@ -3145,13 +3146,13 @@ export default function App() {
       <Modal visible={createGroupOpen} transparent animationType="fade" onRequestClose={() => setCreateGroupOpen(false)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.adminModalCard}>
-            <Text style={styles.adminModalTitle}>새 교회·기관 만들기</Text>
-            <Text style={styles.adminModalDescription}>교회·기관 이름만 입력하세요. 안전한 12자리 초대 코드는 앱이 자동으로 만들고 복사합니다.</Text>
-            <TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="교회·기관 이름 (예: 사랑교회)" style={styles.adminInput} />
+            <Text style={styles.adminModalTitle}>새 그룹 만들기</Text>
+            <Text style={styles.adminModalDescription}>그룹 이름만 입력하세요. 안전한 12자리 초대 코드는 앱이 자동으로 만들고 복사합니다.</Text>
+            <TextInput value={newGroupName} onChangeText={setNewGroupName} placeholder="그룹 이름 (예: 사랑교회)" style={styles.adminInput} />
             <View style={styles.generatedCodeBox}><Text style={styles.generatedCodeLabel}>자동 생성될 초대 코드</Text><Text style={styles.generatedCodeText}>{newGroupCode}</Text></View>
             <View style={styles.adminModalActions}>
               <TouchableOpacity disabled={adminBusy} onPress={() => setCreateGroupOpen(false)} style={styles.adminCancelButton}><Text style={styles.adminCancelText}>취소</Text></TouchableOpacity>
-              <TouchableOpacity disabled={adminBusy} onPress={createCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '생성 중…' : '기관 만들기'}</Text></TouchableOpacity>
+              <TouchableOpacity disabled={adminBusy} onPress={createCommunityGroup} style={styles.adminLoginButton}><Text style={styles.adminLoginText}>{adminBusy ? '생성 중…' : '그룹 만들기'}</Text></TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -3178,8 +3179,8 @@ export default function App() {
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>
           <ScrollView contentContainerStyle={styles.keyboardModalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <View style={styles.adminModalCard}>
-              <Text style={styles.adminModalTitle}>{adminGroupName} {isSuperAdmin ? '그룹관리자' : '부관리자'} 등록</Text>
-              <Text style={styles.adminModalDescription}>{isSuperAdmin ? '그룹관리자는 회원과 부관리자까지 관리합니다.' : '부관리자는 게시글 작성·수정·삭제만 담당합니다.'} 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
+              <Text style={styles.adminModalTitle}>{adminGroupName} {isSuperAdmin ? '대표관리자' : '부대표관리자'} 등록</Text>
+              <Text style={styles.adminModalDescription}>{isSuperAdmin ? '대표관리자는 회원과 부대표관리자까지 관리합니다.' : '부대표관리자는 게시글 작성·수정·삭제만 담당합니다.'} 이메일과 6자리 이상의 임시 비밀번호를 입력하세요.</Text>
               <TextInput value={newAdminEmail} onChangeText={setNewAdminEmail} autoCapitalize="none" keyboardType="email-address" placeholder="새 관리자 이메일" returnKeyType="next" style={styles.adminInput} />
               <TextInput value={newAdminPassword} onChangeText={setNewAdminPassword} secureTextEntry placeholder="임시 비밀번호 (6자리 이상)" returnKeyType="done" onSubmitEditing={registerNewAdmin} style={styles.adminInput} />
               <View style={styles.adminModalActions}>
