@@ -114,12 +114,22 @@ const oneMonthSchedule = ONE_MONTH_RANGES.map(([startBook, startChapter, endBook
   };
 });
 
+export const READING_PLAN_KEYS = {
+  CHRONOLOGICAL: 'chronological',
+  HEBREW: 'hebrew',
+  CANONICAL: 'canonical',
+  CHALLENGE_30: 'challenge30',
+};
+
 export const READING_PLAN_DEFINITIONS = [
-  { id: 'chronological', name: '연대기별 성경통독', schedule: chronologicalSchedule },
-  { id: 'hebrew', name: '히브리식 성경통독', schedule: buildEvenPlan([...HEBREW_OT_ORDER, ...NT_ORDER], 365, '히브리식 성경통독') },
-  { id: 'canonical', name: '성경순서 통독', schedule: buildEvenPlan(CANONICAL_BOOKS.map(([book]) => book), 365, '성경순서 통독') },
-  { id: 'oneMonth', name: '도전!! 1개월 통독', schedule: oneMonthSchedule },
+  { id: READING_PLAN_KEYS.CHRONOLOGICAL, name: '연대기별 성경통독', schedule: chronologicalSchedule },
+  { id: READING_PLAN_KEYS.HEBREW, name: '히브리식 성경통독', schedule: buildEvenPlan([...HEBREW_OT_ORDER, ...NT_ORDER], 365, '히브리식 성경통독') },
+  { id: READING_PLAN_KEYS.CANONICAL, name: '성경순서 통독', schedule: buildEvenPlan(CANONICAL_BOOKS.map(([book]) => book), 365, '성경순서 통독') },
+  { id: READING_PLAN_KEYS.CHALLENGE_30, name: '도전!! 1개월 통독', schedule: oneMonthSchedule },
 ];
 
 export const READING_PLANS = Object.fromEntries(READING_PLAN_DEFINITIONS.map((plan) => [plan.id, plan]));
-export const DEFAULT_READING_PLAN_ID = 'chronological';
+export const DEFAULT_READING_PLAN_ID = READING_PLAN_KEYS.CHRONOLOGICAL;
+
+export const getReadingPlan = (id) => READING_PLANS[id] || READING_PLANS[DEFAULT_READING_PLAN_ID];
+export const getReadingPlanName = (id) => getReadingPlan(id).name;
