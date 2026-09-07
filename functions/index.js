@@ -1,4 +1,4 @@
-// Deployment retry after Firebase authentication setup.
+// Deployment retry after verified Firebase project access.
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
