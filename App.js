@@ -24,6 +24,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot,
   query, serverTimestamp, setDoc, updateDoc, where, writeBatch,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDjboFxfiXUBNVGiT-ecGhyc5_tH_vpq04',
@@ -38,6 +39,7 @@ const firebaseAuth = initializeAuth(firebaseApp, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 const firestore = getFirestore(firebaseApp);
+const firebaseFunctions = getFunctions(firebaseApp, 'asia-northeast3');
 const adminCreatorApp = initializeApp(FIREBASE_CONFIG, 'adminCreator');
 const adminCreatorAuth = initializeAuth(adminCreatorApp, { persistence: inMemoryPersistence });
 const memberApp = initializeApp(FIREBASE_CONFIG, 'memberClient');
@@ -46,6 +48,13 @@ const memberFirestore = getFirestore(memberApp);
 const ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
 const COMMUNITY_NOTIFICATION_CATEGORY = 'community-post';
 const OPEN_POST_ACTION = 'OPEN_POST';
+const ANDROID_STATUS_BAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+const ANDROID_READER_BOTTOM_SPACE = Platform.OS === 'android' ? 108 : 56;
+const ANDROID_NAV_BOTTOM_SPACE = Platform.OS === 'android' ? 56 : 18;
+const SUPPORT_NAME = '다락방';
+const SUPPORT_EMAIL = 'thimothy1226@naver.com';
+const APP_DISPLAY_NAME = 'GF Bible';
+
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -62,6 +71,8 @@ const TRANSLATION_KEY = '@chronological_bible/translation';
 const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
+const VERSE_HIGHLIGHTS_KEY = '@chronological_bible/verse_highlights';
+const VERSE_BOOKMARKS_KEY = '@chronological_bible/verse_bookmarks';
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
@@ -81,14 +92,14 @@ const LEGAL_DOCUMENTS = {
       ['5. 외부 서비스 이용', '인증, 데이터 저장 및 푸시 알림 전송을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
       ['6. 이용자의 권리', '이용자는 닉네임 변경, 그룹 탈퇴를 직접 할 수 있으며 개인정보 열람·정정·삭제·처리정지를 앱 운영자 또는 소속 그룹 관리자에게 요청할 수 있습니다.'],
       ['7. 안전성 확보', '접근 권한 구분, Firebase 인증과 보안 규칙 등 합리적인 보호조치를 적용합니다.'],
-      ['8. 문의 및 변경', '개인정보 관련 문의는 앱 운영자 또는 소속 그룹 관리자에게 해 주세요. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
+      ['8. 문의 및 변경', '개인정보 관련 문의는 앱 운영자(다락방, thimothy1226@naver.com) 또는 소속 그룹 관리자에게 해 주세요. 문의가 접수되면 확인 후 필요한 조치를 안내합니다. 방침이 변경되면 앱 또는 공지사항을 통해 안내합니다.'],
       ['시행일', '2026년 9월 5일'],
     ],
   },
   terms: {
     title: '이용약관',
     sections: [
-      ['1. 목적', '이 약관은 연대기별 성경통독 일정표 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
+      ['1. 목적', '이 약관은 GF Bible 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
       ['2. 서비스 이용', '이용자는 본 약관과 관계 법령을 준수하여 서비스를 이용해야 합니다. 서비스 일부 기능은 그룹 가입 또는 관리자 권한이 필요할 수 있습니다.'],
       ['3. 이용자의 책임', '이용자는 타인의 권리를 침해하거나 불법·유해한 게시물을 등록해서는 안 되며, 자신이 작성한 게시물과 등록한 자료에 대한 책임을 집니다.'],
       ['4. 게시물 관리', '운영자 또는 그룹 관리자는 관계 법령이나 공동체 운영 기준에 어긋나는 게시물을 사전 통지 없이 숨기거나 삭제할 수 있습니다.'],
@@ -96,6 +107,16 @@ const LEGAL_DOCUMENTS = {
       ['6. 책임의 제한', '천재지변, 통신 장애, 이용자의 기기 또는 네트워크 문제 등 운영자가 합리적으로 통제하기 어려운 사유로 발생한 손해에 대해서는 관련 법령이 허용하는 범위에서 책임이 제한될 수 있습니다.'],
       ['7. 약관의 변경', '약관이 변경되면 앱 또는 공지사항을 통해 안내합니다. 변경 후 계속 이용하는 경우 변경된 약관에 동의한 것으로 봅니다.'],
       ['시행일', '2026년 9월 4일'],
+    ],
+  },
+  contact: {
+    title: '문의 및 운영자 정보',
+    sections: [
+      ['앱 이름', 'GF Bible'],
+      ['운영자', '다락방'],
+      ['문의 이메일', 'thimothy1226@naver.com'],
+      ['문의 범위', '앱 사용, 그룹 가입, 관리자 권한, 개인정보 열람·정정·삭제 요청, 알림 수신 문제를 문의할 수 있습니다.'],
+      ['안내', 'Google Play 등록 화면에는 이 이메일을 개발자 연락처로 게시할 수 있습니다. 앱 안에서는 더보기 > 서비스 안내에서 언제든지 확인할 수 있습니다.'],
     ],
   },
 };
@@ -383,8 +404,11 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [selectedVerses, setSelectedVerses] = useState([]);
   const [verseNotes, setVerseNotes] = useState({});
+  const [verseHighlights, setVerseHighlights] = useState({});
+  const [verseBookmarks, setVerseBookmarks] = useState({});
   const [noteModal, setNoteModal] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
+  const [savedVerseView, setSavedVerseView] = useState('all');
   const [completionModal, setCompletionModal] = useState(null);
   const [homologiaSectionIndex, setHomologiaSectionIndex] = useState(null);
   const [homologiaFontScale, setHomologiaFontScale] = useState(1);
@@ -453,6 +477,7 @@ export default function App() {
   const [superGroupManagementOpen, setSuperGroupManagementOpen] = useState(false);
   const [legalDocument, setLegalDocument] = useState(null);
   const [pendingNotificationPost, setPendingNotificationPost] = useState(null);
+  const [notificationOpenStatus, setNotificationOpenStatus] = useState('');
   const [notificationDetailMode, setNotificationDetailMode] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState('unknown');
   const [groupAdmins, setGroupAdmins] = useState([]);
@@ -473,7 +498,7 @@ export default function App() {
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
   const currentGroup = availableGroups.find((group) => group.id === currentGroupId) || null;
-  const currentGroupName = currentGroup?.name || '가입한 기관 없음';
+  const currentGroupName = currentGroup?.name || '가입한 그룹 없음';
   const visibleGroups = availableGroups.filter((group) => joinedGroupIds.includes(group.id));
   const managedGroupIds = isSuperAdmin
     ? availableGroups.map((group) => group.id)
@@ -481,7 +506,7 @@ export default function App() {
       .filter((id) => ['manager', 'subAdmin'].includes(adminRecord?.groupRoles?.[id]) || (!adminRecord?.groupRoles && adminRecord?.groupIds?.includes(id)));
   const managedGroups = availableGroups.filter((group) => managedGroupIds.includes(group.id));
   const adminGroup = availableGroups.find((group) => group.id === adminGroupId) || null;
-  const adminGroupName = adminGroup?.name || '관리 기관 선택';
+  const adminGroupName = adminGroup?.name || '관리 그룹 선택';
   const canManageCurrentGroup = !!adminGroupId && (isSuperAdmin || (isAdmin && (
     adminRecord?.groupRoles
       ? ['manager', 'subAdmin'].includes(adminRecord.groupRoles[adminGroupId])
@@ -494,6 +519,24 @@ export default function App() {
   const noticeGroupId = adminRoomMode ? adminGroupId : currentGroupId;
   const noticeGroupName = adminRoomMode ? adminGroupName : currentGroupName;
   const postsForCurrentGroup = communityPosts.filter((post) => (post.groupId || 'gfc') === noticeGroupId);
+
+  const resolveAdminRecordForUser = async (user) => {
+    if (!user) return null;
+    if (user.uid === ADMIN_UID) return { role: 'superAdmin', groupIds: [], groupRoles: {} };
+    const uidRef = doc(firestore, 'admins', user.uid);
+    let snapshot = await getDoc(uidRef);
+    if (snapshot.exists()) return snapshot.data()?.active === false ? null : snapshot.data();
+
+    try {
+      const repairLegacyAdminAccess = httpsCallable(firebaseFunctions, 'repairLegacyAdminAccess');
+      await repairLegacyAdminAccess({});
+      snapshot = await getDoc(uidRef);
+      if (snapshot.exists() && snapshot.data()?.active !== false) return snapshot.data();
+    } catch (error) {
+      console.warn('Legacy admin repair failed:', error);
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (!isAdmin) {
@@ -511,16 +554,11 @@ export default function App() {
       setAdminRecord(null);
       return;
     }
-    if (user.uid === ADMIN_UID) {
-      setAdminAuthorized(true);
-      setAdminRecord({ role: 'superAdmin', groupIds: [] });
-      return;
-    }
     try {
-      const adminRecord = await getDoc(doc(firestore, 'admins', user.uid));
-      const allowed = adminRecord.exists() && adminRecord.data()?.active !== false;
+      const resolvedRecord = await resolveAdminRecordForUser(user);
+      const allowed = !!resolvedRecord;
       setAdminAuthorized(allowed);
-      setAdminRecord(allowed ? adminRecord.data() : null);
+      setAdminRecord(resolvedRecord);
       if (!allowed) await signOut(firebaseAuth);
     } catch (error) {
       console.warn('Admin permission check failed:', error);
@@ -531,11 +569,18 @@ export default function App() {
 
   useEffect(() => {
     if (!adminUser || isSuperAdmin) return undefined;
-    return onSnapshot(doc(firestore, 'admins', adminUser.uid), (snapshot) => {
-      const allowed = snapshot.exists() && snapshot.data()?.active !== false;
-      setAdminAuthorized(allowed);
-      setAdminRecord(allowed ? snapshot.data() : null);
-      if (!allowed) signOut(firebaseAuth).catch(() => {});
+    return onSnapshot(doc(firestore, 'admins', adminUser.uid), async (snapshot) => {
+      if (snapshot.exists()) {
+        const allowed = snapshot.data()?.active !== false;
+        setAdminAuthorized(allowed);
+        setAdminRecord(allowed ? snapshot.data() : null);
+        if (!allowed) signOut(firebaseAuth).catch(() => {});
+        return;
+      }
+      const repaired = await resolveAdminRecordForUser(adminUser);
+      setAdminAuthorized(!!repaired);
+      setAdminRecord(repaired);
+      if (!repaired) signOut(firebaseAuth).catch(() => {});
     }, (error) => console.warn('Admin permission listener failed:', error));
   }, [adminUser?.uid, isSuperAdmin]);
 
@@ -647,21 +692,38 @@ export default function App() {
     return () => { cancelled = true; };
   }, [memberUser?.uid, memberSnapshotReady, notificationPermission, joinedGroupIds.join('|'), Object.keys(myMemberships).join('|')]);
 
+
+  const normalizeNotificationPostData = (rawData = {}) => {
+    const parsedParams = typeof rawData.params === 'string' ? safeParseJson(rawData.params, {}) : (rawData.params || {});
+    const source = { ...parsedParams, ...rawData };
+    const groupId = String(source.groupId || source.groupID || source.gid || '').trim();
+    const postId = String(source.postId || source.postID || source.id || '').trim();
+    const category = String(source.category || source.type || '').trim();
+    if (!groupId || !postId || !['news', 'prayer'].includes(category)) return null;
+    return { groupId, postId, category };
+  };
+
   useEffect(() => {
     const openPost = (response) => {
       if (!response || ![OPEN_POST_ACTION, Notifications.DEFAULT_ACTION_IDENTIFIER].includes(response.actionIdentifier)) return;
       const notificationId = response.notification?.request?.identifier;
       if (notificationId && handledNotificationRef.current === notificationId) return;
-      handledNotificationRef.current = notificationId || `${Date.now()}`;
-      const data = response.notification?.request?.content?.data || {};
-      if (!data.groupId || !data.postId || !['news', 'prayer'].includes(data.category)) return;
+      const normalized = normalizeNotificationPostData(response.notification?.request?.content?.data || {});
+      if (!normalized) return;
+      handledNotificationRef.current = notificationId || `${normalized.groupId}-${normalized.postId}`;
       setAdminRoomMode(false);
       setNotificationDetailMode(true);
+      setNotificationOpenStatus('알림 게시글을 여는 중입니다…');
       setSelectedNoticePost(null);
-      setCurrentGroupId(data.groupId);
-      AsyncStorage.setItem(CURRENT_GROUP_KEY, data.groupId).catch(() => {});
-      setNoticeCategory(data.category);
-      setPendingNotificationPost({ postId: data.postId, groupId: data.groupId });
+      setCurrentGroupId(normalized.groupId);
+      setJoinedGroupIds((previous) => {
+        const next = previous.includes(normalized.groupId) ? previous : [...previous, normalized.groupId];
+        AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+      AsyncStorage.setItem(CURRENT_GROUP_KEY, normalized.groupId).catch(() => {});
+      setNoticeCategory(normalized.category);
+      setPendingNotificationPost(normalized);
       setScreen('notice');
     };
     const subscription = Notifications.addNotificationResponseReceivedListener(openPost);
@@ -670,12 +732,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!pendingNotificationPost || noticeGroupId !== pendingNotificationPost.groupId) return;
+    if (!pendingNotificationPost) return undefined;
     const post = communityPosts.find((item) => item.id === pendingNotificationPost.postId);
-    if (!post) return;
-    setSelectedNoticePost(post);
-    setPendingNotificationPost(null);
-  }, [pendingNotificationPost, noticeGroupId, communityPosts]);
+    if (post) {
+      setSelectedNoticePost(post);
+      setPendingNotificationPost(null);
+      setNotificationOpenStatus('');
+      return undefined;
+    }
+    if (!memberUser) return undefined;
+    let cancelled = false;
+    const loadDirectPost = async () => {
+      try {
+        const snapshot = await getDoc(doc(memberFirestore, 'communityPosts', pendingNotificationPost.postId));
+        if (cancelled) return;
+        if (!snapshot.exists()) {
+          setNotificationOpenStatus('게시글을 찾지 못했습니다. 삭제되었거나 권한이 없을 수 있습니다.');
+          return;
+        }
+        const directPost = { id: snapshot.id, ...snapshot.data() };
+        const directGroupId = directPost.groupId || 'gfc';
+        if (directGroupId !== pendingNotificationPost.groupId || directPost.category !== pendingNotificationPost.category) {
+          setNotificationOpenStatus('알림 정보와 게시글 정보가 일치하지 않습니다. 공지사항 목록에서 확인해 주세요.');
+          return;
+        }
+        setSelectedNoticePost(directPost);
+        setPendingNotificationPost(null);
+        setNotificationOpenStatus('');
+      } catch (error) {
+        console.warn('Open notification post failed:', error);
+        if (!cancelled) setNotificationOpenStatus('게시글을 바로 열지 못했습니다. 공지사항 목록에서 다시 확인해 주세요.');
+      }
+    };
+    loadDirectPost();
+    return () => { cancelled = true; };
+  }, [pendingNotificationPost?.postId, pendingNotificationPost?.groupId, pendingNotificationPost?.category, memberUser?.uid, communityPosts]);
 
   useEffect(() => {
     const savedMembership = currentGroupId ? myMemberships[currentGroupId] : null;
@@ -759,7 +850,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, VERSE_HIGHLIGHTS_KEY, VERSE_BOOKMARKS_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const d = Number(saved[CURRENT_DAY_KEY] || 1);
@@ -778,6 +869,8 @@ export default function App() {
         setFontSize(Number.isFinite(f) ? Math.min(48, Math.max(15, f)) : 19);
         setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
+        setVerseHighlights(safeParseJson(saved[VERSE_HIGHLIGHTS_KEY], {}));
+        setVerseBookmarks(safeParseJson(saved[VERSE_BOOKMARKS_KEY], {}));
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
         setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
         const savedPdfScale = Number(saved[HOMOLOGIA_PDF_SCALE_KEY] || 1);
@@ -1014,22 +1107,33 @@ export default function App() {
     }
     setAdminBusy(true);
     try {
-      const credential = await signInWithEmailAndPassword(firebaseAuth, adminEmail.trim(), adminPassword);
-      const loginAdminDoc = credential.user.uid === ADMIN_UID ? null : await getDoc(doc(firestore, 'admins', credential.user.uid));
-      const allowed = credential.user.uid === ADMIN_UID
-        || (loginAdminDoc.exists() && loginAdminDoc.data()?.active !== false);
+      const normalizedEmail = adminEmail.trim().toLowerCase();
+      const credential = await signInWithEmailAndPassword(firebaseAuth, normalizedEmail, adminPassword);
+      await credential.user.getIdToken(true);
+      const record = await resolveAdminRecordForUser(credential.user);
+      const allowed = !!record;
       if (!allowed) {
         await signOut(firebaseAuth);
-        Alert.alert('권한 없음', '등록된 관리자 계정이 아닙니다.');
+        Alert.alert('권한 없음', '로그인은 되었지만 등록된 관리자 권한을 찾지 못했습니다. 대표관리자/부대표관리자 등록 이메일이 맞는지 확인해 주세요.');
         return;
       }
       setAdminAuthorized(true);
+      setAdminRecord(record);
+      setAdminEmail(normalizedEmail);
       setAdminPassword('');
       setAdminLoginOpen(false);
-      Alert.alert('로그인 완료', credential.user.uid === ADMIN_UID ? '최고 관리자로 로그인했습니다.' : '담당 기관의 공지사항을 관리할 수 있습니다.');
+      const roleLabel = credential.user.uid === ADMIN_UID
+        ? '최고관리자'
+        : Object.values(record?.groupRoles || {}).includes('manager') || record?.role === 'groupAdmin'
+          ? '대표관리자'
+          : '부대표관리자';
+      Alert.alert('로그인 완료', `${roleLabel}로 로그인했습니다.`);
     } catch (error) {
       console.warn('Admin login failed:', error);
-      Alert.alert('로그인 실패', '이메일 또는 비밀번호를 확인해 주세요.');
+      const code = String(error?.code || '');
+      Alert.alert('로그인 실패', code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')
+        ? '이메일 또는 비밀번호가 맞지 않습니다.'
+        : '관리자 로그인을 완료하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.');
     } finally {
       setAdminBusy(false);
     }
@@ -1044,7 +1148,7 @@ export default function App() {
 
   const registerNewAdmin = async () => {
     if (!canManagePeople) return;
-    if (!newAdminEmail.trim() || newAdminPassword.length < 6) {
+    if (!newAdminEmail.trim().toLowerCase() || newAdminPassword.length < 6) {
       Alert.alert('입력 확인', '이메일과 6자리 이상의 임시 비밀번호를 입력해 주세요.');
       return;
     }
@@ -1052,13 +1156,13 @@ export default function App() {
     try {
       const assignedRole = isSuperAdmin ? 'manager' : 'subAdmin';
       const existingAdmins = await getDocs(isSuperAdmin
-        ? query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()))
-        : query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()), where('groupIds', 'array-contains', adminGroupId)));
+        ? query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim().toLowerCase()))
+        : query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim().toLowerCase()), where('groupIds', 'array-contains', adminGroupId)));
       if (!existingAdmins.empty) {
         const existingDoc = existingAdmins.docs[0];
         const data = existingDoc.data();
         if (data.active !== false && data.groupIds?.includes(adminGroupId)) {
-          Alert.alert('등록 확인', '이미 이 기관의 관리자로 등록된 이메일입니다.');
+          Alert.alert('등록 확인', '이미 이 그룹의 관리자로 등록된 이메일입니다.');
           return;
         }
         await updateDoc(doc(firestore, 'admins', existingDoc.id), {
@@ -1074,11 +1178,11 @@ export default function App() {
         return;
       }
       const credential = await createUserWithEmailAndPassword(
-        adminCreatorAuth, newAdminEmail.trim(), newAdminPassword,
+        adminCreatorAuth, newAdminEmail.trim().toLowerCase(), newAdminPassword,
       );
       await setDoc(doc(firestore, 'admins', credential.user.uid), {
         uid: credential.user.uid,
-        email: newAdminEmail.trim(),
+        email: newAdminEmail.trim().toLowerCase(),
         role: assignedRole === 'manager' ? 'groupAdmin' : 'subAdmin',
         groupIds: [adminGroupId],
         groupRoles: { [adminGroupId]: assignedRole },
@@ -1609,6 +1713,8 @@ export default function App() {
 
   const closeNoticeDetail = () => {
     setSelectedNoticePost(null);
+    setPendingNotificationPost(null);
+    setNotificationOpenStatus('');
     if (notificationDetailMode) {
       setNoticeCategory(null);
       setNotificationDetailMode(false);
@@ -1753,6 +1859,93 @@ export default function App() {
 
   const verseKey = (v) => `${translationId}:${v.bookKo}:${v.chapter}:${v.verse}`;
 
+  const splitVerseKey = (key) => {
+    const [translation, bookKo, chapter, verse] = String(key || '').split(':');
+    return { translation, bookKo, chapter: Number(chapter), verse: Number(verse) };
+  };
+
+  const getBookMetaByKo = (bookKo) => BIBLE_BOOKS.find((meta) => meta.ko === bookKo || BOOK_NAME_KO[meta.book] === bookKo);
+
+  const getVerseTextByKey = (key) => {
+    const info = splitVerseKey(key);
+    if (!info.bookKo || !info.chapter || !info.verse) return '';
+    const data = allBibleData[info.translation] || allBibleData[translationId] || allBibleData.KRV;
+    const meta = getBookMetaByKo(info.bookKo);
+    const book = getBook(data, meta?.book, info.bookKo);
+    const chapter = (book?.chapters || []).find((item) => Number(item.chapter) === info.chapter);
+    const verse = (chapter?.verses || []).find((item) => Number(item.verse) === info.verse);
+    return verse?.text ?? verse?.hangulText ?? '';
+  };
+
+  const labelFromVerseKey = (key) => {
+    const info = splitVerseKey(key);
+    return `${info.bookKo || ''} ${info.chapter || ''}:${info.verse || ''}`.trim();
+  };
+
+  const openVerseFromSavedKey = (key) => {
+    const info = splitVerseKey(key);
+    const meta = getBookMetaByKo(info.bookKo);
+    if (!meta || !info.chapter || !info.verse) {
+      Alert.alert('본문 열기', '해당 구절을 열 수 없습니다.');
+      return;
+    }
+    setSelectedVerses([]);
+    setReaderReturnScreen('settings');
+    if (info.translation && allBibleData[info.translation] && info.translation !== translationId) {
+      setTranslationId(info.translation);
+    }
+    setReaderContext({ type: 'chapter', book: meta.book, bookKo: meta.ko, chapter: info.chapter, verse: info.verse });
+    restoredKey.current = null;
+    pendingTargetY.current = null;
+    setScreen('reader');
+  };
+
+  const openNoteEditorForSavedKey = (key) => {
+    const label = labelFromVerseKey(key);
+    setNoteDraft(verseNotes[key] || '');
+    setNoteModal({ keys: [key], label });
+  };
+
+  const makeSavedVerseItem = (v, extra = {}) => ({
+    ...extra,
+    label: `${v.bookKo} ${v.chapter}:${v.verse}`,
+    text: v.text || getVerseTextByKey(verseKey(v)),
+    translationId,
+    updatedAt: new Date().toISOString(),
+  });
+
+  const getSavedVerseEntry = (key) => {
+    const bookmark = verseBookmarks[key];
+    const highlight = verseHighlights[key];
+    const note = verseNotes[key];
+    const types = [];
+    if (bookmark) types.push('bookmark');
+    if (highlight) types.push('highlight');
+    if (note) types.push('note');
+    const source = highlight || bookmark || {};
+    return {
+      key,
+      label: source.label || labelFromVerseKey(key),
+      text: source.text || getVerseTextByKey(key) || '',
+      note: note || '',
+      highlightColor: highlight?.color || null,
+      types,
+      updatedAt: source.updatedAt || new Date(0).toISOString(),
+    };
+  };
+
+  const savedVerseEntries = useMemo(() => {
+    const keys = [...new Set([...Object.keys(verseBookmarks), ...Object.keys(verseHighlights), ...Object.keys(verseNotes)])];
+    return keys
+      .map((key) => getSavedVerseEntry(key))
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)) || a.label.localeCompare(b.label, 'ko'));
+  }, [verseBookmarks, verseHighlights, verseNotes, allBibleData, translationId]);
+
+  const visibleSavedVerseEntries = useMemo(() => {
+    if (savedVerseView === 'all') return savedVerseEntries;
+    return savedVerseEntries.filter((entry) => entry.types.includes(savedVerseView));
+  }, [savedVerseEntries, savedVerseView]);
+
   const toggleVerseSelection = (v) => {
     const key = verseKey(v);
     setSelectedVerses((prev) => prev.some((x) => x.key === key)
@@ -1775,6 +1968,72 @@ export default function App() {
     } catch (error) {
       Alert.alert('복사 오류', '복사 기능을 불러오지 못했습니다. 앱을 다시 설치한 뒤 한 번 더 시도해 주세요.');
     }
+  };
+
+  const contactSupport = async () => {
+    const email = SUPPORT_EMAIL;
+    const subject = encodeURIComponent(`${APP_DISPLAY_NAME} 문의`);
+    const body = encodeURIComponent('문의 내용을 적어 주세요.\n\n');
+    const mailUrl = `mailto:${email}?subject=${subject}&body=${body}`;
+    try {
+      const canOpen = await Linking.canOpenURL(mailUrl);
+      if (canOpen) {
+        await Linking.openURL(mailUrl);
+        return;
+      }
+    } catch (error) {
+      // 메일 앱을 열 수 없는 경우 아래 복사 안내로 이어집니다.
+    }
+    try {
+      const Clipboard = require('expo-clipboard');
+      await Clipboard.setStringAsync(email);
+      Alert.alert('문의 이메일 복사 완료', `${email} 주소를 복사했습니다. 메일 앱에서 붙여넣어 문의해 주세요.`);
+    } catch (error) {
+      Alert.alert('문의 이메일', email);
+    }
+  };
+
+  const chooseHighlightColor = () => {
+    if (!selectedVerses.length) return;
+    Alert.alert('형광펜 색상', '선택한 말씀에 표시할 색상을 골라 주세요.', [
+      { text: '노랑', onPress: () => saveHighlightForSelection('yellow') },
+      { text: '초록', onPress: () => saveHighlightForSelection('green') },
+      { text: '파랑', onPress: () => saveHighlightForSelection('blue') },
+      { text: '분홍', onPress: () => saveHighlightForSelection('pink') },
+      { text: '형광펜 해제', style: 'destructive', onPress: clearHighlightForSelection },
+      { text: '취소', style: 'cancel' },
+    ]);
+  };
+
+  const saveHighlightForSelection = async (color) => {
+    if (!selectedVerses.length) return;
+    const next = { ...verseHighlights };
+    selectedVerses.forEach((v) => {
+      next[v.key] = makeSavedVerseItem(v, { color });
+    });
+    setVerseHighlights(next);
+    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+  };
+
+  const clearHighlightForSelection = async () => {
+    if (!selectedVerses.length) return;
+    const next = { ...verseHighlights };
+    selectedVerses.forEach((v) => delete next[v.key]);
+    setVerseHighlights(next);
+    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+  };
+
+  const toggleBookmarkForSelection = async () => {
+    if (!selectedVerses.length) return;
+    const next = { ...verseBookmarks };
+    const shouldRemove = selectedVerses.every((v) => !!next[v.key]);
+    selectedVerses.forEach((v) => {
+      if (shouldRemove) delete next[v.key];
+      else next[v.key] = makeSavedVerseItem(v);
+    });
+    setVerseBookmarks(next);
+    await AsyncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
+    Alert.alert('북마크', shouldRemove ? '선택한 말씀의 북마크를 해제했습니다.' : '선택한 말씀을 북마크에 저장했습니다.');
   };
 
   const openNoteForVerse = (v) => {
@@ -2244,6 +2503,12 @@ export default function App() {
             <Text style={styles.selectionCount}>{selectedVerses.length}절 선택</Text>
             <TouchableOpacity onPress={copySelectedVerses} style={styles.selectionAction}><Text style={styles.selectionActionText}>복사</Text></TouchableOpacity>
             <TouchableOpacity onPress={openNoteForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>메모</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => saveHighlightForSelection('yellow')} style={[styles.highlightColorButton, styles.highlight_yellow]}><Text style={styles.highlightColorText}>노</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => saveHighlightForSelection('green')} style={[styles.highlightColorButton, styles.highlight_green]}><Text style={styles.highlightColorText}>초</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => saveHighlightForSelection('blue')} style={[styles.highlightColorButton, styles.highlight_blue]}><Text style={styles.highlightColorText}>파</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => saveHighlightForSelection('pink')} style={[styles.highlightColorButton, styles.highlight_pink]}><Text style={styles.highlightColorText}>분</Text></TouchableOpacity>
+            <TouchableOpacity onPress={clearHighlightForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>형광해제</Text></TouchableOpacity>
+            <TouchableOpacity onPress={toggleBookmarkForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>북마크</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setSelectedVerses([])} style={styles.selectionClear}><Text style={styles.selectionClearText}>해제</Text></TouchableOpacity>
           </View>
         )}
@@ -2283,7 +2548,7 @@ export default function App() {
                         }, 180);
                       }
                     }}
-                    style={[isTargetVerse && styles.targetVerseWrap, selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
+                    style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && styles[`highlight_${verseHighlights[verseKey(v)]?.color || 'yellow'}`], selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
                     {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
                     <TouchableOpacity
@@ -2294,6 +2559,7 @@ export default function App() {
                     >
                       <Text style={[styles.verseText, { fontSize, lineHeight: Math.round(fontSize * 1.7) }]}>
                         <Text style={styles.verseNumber}>{v.verse} </Text>{v.text}
+                        {verseBookmarks[verseKey(v)] ? <Text style={styles.noteMark}>  🔖</Text> : null}
                         {verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
                       </Text>
                     </TouchableOpacity>
@@ -2374,7 +2640,7 @@ export default function App() {
           <TouchableOpacity onPress={() => setScreen('bibleIndex')} style={[styles.tab, screen === 'bibleIndex' && styles.tabActive]}><Text style={[styles.tabText, screen === 'bibleIndex' && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료기록</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>설정</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>더보기</Text></TouchableOpacity>
         </View>
 
         {screen === 'notice' ? (
@@ -2393,6 +2659,23 @@ export default function App() {
                 </View>}
               </View>
             </ScrollView>
+          ) : notificationDetailMode && pendingNotificationPost ? (
+            <View style={styles.noticeListScreen}>
+              <View style={styles.noticeListHeader}>
+                <TouchableOpacity onPress={closeNoticeDetail} style={styles.noticeBackButton}><Text style={styles.noticeBackText}>‹ 공지사항</Text></TouchableOpacity>
+                <Text style={styles.noticeListTitle}>알림 게시글</Text>
+                <View style={styles.noticeHeaderSpacer} />
+              </View>
+              <View style={styles.noticeMessage}>
+                <Text style={styles.placeholderTitle}>알림 게시글을 확인하고 있습니다</Text>
+                <Text style={styles.placeholderText}>{notificationOpenStatus || '잠시만 기다려 주세요.'}</Text>
+                {notificationOpenStatus && !notificationOpenStatus.includes('여는 중') ? (
+                  <TouchableOpacity onPress={() => { setPendingNotificationPost(null); setNotificationOpenStatus(''); setNotificationDetailMode(false); }} style={styles.notificationFallbackButton}>
+                    <Text style={styles.notificationFallbackButtonText}>공지사항 목록으로 보기</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </View>
           ) : noticeCategory ? (
             <View style={styles.noticeListScreen}>
               <TouchableOpacity onPress={() => adminRoomMode ? setAdminGroupPickerOpen(true) : setGroupPickerOpen(true)} style={styles.groupSelectorCompact}><Text style={styles.groupSelectorCompactText}>{adminRoomMode ? '🛠 관리자 관리실' : '🏠'} · {noticeGroupName}  ▼</Text></TouchableOpacity>
@@ -2502,7 +2785,57 @@ export default function App() {
           </ScrollView>
         ) : screen === 'settings' ? (
           <ScrollView contentContainerStyle={styles.settingsScreen}>
-            <Text style={styles.settingsTitle}>설정</Text>
+            <Text style={styles.settingsTitle}>더보기</Text>
+            <Text style={styles.settingsSectionTitle}>말씀 보관함</Text>
+            <View style={styles.settingsCard}>
+              <Text style={styles.settingsCardTitle}>북마크 · 형광펜 · 메모</Text>
+              <Text style={styles.settingsDescription}>저장한 말씀을 종류별로 모아보고, 말씀을 누르면 해당 성경 본문으로 바로 이동합니다. 메모가 있는 말씀은 길게 누르면 메모를 바로 수정할 수 있습니다.</Text>
+              <View style={styles.savedVerseSummaryRow}>
+                <TouchableOpacity onPress={() => setSavedVerseView('bookmark')} style={styles.savedVersePill}><Text style={styles.savedVersePillText}>🔖 북마크 {Object.keys(verseBookmarks).length}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setSavedVerseView('highlight')} style={styles.savedVersePill}><Text style={styles.savedVersePillText}>🖍 형광펜 {Object.keys(verseHighlights).length}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => setSavedVerseView('note')} style={styles.savedVersePill}><Text style={styles.savedVersePillText}>📝 메모 {Object.keys(verseNotes).length}</Text></TouchableOpacity>
+              </View>
+              <View style={styles.savedVerseTabs}>
+                {[
+                  ['all', '전체'],
+                  ['bookmark', '북마크'],
+                  ['highlight', '형광펜'],
+                  ['note', '메모'],
+                ].map(([key, label]) => (
+                  <TouchableOpacity key={key} onPress={() => setSavedVerseView(key)} style={[styles.savedVerseTab, savedVerseView === key && styles.savedVerseTabActive]}>
+                    <Text style={[styles.savedVerseTabText, savedVerseView === key && styles.savedVerseTabTextActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {savedVerseEntries.length === 0 ? (
+                <Text style={styles.savedVerseEmpty}>성경 본문에서 구절을 길게 눌러 북마크, 형광펜, 메모를 저장할 수 있습니다.</Text>
+              ) : visibleSavedVerseEntries.length === 0 ? (
+                <Text style={styles.savedVerseEmpty}>선택한 종류에 저장된 말씀이 없습니다.</Text>
+              ) : (
+                <View style={styles.savedVerseList}>
+                  {visibleSavedVerseEntries.slice(0, 30).map((entry) => (
+                    <TouchableOpacity
+                      key={entry.key}
+                      onPress={() => openVerseFromSavedKey(entry.key)}
+                      onLongPress={() => entry.note ? openNoteEditorForSavedKey(entry.key) : null}
+                      delayLongPress={450}
+                      style={[styles.savedVerseRow, entry.highlightColor && styles[`highlight_${entry.highlightColor || 'yellow'}`]]}
+                    >
+                      <Text style={styles.savedVerseLabel}>
+                        {entry.types.includes('bookmark') ? '🔖 ' : ''}
+                        {entry.types.includes('highlight') ? '🖍 ' : ''}
+                        {entry.types.includes('note') ? '📝 ' : ''}
+                        {entry.label}
+                      </Text>
+                      {entry.text ? <Text numberOfLines={2} style={styles.savedVerseText}>{entry.text}</Text> : null}
+                      {entry.note ? <Text numberOfLines={3} style={styles.savedVerseNote}>메모: {entry.note}</Text> : null}
+                    </TouchableOpacity>
+                  ))}
+                  {visibleSavedVerseEntries.length > 30 ? <Text style={styles.savedVerseMore}>최근 저장 말씀 30개를 먼저 표시합니다.</Text> : null}
+                </View>
+              )}
+            </View>
+            <View style={styles.settingsSectionGap} />
             <Text style={styles.settingsSectionTitle}>그룹</Text>
             <View style={styles.settingsCard}>
               <Text style={styles.settingsCardTitle}>그룹 설정</Text>
@@ -2580,6 +2913,10 @@ export default function App() {
                 <TouchableOpacity onPress={() => setLegalDocument('privacy')} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>개인정보 처리방침</Text><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
                 <View style={styles.legalMenuDivider} />
                 <TouchableOpacity onPress={() => setLegalDocument('terms')} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>이용약관</Text><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
+                <TouchableOpacity onPress={() => setLegalDocument('contact')} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>운영자/문의 정보</Text><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
+                <TouchableOpacity onPress={contactSupport} style={styles.legalMenuRow}><Text style={styles.legalMenuText}>문의 이메일 보내기</Text><Text style={styles.legalMenuSubText}>thimothy1226@naver.com</Text></TouchableOpacity>
               </View>
             </View>
           </ScrollView>
@@ -2939,9 +3276,9 @@ export default function App() {
 
       <Modal visible={!!legalDocument} animationType="slide" onRequestClose={() => setLegalDocument(null)}>
         <SafeAreaView style={styles.legalSafeArea}>
-          <View style={styles.legalHeader}><TouchableOpacity onPress={() => setLegalDocument(null)} style={styles.legalBackButton}><Text style={styles.legalBackText}>‹ 설정</Text></TouchableOpacity><Text style={styles.legalTitle}>{LEGAL_DOCUMENTS[legalDocument]?.title}</Text><View style={styles.legalHeaderSpacer} /></View>
+          <View style={styles.legalHeader}><TouchableOpacity onPress={() => setLegalDocument(null)} style={styles.legalBackButton}><Text style={styles.legalBackText}>‹ 더보기</Text></TouchableOpacity><Text style={styles.legalTitle}>{LEGAL_DOCUMENTS[legalDocument]?.title}</Text><View style={styles.legalHeaderSpacer} /></View>
           <ScrollView contentContainerStyle={styles.legalContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? '연대기별 성경통독 일정표는 이용자의 정보를 소중하게 보호합니다.' : '연대기별 성경통독 일정표를 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
+            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? 'GF Bible은 이용자의 정보를 소중하게 보호합니다.' : legalDocument === 'terms' ? 'GF Bible을 안전하고 편리하게 이용하기 위한 기본 약속입니다.' : '앱 사용 중 도움이 필요하면 아래 운영자 이메일로 문의해 주세요.'}</Text>
             {LEGAL_DOCUMENTS[legalDocument]?.sections.map(([heading, body]) => <View key={heading} style={styles.legalSection}><Text style={styles.legalSectionTitle}>{heading}</Text><Text style={styles.legalSectionBody}>{body}</Text></View>)}
           </ScrollView>
         </SafeAreaView>
@@ -3023,7 +3360,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  safeArea: { flex: 1, backgroundColor: '#F7F6F1', paddingTop: ANDROID_STATUS_BAR_HEIGHT }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
@@ -3096,6 +3433,8 @@ const styles = StyleSheet.create({
   notificationStatusTextOff: { color: '#806A51' },
   notificationSettingsButton: { marginTop: 16, minHeight: 48, paddingHorizontal: 16, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' },
   notificationSettingsButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
+  notificationFallbackButton: { marginTop: 18, minHeight: 46, paddingHorizontal: 18, borderRadius: 14, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center' },
+  notificationFallbackButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
   currentGroupDropdown: { alignSelf: 'flex-start', maxWidth: '100%', marginTop: 13, paddingLeft: 14, paddingRight: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F1EEE7', borderWidth: 1, borderColor: '#E1DBCF', flexDirection: 'row', alignItems: 'center', gap: 12 },
   currentGroupInline: { maxWidth: '92%', flexDirection: 'row', alignItems: 'center' },
   currentGroupDropdownLabel: { color: '#7F7666', fontSize: 12, fontWeight: '800' },
@@ -3177,9 +3516,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 22, paddingTop: Platform.OS === 'android' ? 90 : 40, paddingBottom: 120 }, recordCard: { backgroundColor: '#FFF', borderRadius: 17, padding: 16, marginBottom: 10 }, recordCardCanceled: { backgroundColor: '#F2F1ED' }, recordTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }, recordDay: { fontSize: 14, fontWeight: '900', color: '#17223B' }, recordStatus: { fontSize: 11, fontWeight: '900', color: '#8B6B35' }, canceledStatus: { color: '#9A9A95' }, recordStage: { fontSize: 11, color: '#838993', marginBottom: 4 }, recordReading: { fontSize: 15, lineHeight: 21, fontWeight: '800', color: '#303B52' }, recordDate: { fontSize: 11, lineHeight: 17, fontWeight: '700', color: '#9A7C43' }, mutedText: { color: '#A8AAA8' }, cancelDate: { marginTop: 3, fontSize: 11, color: '#A8AAA8', fontWeight: '700' }, dateHistoryBox: { marginTop: 9 }, recordActions: { marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end' }, cancelButton: { borderWidth: 1, borderColor: '#D8CFC2', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 9 }, cancelButtonText: { fontSize: 12, fontWeight: '900', color: '#7F6750' }, readAgainButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, readAgainButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, emptyCard: { marginTop: 24, backgroundColor: '#FFF', borderRadius: 16, padding: 22, alignItems: 'center' }, emptyText: { color: '#777', fontWeight: '700' },
   bibleHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E8E4DA', gap: 8 }, backButton: { paddingVertical: 8, paddingRight: 6 }, backText: { fontSize: 15, fontWeight: '900', color: '#9A7C43' }, bibleTitle: { flex: 1, fontSize: 18, fontWeight: '900', color: '#17223B' }, homeButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }, homeButtonText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
-  readerContent: { padding: 20, paddingBottom: 40 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
+  readerContent: { padding: 20, paddingBottom: ANDROID_READER_BOTTOM_SPACE }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
-  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 48 : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterNavCurrent: { minWidth: 88, textAlign: 'center', color: '#17223B', fontSize: 13, fontWeight: '900' },
+  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: ANDROID_NAV_BOTTOM_SPACE, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterNavCurrent: { minWidth: 88, textAlign: 'center', color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
@@ -3195,10 +3534,11 @@ const styles = StyleSheet.create({
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
-  selectionBar: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', gap: 8 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 9, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900', fontSize: 12 }, selectionClear: { paddingHorizontal: 6, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, highlightColorButton: { minWidth: 30, minHeight: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' }, highlightColorText: { color: '#17223B', fontWeight: '900', fontSize: 12 }, highlight_yellow: { backgroundColor: '#FFF3A3', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, highlight_green: { backgroundColor: '#DDF6C9', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, highlight_blue: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, highlight_pink: { backgroundColor: '#FFD9E8', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  savedVerseSummaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 }, savedVersePill: { backgroundColor: '#F2EBDD', borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7 }, savedVersePillText: { color: '#17223B', fontWeight: '900', fontSize: 12 }, savedVerseTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 }, savedVerseTab: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 99, backgroundColor: '#F7F4EE', borderWidth: 1, borderColor: '#E4DDD0' }, savedVerseTabActive: { backgroundColor: '#17223B', borderColor: '#17223B' }, savedVerseTabText: { color: '#625A4D', fontWeight: '900', fontSize: 12 }, savedVerseTabTextActive: { color: '#FFF' }, savedVerseEmpty: { marginTop: 14, color: '#7A746B', fontWeight: '700', lineHeight: 20 }, savedVerseList: { marginTop: 14, gap: 8 }, savedVerseRow: { borderRadius: 12, padding: 12, backgroundColor: '#F7F4EE', borderWidth: 1, borderColor: '#E4DDD0' }, savedVerseLabel: { color: '#17223B', fontWeight: '900', marginBottom: 5 }, savedVerseText: { color: '#4D5562', lineHeight: 19, fontWeight: '600' }, savedVerseNote: { marginTop: 6, color: '#6C4D20', lineHeight: 19, fontWeight: '800' }, savedVerseMore: { marginTop: 6, color: '#8B6B35', fontWeight: '800', textAlign: 'center' },
   indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
-  homologiaReaderSafe: { flex: 1, backgroundColor: '#F4F1E9' },
-  homologiaReaderHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
+  homologiaReaderSafe: { flex: 1, backgroundColor: '#F4F1E9', paddingTop: ANDROID_STATUS_BAR_HEIGHT },
+  homologiaReaderHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 12, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
   homologiaBackButton: { paddingHorizontal: 8, paddingVertical: 10 },
   homologiaBackText: { color: '#0E5947', fontSize: 15, fontWeight: '900' },
   homologiaReaderHeading: { flex: 1, alignItems: 'center' },
@@ -3215,8 +3555,8 @@ const styles = StyleSheet.create({
   homologiaVideoLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 9 },
   homologiaVideoLinkButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F0E8D7', borderWidth: 1, borderColor: '#D8C9A8' },
   homologiaVideoLinkText: { color: '#6C531F', fontSize: 11, fontWeight: '900' },
-  homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
-  homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
+  homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1', marginBottom: Platform.OS === 'android' ? 10 : 0 },
+  homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 118 : 54, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
   homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
   homologiaTextBlock: { width: '100%', borderRadius: 2 },
