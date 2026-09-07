@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build GF Bible Android APK
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout source
@@ -16,6 +16,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -29,11 +30,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Validate GF Bible source
+        run: npm run validate
+
+      - name: Verify Firebase Functions syntax
+        run: npm --prefix functions run check
+
       - name: Download KRV Bible data
         shell: bash
         run: |
           mkdir -p assets/bibles
-          curl -fL --retry 3             "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json"             -o assets/bibles/krv.json
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json" \
+            -o assets/bibles/krv.json
           echo "Downloaded KRV data:"
           ls -lh assets/bibles/krv.json
           test -s assets/bibles/krv.json
@@ -41,27 +50,25 @@ jobs:
       - name: Generate Android project
         run: CI=1 npx expo prebuild --platform android
 
-      - name: Verify KRV Bible data before release build
-        shell: bash
-        run: |
-          echo "Checking Bible data before Metro bundling..."
-          ls -lh assets/bibles/krv.json
-          test -s assets/bibles/krv.json
-
       - name: Build standalone release APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      - name: Read app version
+        id: app_version
+        run: echo "version=$(node -p \"require('./app.json').expo.version\")" >> $GITHUB_OUTPUT
+
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp android/app/build/outputs/apk/release/app-release.apk "output/연대기별-성경통독-일정표-v2.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "output/GF-Bible-v${{ steps.app_version.outputs.version }}.apk"
+          ls -lh output
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chronological-bible-reading-v2-release-apk
+          name: GF-Bible-v${{ steps.app_version.outputs.version }}-release-apk
           path: output/*.apk
           retention-days: 30
