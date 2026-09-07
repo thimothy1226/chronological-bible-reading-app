@@ -45,6 +45,14 @@ jobs:
       - name: Validate Firebase Functions syntax
         run: node --check functions/index.js
 
+      - name: Prepare GF Bible app icon
+        shell: bash
+        run: |
+          test -s assets/gf-bible-icon.base64
+          base64 --decode assets/gf-bible-icon.base64 > assets/icon.png
+          test -s assets/icon.png
+          file assets/icon.png
+
       - name: Download KRV Bible data
         shell: bash
         run: |
