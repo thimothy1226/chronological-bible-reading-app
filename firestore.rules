@@ -76,13 +76,19 @@ service cloud.firestore {
 
       // 최고관리자와 대표관리자는 새 그룹을 만들 수 있다.
       allow create: if isRepresentativeAdmin();
-      allow delete: if isSuperAdmin() || isGroupManager(groupId);
+      // 그룹 자체 삭제는 최고관리자만 가능하다.
+      allow delete: if isSuperAdmin();
 
-      // 대표/부대표 모두 담당 그룹의 주소와 소개를 수정할 수 있다.
+      // 대표/부대표는 담당 그룹의 주소와 소개를 수정할 수 있다.
+      // 새 그룹을 만든 대표관리자는 생성 직후 관리번호를 기록할 수 있다.
       allow update: if isSuperAdmin()
         || (managesGroup(groupId)
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['address', 'description', 'updatedAt']));
+            .hasOnly(['address', 'description', 'updatedAt']))
+        || (isRepresentativeAdmin()
+          && resource.data.createdBy == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['managementCode', 'updatedAt']));
     }
 
     match /memberships/{membershipId} {
@@ -143,7 +149,12 @@ service cloud.firestore {
           && resource.data.groupIds.hasAny(adminData().groupIds)
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['groupIds', 'groupRoles', 'active', 'role', 'updatedAt'])
-          && (resource.data.get('role', '') == 'subAdmin' || request.resource.data.get('role', '') == 'subAdmin'));
+          && (resource.data.get('role', '') == 'subAdmin' || request.resource.data.get('role', '') == 'subAdmin'))
+        || (signedIn()
+          && request.auth.uid == adminId
+          && isRepresentativeAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['groupIds', 'groupRoles', 'active', 'role', 'updatedAt']));
 
       // 대표관리자는 자신의 그룹에 속한 부대표관리자를 삭제할 수 있다.
       allow delete: if isSuperAdmin()
