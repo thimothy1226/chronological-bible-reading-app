@@ -1,0 +1,47 @@
+name: Apply GF Bible Stage3
+
+on:
+  push:
+    branches:
+      - gf-bible-update-20260907
+    paths:
+      - scripts/gf-bible-stage3.mjs
+      - .github/workflows/apply-gf-bible-stage3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: gf-bible-update-20260907
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Syntax check patch
+        run: node --check scripts/gf-bible-stage3.mjs
+
+      - name: Apply App.js patch
+        run: node scripts/gf-bible-stage3.mjs
+
+      - name: Commit App.js changes
+        shell: bash
+        run: |
+          if git diff --quiet -- App.js; then
+            echo "No App.js changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add App.js
+          git commit -m "fix: align representative and deputy admin permissions"
+          git push origin HEAD:gf-bible-update-20260907
