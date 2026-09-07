@@ -65,6 +65,8 @@ const TRANSLATION_KEY = '@chronological_bible/translation';
 const FONT_SIZE_KEY = '@chronological_bible/font_size';
 const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
+const VERSE_BOOKMARKS_KEY = '@gf_bible/verse_bookmarks';
+const VERSE_HIGHLIGHTS_KEY = '@gf_bible/verse_highlights';
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
@@ -388,6 +390,9 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [selectedVerses, setSelectedVerses] = useState([]);
   const [verseNotes, setVerseNotes] = useState({});
+  const [verseBookmarks, setVerseBookmarks] = useState({});
+  const [verseHighlights, setVerseHighlights] = useState({});
+  const [moreMode, setMoreMode] = useState(null);
   const [noteModal, setNoteModal] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [completionModal, setCompletionModal] = useState(null);
@@ -766,7 +771,7 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, READING_PLAN_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, READING_PLAN_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, VERSE_BOOKMARKS_KEY, VERSE_HIGHLIGHTS_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
         ]);
         const saved = Object.fromEntries(rows);
         const savedPlanId = READING_PLANS[saved[READING_PLAN_KEY]] ? saved[READING_PLAN_KEY] : DEFAULT_READING_PLAN_ID;
@@ -796,6 +801,8 @@ export default function App() {
         setFontSize(Number.isFinite(f) ? Math.min(48, Math.max(15, f)) : 19);
         setReaderPositions(safeParseJson(saved[READER_POSITIONS_KEY], {}));
         setVerseNotes(safeParseJson(saved[VERSE_NOTES_KEY], {}));
+        setVerseBookmarks(safeParseJson(saved[VERSE_BOOKMARKS_KEY], {}));
+        setVerseHighlights(safeParseJson(saved[VERSE_HIGHLIGHTS_KEY], {}));
         const homologiaScale = Number(saved[HOMOLOGIA_FONT_SCALE_KEY] || 1);
         setHomologiaFontScale(Number.isFinite(homologiaScale) ? Math.min(4, Math.max(0.75, homologiaScale)) : 1);
         const savedPdfScale = Number(saved[HOMOLOGIA_PDF_SCALE_KEY] || 1);
@@ -1498,15 +1505,20 @@ export default function App() {
       Alert.alert('초대 코드 없음', '먼저 초대 코드를 설정해 주세요.');
       return;
     }
-    try {
-      await Share.share({
-        title: `${group.name} 초대`,
-        message: `${group.name}에 초대합니다.\n연대기별 성경통독 일정표 앱에서 아래 초대 코드를 입력해 주세요.\n\n초대 코드: ${code}`,
-      });
-    } catch (error) {
-      console.warn('Invite share failed:', error);
-      Alert.alert('공유 실패', '초대 코드를 공유하지 못했습니다.');
-    }
+    Alert.alert('초대 코드 보내기', `「${group.name}」의 초대 코드를 보내시려는 게 맞습니까?`, [
+      { text: '아니오', style: 'cancel' },
+      { text: '예', onPress: async () => {
+        try {
+          await Share.share({
+            title: `${group.name} 초대`,
+            message: `${group.name}에 초대합니다.\nGF 바이블 앱에서 아래 초대 코드를 입력해 주세요.\n\n초대 코드: ${code}`,
+          });
+        } catch (error) {
+          console.warn('Invite share failed:', error);
+          Alert.alert('공유 실패', '초대 코드를 공유하지 못했습니다.');
+        }
+      } },
+    ]);
   };
 
   const copyGroupInviteCode = async (group = adminGroup) => {
@@ -1809,6 +1821,30 @@ export default function App() {
     setSelectedVerses((prev) => prev.some((x) => x.key === key)
       ? prev.filter((x) => x.key !== key)
       : [...prev, { ...v, key }]);
+  };
+
+  const toggleBookmarkForSelection = async () => {
+    if (!selectedVerses.length) return;
+    const allBookmarked = selectedVerses.every((v) => verseBookmarks[v.key]);
+    const next = { ...verseBookmarks };
+    selectedVerses.forEach((v) => {
+      if (allBookmarked) delete next[v.key];
+      else next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime() };
+    });
+    setVerseBookmarks(next);
+    await AsyncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
+  };
+
+  const toggleHighlightForSelection = async () => {
+    if (!selectedVerses.length) return;
+    const allHighlighted = selectedVerses.every((v) => verseHighlights[v.key]);
+    const next = { ...verseHighlights };
+    selectedVerses.forEach((v) => {
+      if (allHighlighted) delete next[v.key];
+      else next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime() };
+    });
+    setVerseHighlights(next);
+    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
   };
 
   const copySelectedVerses = async () => {
@@ -2294,6 +2330,8 @@ export default function App() {
           <View style={styles.selectionBar}>
             <Text style={styles.selectionCount}>{selectedVerses.length}절 선택</Text>
             <TouchableOpacity onPress={copySelectedVerses} style={styles.selectionAction}><Text style={styles.selectionActionText}>복사</Text></TouchableOpacity>
+            <TouchableOpacity onPress={toggleBookmarkForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>북마크</Text></TouchableOpacity>
+            <TouchableOpacity onPress={toggleHighlightForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>형광펜</Text></TouchableOpacity>
             <TouchableOpacity onPress={openNoteForSelection} style={styles.selectionAction}><Text style={styles.selectionActionText}>메모</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setSelectedVerses([])} style={styles.selectionClear}><Text style={styles.selectionClearText}>해제</Text></TouchableOpacity>
           </View>
@@ -2334,7 +2372,7 @@ export default function App() {
                         }, 180);
                       }
                     }}
-                    style={[isTargetVerse && styles.targetVerseWrap, selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
+                    style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && styles.highlightedVerseWrap, selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
                     {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
                     <TouchableOpacity
@@ -2345,7 +2383,7 @@ export default function App() {
                     >
                       <Text style={[styles.verseText, { fontSize, lineHeight: Math.round(fontSize * 1.7) }]}>
                         <Text style={styles.verseNumber}>{v.verse} </Text>{v.text}
-                        {verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
+                        {verseBookmarks[verseKey(v)] ? <Text style={styles.noteMark}>  🔖</Text> : null}{verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -2424,7 +2462,7 @@ export default function App() {
           <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={openChapterReader} style={[styles.tab, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabActive]}><Text style={[styles.tabText, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('records')} style={[styles.tab, screen === 'records' && styles.tabActive]}><Text style={[styles.tabText, screen === 'records' && styles.tabTextActive]}>완료기록</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => { setMoreMode(null); setScreen('more'); }} style={[styles.tab, screen === 'more' && styles.tabActive]}><Text style={[styles.tabText, screen === 'more' && styles.tabTextActive]}>더보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => setScreen('settings')} style={[styles.tab, screen === 'settings' && styles.tabActive]}><Text style={[styles.tabText, screen === 'settings' && styles.tabTextActive]}>설정</Text></TouchableOpacity>
         </View>
 
@@ -2551,6 +2589,31 @@ export default function App() {
               ))}
             </View>
           </ScrollView>
+        ) : screen === 'more' ? (
+          <ScrollView contentContainerStyle={styles.moreScreen}>
+            <View style={styles.moreHeaderRow}>
+              <View><Text style={styles.settingsTitle}>{moreMode ? (moreMode === 'bookmarks' ? '북마크 모아보기' : moreMode === 'highlights' ? '형광펜 모아보기' : '메모 모아보기') : '더보기'}</Text><Text style={styles.recordsSubtitle}>{moreMode ? '저장한 말씀을 한곳에서 확인합니다.' : '저장한 말씀과 메모를 모아볼 수 있습니다.'}</Text></View>
+              {moreMode ? <TouchableOpacity onPress={() => setMoreMode(null)} style={styles.moreBackButton}><Text style={styles.moreBackButtonText}>‹ 목록</Text></TouchableOpacity> : null}
+            </View>
+            {!moreMode ? (
+              <View style={styles.moreMenuCard}>
+                <TouchableOpacity onPress={() => setMoreMode('bookmarks')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>🔖 북마크 모아보기</Text><Text style={styles.moreMenuDescription}>저장한 말씀 {Object.keys(verseBookmarks).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
+                <TouchableOpacity onPress={() => setMoreMode('highlights')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>🖍 형광펜 모아보기</Text><Text style={styles.moreMenuDescription}>표시한 말씀 {Object.keys(verseHighlights).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
+                <TouchableOpacity onPress={() => setMoreMode('notes')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>📝 메모 모아보기</Text><Text style={styles.moreMenuDescription}>작성한 메모 {Object.keys(verseNotes).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.savedVerseList}>
+                {Object.entries(moreMode === 'bookmarks' ? verseBookmarks : moreMode === 'highlights' ? verseHighlights : verseNotes).length ? Object.entries(moreMode === 'bookmarks' ? verseBookmarks : moreMode === 'highlights' ? verseHighlights : verseNotes).map(([key, value]) => {
+                  const parts = key.split(':');
+                  const label = value?.label || `${parts[1] || ''} ${parts[2] || ''}:${parts[3] || ''}`;
+                  const body = typeof value === 'string' ? value : (value?.text || '');
+                  return <View key={key} style={styles.savedVerseCard}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}</View>;
+                }) : <View style={styles.emptyCard}><Text style={styles.emptyText}>아직 저장된 내용이 없습니다.</Text></View>}
+              </View>
+            )}
+          </ScrollView>
         ) : screen === 'settings' ? (
           <ScrollView contentContainerStyle={styles.settingsScreen}>
             <Text style={styles.settingsTitle}>설정</Text>
@@ -2568,6 +2631,7 @@ export default function App() {
                 <Text style={styles.memberProfileMeta}>회원번호 · {memberUser?.uid ? `M-${memberUser.uid.slice(-6).toUpperCase()}` : '준비 중'}</Text>
                 {nicknameRemainingText(currentMembership) ? <Text style={styles.nicknameWaitText}>{nicknameRemainingText(currentMembership)}</Text> : null}
                 <View style={styles.memberProfileActions}><TouchableOpacity onPress={() => openNicknameEditor()} style={styles.memberProfileButton}><Text style={styles.memberProfileButtonText}>{currentMembership?.nickname ? '닉네임 변경' : '닉네임 등록'}</Text></TouchableOpacity><TouchableOpacity onPress={leaveCurrentGroup} style={styles.memberLeaveButton}><Text style={styles.memberLeaveButtonText}>그룹 탈퇴</Text></TouchableOpacity></View>
+                <TouchableOpacity onPress={() => shareGroupInvite(currentGroup)} style={styles.shareInviteButton}><Text style={styles.shareInviteButtonText}>초대 코드 보내기</Text></TouchableOpacity>
               </View>}
               <TouchableOpacity onPress={() => setJoinGroupOpen(true)} style={styles.registerAdminButton}><Text style={styles.registerAdminButtonText}>＋ 초대 코드로 그룹 가입</Text></TouchableOpacity>
             </View>
@@ -3155,6 +3219,7 @@ const styles = StyleSheet.create({
   noticePostLink: { color: '#1769AA', fontWeight: '800', textDecorationLine: 'underline' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
+  moreScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 }, moreHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }, moreBackButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E9E5DC' }, moreBackButtonText: { color: '#655332', fontSize: 12, fontWeight: '900' }, moreMenuCard: { borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' }, moreMenuRow: { minHeight: 76, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, moreMenuTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' }, moreMenuDescription: { marginTop: 4, color: '#7A7F87', fontSize: 11, fontWeight: '700' }, savedVerseList: { gap: 10 }, savedVerseCard: { padding: 16, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' }, savedVerseLabel: { color: '#8B6B35', fontSize: 13, fontWeight: '900', marginBottom: 7 }, savedVerseText: { color: '#303B52', fontSize: 14, lineHeight: 21, fontWeight: '700' }, savedVerseDate: { marginTop: 8, color: '#93979E', fontSize: 10, fontWeight: '700' },
   settingsSectionGap: { height: 24 },
   settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
   settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
@@ -3270,7 +3335,7 @@ const styles = StyleSheet.create({
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
-  selectionBar: { paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', gap: 8 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
   homologiaReaderSafe: { flex: 1, backgroundColor: '#F4F1E9' },
   homologiaReaderHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
