@@ -1688,6 +1688,51 @@ export default function App() {
     setPostEditor(post || { category: noticeCategory, groupId: noticeGroupId, groupName: noticeGroupName });
   };
 
+  const waitForNotificationDelivery = (postId, timeoutMs = 15000) => new Promise((resolve) => {
+    let unsubscribe = null;
+    let finished = false;
+    const finish = (result) => {
+      if (finished) return;
+      finished = true;
+      if (unsubscribe) unsubscribe();
+      clearTimeout(timer);
+      resolve(result);
+    };
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    unsubscribe = onSnapshot(doc(firestore, 'notificationDeliveries', postId), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const result = snapshot.data();
+      if (result.status === 'complete' || result.status === 'failed') finish(result);
+    }, (error) => {
+      console.warn('Notification delivery check failed:', error);
+      finish({ status: 'check-failed', errorCode: error?.code || 'unknown' });
+    });
+  });
+
+  const showNotificationDeliveryResult = (result) => {
+    if (!result) {
+      Alert.alert('공지 등록 완료', '게시글은 등록되었습니다. 알림 서버가 아직 처리 중이어서 발송 결과 확인이 지연되고 있습니다.');
+      return;
+    }
+    if (result.status === 'failed') {
+      Alert.alert('공지 등록 · 알림 실패', `게시글은 등록되었지만 알림 전송에 실패했습니다.\n오류: ${result.errorCode || 'unknown'}`);
+      return;
+    }
+    if (result.status === 'check-failed') {
+      Alert.alert('공지 등록 완료', '게시글은 등록되었습니다. 다만 현재 계정으로 알림 발송 결과를 확인하지 못했습니다.');
+      return;
+    }
+    const memberCount = Number(result.memberCount || 0);
+    const tokenCount = Number(result.tokenCount || 0);
+    const sent = Number(result.sent || 0);
+    const failed = Number(result.failed || 0);
+    if (!tokenCount) {
+      Alert.alert('공지 등록 · 알림 점검', `게시글은 등록되었습니다.\n활성 회원 ${memberCount}명 중 알림을 받을 수 있는 휴대폰 토큰이 없습니다. 회원 휴대폰의 알림 권한과 앱 실행 여부를 확인해 주세요.`);
+      return;
+    }
+    Alert.alert('공지 등록 · 알림 점검', `활성 회원 ${memberCount}명 · 알림 토큰 ${tokenCount}개\n발송 성공 ${sent}건 · 실패 ${failed}건`);
+  };
+
   const saveCommunityPost = async () => {
     if (!canManageCurrentGroup) return;
     if (!postTitle.trim() || !postBody.trim()) {
@@ -1696,12 +1741,13 @@ export default function App() {
     }
     setAdminBusy(true);
     try {
+      let createdPostId = null;
       if (postEditor?.id) {
         await updateDoc(doc(firestore, 'communityPosts', postEditor.id), {
           title: postTitle.trim(), body: postBody.trim(), updatedAt: serverTimestamp(),
         });
       } else {
-        await addDoc(collection(firestore, 'communityPosts'), {
+        const createdPost = await addDoc(collection(firestore, 'communityPosts'), {
           category: postEditor?.category || noticeCategory,
           groupId: postEditor?.groupId || noticeGroupId,
           groupName: postEditor?.groupName || noticeGroupName,
@@ -1712,10 +1758,16 @@ export default function App() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        createdPostId = createdPost.id;
       }
       setPostEditor(null);
       setPostTitle('');
       setPostBody('');
+      if (createdPostId) {
+        waitForNotificationDelivery(createdPostId)
+          .then(showNotificationDeliveryResult)
+          .catch((error) => console.warn('Notification delivery result failed:', error));
+      }
     } catch (error) {
       console.warn('Community post save failed:', error);
       Alert.alert('저장 실패', '글을 저장하지 못했습니다. 인터넷 연결을 확인해 주세요.');
@@ -3467,9 +3519,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 22, paddingTop: Platform.OS === 'android' ? 90 : 40, paddingBottom: 120 }, recordCard: { backgroundColor: '#FFF', borderRadius: 17, padding: 16, marginBottom: 10 }, recordCardCanceled: { backgroundColor: '#F2F1ED' }, recordTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }, recordDay: { fontSize: 14, fontWeight: '900', color: '#17223B' }, recordStatus: { fontSize: 11, fontWeight: '900', color: '#8B6B35' }, canceledStatus: { color: '#9A9A95' }, recordStage: { fontSize: 11, color: '#838993', marginBottom: 4 }, recordReading: { fontSize: 15, lineHeight: 21, fontWeight: '800', color: '#303B52' }, recordDate: { fontSize: 11, lineHeight: 17, fontWeight: '700', color: '#9A7C43' }, mutedText: { color: '#A8AAA8' }, cancelDate: { marginTop: 3, fontSize: 11, color: '#A8AAA8', fontWeight: '700' }, dateHistoryBox: { marginTop: 9 }, recordActions: { marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end' }, cancelButton: { borderWidth: 1, borderColor: '#D8CFC2', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 9 }, cancelButtonText: { fontSize: 12, fontWeight: '900', color: '#7F6750' }, readAgainButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, readAgainButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, emptyCard: { marginTop: 24, backgroundColor: '#FFF', borderRadius: 16, padding: 22, alignItems: 'center' }, emptyText: { color: '#777', fontWeight: '700' },
   bibleHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E8E4DA', gap: 8 }, backButton: { paddingVertical: 8, paddingRight: 6 }, backText: { fontSize: 15, fontWeight: '900', color: '#9A7C43' }, bibleTitle: { flex: 1, fontSize: 18, fontWeight: '900', color: '#17223B' }, homeButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }, homeButtonText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
-  readerContent: { padding: 20, paddingBottom: Platform.OS === 'android' ? 110 : 72 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
+  readerContent: { padding: 20, paddingBottom: Platform.OS === 'android' ? 150 : 84 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
-  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? Math.max(18, Math.round((StatusBar.currentHeight || 24) * 0.9)) : 16, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
+  chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 46 : 18, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
