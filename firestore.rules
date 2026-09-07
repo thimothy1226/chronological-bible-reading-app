@@ -108,6 +108,15 @@ service cloud.firestore {
         && request.resource.data.memberUid == request.auth.uid;
     }
 
+
+    match /notificationDeliveries/{deliveryId} {
+      allow read: if isSuperAdmin()
+        || (signedIn()
+          && ('groupId' in resource.data)
+          && managesGroup(resource.data.groupId));
+      allow create, update, delete: if false;
+    }
+
     match /admins/{adminId} {
       allow read: if isSuperAdmin()
         || (signedIn() && request.auth.uid == adminId)
