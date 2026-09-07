@@ -6,6 +6,7 @@ on:
       - gf-bible-update-20260907
     paths:
       - scripts/gf-bible-stage1.mjs
+      - scripts/run-gf-bible-stage1.mjs
       - .github/workflows/apply-gf-bible-stage1.yml
   workflow_dispatch:
 
@@ -28,10 +29,10 @@ jobs:
           node-version: '22'
 
       - name: Apply App.js patch
-        run: node scripts/gf-bible-stage1.mjs
+        run: node scripts/run-gf-bible-stage1.mjs
 
-      - name: Syntax check patch script
-        run: node --check scripts/gf-bible-stage1.mjs
+      - name: Syntax check runner
+        run: node --check scripts/run-gf-bible-stage1.mjs
 
       - name: Commit App.js changes
         shell: bash
