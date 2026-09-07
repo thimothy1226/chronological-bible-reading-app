@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Directory, File, Paths } from 'expo-file-system';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Notifications from 'expo-notifications';
 import { Buffer } from 'buffer';
 import iconv from 'iconv-lite';
@@ -72,6 +73,7 @@ const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
 const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
 const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_positions';
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
+const BIBLE_IMPORT_FOLDER_URI_KEY = '@gf_bible/bible_import_folder_uri';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
@@ -2007,11 +2009,38 @@ export default function App() {
     }
     setImportingBible(true);
     try {
-      const selectedDirectory = await Directory.pickDirectoryAsync();
-      if (!selectedDirectory) return;
+      let selectedDirectory = null;
+      let savedFolderUri = await AsyncStorage.getItem(BIBLE_IMPORT_FOLDER_URI_KEY);
+
+      // Android 보안 정책상 Download/Bible을 앱이 무단으로 훑을 수는 없습니다.
+      // 한 번 사용자가 폴더 접근을 허용하면 이후부터는 저장된 폴더를 먼저 자동 확인합니다.
+      if (savedFolderUri) {
+        try {
+          const remembered = new Directory(savedFolderUri);
+          const rememberedFiles = remembered.list().filter((item) => item.name?.toLowerCase().endsWith('.bdf'));
+          if (rememberedFiles.length) selectedDirectory = remembered;
+        } catch (error) {
+          console.warn('Saved Bible folder access failed:', error);
+          savedFolderUri = null;
+          await AsyncStorage.removeItem(BIBLE_IMPORT_FOLDER_URI_KEY);
+        }
+      }
+
+      if (!selectedDirectory) {
+        let initialUri = null;
+        try {
+          initialUri = FileSystemLegacy.StorageAccessFramework.getUriForDirectoryInRoot('Download');
+        } catch {}
+        const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
+        if (!permission?.granted || !permission?.directoryUri) return;
+        selectedDirectory = new Directory(permission.directoryUri);
+        await AsyncStorage.setItem(BIBLE_IMPORT_FOLDER_URI_KEY, permission.directoryUri);
+      }
+
       const bdfFiles = selectedDirectory.list().filter((item) => item.name?.toLowerCase().endsWith('.bdf'));
       if (!bdfFiles.length) {
-        Alert.alert('BDF 파일 없음', '선택한 폴더에서 .bdf 파일을 찾지 못했습니다.');
+        await AsyncStorage.removeItem(BIBLE_IMPORT_FOLDER_URI_KEY);
+        Alert.alert('BDF 파일 없음', '선택한 폴더에서 .bdf 파일을 찾지 못했습니다. 다음 등록 때 Download 폴더에서 Bible 폴더를 다시 선택해 주세요.');
         return;
       }
 
@@ -2676,9 +2705,9 @@ export default function App() {
             <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
             <View style={styles.settingsCard}>
               <Text style={styles.settingsCardTitle}>BDF 성경 데이터 등록</Text>
-              <Text style={styles.settingsDescription}>성경 데이터가 들어 있는 폴더를 선택하면 같은 이름의 분할 BDF 파일들을 하나의 번역본으로 합쳐 이 휴대폰에만 저장합니다.</Text>
+              <Text style={styles.settingsDescription}>처음 한 번 Download/Bible 폴더 접근을 허용하면 이후에는 그 폴더의 새 BDF 파일을 먼저 자동 확인합니다. 접근이 없거나 파일이 없으면 폴더를 다시 선택할 수 있습니다.</Text>
               <TouchableOpacity disabled={importingBible} onPress={importBibleFolder} style={[styles.importBibleButton, importingBible && styles.importBibleButtonDisabled]}>
-                <Text style={styles.importBibleButtonText}>{importingBible ? 'BDF 파일 확인 중…' : '＋ 성경번역본 추가'}</Text>
+                <Text style={styles.importBibleButtonText}>{importingBible ? 'BDF 파일 확인 중…' : '＋ BDF 자동 확인 · 번역본 추가'}</Text>
               </TouchableOpacity>
               <Text style={styles.privateImportNotice}>APK와 GitHub에는 개인 번역본이 포함되지 않으며 인터넷 연결 없이 사용합니다.</Text>
             </View>
