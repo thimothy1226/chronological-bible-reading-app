@@ -1,4 +1,5 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
@@ -10,6 +11,44 @@ const chunk = (items, size) => {
   for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
   return result;
 };
+
+exports.repairLegacyAdminAccess = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const uid = request.auth?.uid;
+  const email = String(request.auth?.token?.email || '').trim().toLowerCase();
+  if (!uid || !email) throw new HttpsError('unauthenticated', '관리자 로그인이 필요합니다.');
+
+  const db = getFirestore();
+  const uidRef = db.collection('admins').doc(uid);
+  const uidSnapshot = await uidRef.get();
+  if (uidSnapshot.exists) {
+    const data = uidSnapshot.data();
+    if (data?.active === false) throw new HttpsError('permission-denied', '비활성 관리자 계정입니다.');
+    return { repaired: false, role: data?.role || null, groupIds: data?.groupIds || [] };
+  }
+
+  const legacySnapshot = await db.collection('admins').where('email', '==', email).limit(10).get();
+  const legacy = legacySnapshot.docs.find((item) => item.data()?.active !== false && String(item.data()?.email || '').trim().toLowerCase() === email);
+  if (!legacy) throw new HttpsError('permission-denied', '등록된 관리자 권한을 찾지 못했습니다.');
+
+  const data = legacy.data() || {};
+  const safeGroupIds = Array.isArray(data.groupIds) ? data.groupIds.map(String) : [];
+  const safeGroupRoles = data.groupRoles && typeof data.groupRoles === 'object' ? data.groupRoles : {};
+  const safeRole = data.role === 'subAdmin' ? 'subAdmin' : 'groupAdmin';
+
+  await uidRef.set({
+    uid,
+    email,
+    role: safeRole,
+    groupIds: safeGroupIds,
+    groupRoles: safeGroupRoles,
+    active: true,
+    migratedFrom: legacy.id,
+    migratedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  return { repaired: true, role: safeRole, groupIds: safeGroupIds };
+});
 
 exports.notifyCommunityPostCreated = onDocumentCreated({
   document: 'communityPosts/{postId}',
@@ -27,8 +66,7 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
     throw error;
   }
 
-  // 멤버의 pushDevices.groupIds 값이 오래된 경우에도 누락되지 않도록
-  // 실제 활성 membership을 기준으로 수신자를 결정한다.
+  // pushDevices.groupIds 값이 오래되어도 실제 활성 membership을 기준으로 수신자를 결정한다.
   const membershipSnapshot = await db.collection('memberships')
     .where('groupId', '==', post.groupId)
     .get();
@@ -51,6 +89,7 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
     await deliveryRef.set({
       status: 'complete', sent: 0, failed: 0,
       activeMembers: activeMemberUids.length,
+      tokenCount: 0,
       completedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     return;
