@@ -93,7 +93,7 @@ const LEGAL_DOCUMENTS = {
   terms: {
     title: '이용약관',
     sections: [
-      ['1. 목적', '이 약관은 GF 바이블 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
+      ['1. 목적', '이 약관은 GF Bible 앱이 제공하는 성경 읽기, 기록, 그룹 공지 및 관련 기능의 이용 기준을 정합니다.'],
       ['2. 서비스 이용', '이용자는 본 약관과 관계 법령을 준수하여 서비스를 이용해야 합니다. 서비스 일부 기능은 그룹 가입 또는 관리자 권한이 필요할 수 있습니다.'],
       ['3. 이용자의 책임', '이용자는 타인의 권리를 침해하거나 불법·유해한 게시물을 등록해서는 안 되며, 자신이 작성한 게시물과 등록한 자료에 대한 책임을 집니다.'],
       ['4. 게시물 관리', '운영자 또는 그룹 관리자는 관계 법령이나 공동체 운영 기준에 어긋나는 게시물을 사전 통지 없이 숨기거나 삭제할 수 있습니다.'],
@@ -1511,7 +1511,7 @@ export default function App() {
         try {
           await Share.share({
             title: `${group.name} 초대`,
-            message: `${group.name}에 초대합니다.\nGF 바이블 앱에서 아래 초대 코드를 입력해 주세요.\n\n초대 코드: ${code}`,
+            message: `${group.name}에 초대합니다.\nGF Bible 앱에서 아래 초대 코드를 입력해 주세요.\n\n초대 코드: ${code}`,
           });
         } catch (error) {
           console.warn('Invite share failed:', error);
@@ -2453,7 +2453,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.app}>
         <View style={styles.header}>
-          <View><Text style={styles.eyebrow}>GF BIBLE</Text><Text style={styles.title}>GF 바이블</Text></View>
+          <View><Text style={styles.eyebrow}>GF BIBLE</Text><Text style={styles.title}>GF Bible</Text></View>
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
@@ -3080,7 +3080,7 @@ export default function App() {
         <SafeAreaView style={styles.legalSafeArea}>
           <View style={styles.legalHeader}><TouchableOpacity onPress={() => setLegalDocument(null)} style={styles.legalBackButton}><Text style={styles.legalBackText}>‹ 설정</Text></TouchableOpacity><Text style={styles.legalTitle}>{LEGAL_DOCUMENTS[legalDocument]?.title}</Text><View style={styles.legalHeaderSpacer} /></View>
           <ScrollView contentContainerStyle={styles.legalContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? 'GF 바이블은 이용자의 정보를 소중하게 보호합니다.' : 'GF 바이블을 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
+            <Text style={styles.legalIntro}>{legalDocument === 'privacy' ? 'GF Bible은 이용자의 정보를 소중하게 보호합니다.' : 'GF Bible을 안전하고 편리하게 이용하기 위한 기본 약속입니다.'}</Text>
             {LEGAL_DOCUMENTS[legalDocument]?.sections.map(([heading, body]) => <View key={heading} style={styles.legalSection}><Text style={styles.legalSectionTitle}>{heading}</Text><Text style={styles.legalSectionBody}>{body}</Text></View>)}
           </ScrollView>
         </SafeAreaView>
