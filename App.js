@@ -9,13 +9,13 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Notifications from 'expo-notifications';
 import { Buffer } from 'buffer';
 import iconv from 'iconv-lite';
-import Pdf from 'react-native-pdf';
 import { DEFAULT_READING_PLAN_ID, READING_PLAN_DEFINITIONS, READING_PLANS } from './assets/readingPlans';
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
-import homologiaPdfBase64 from './assets/homologia-pdf';
+import homologiaPageImages from './assets/homologia-pages';
+import homologiaPageLinks from './assets/homologia-links.json';
 import { initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword, EmailAuthProvider, getReactNativePersistence, inMemoryPersistence,
@@ -413,6 +413,7 @@ export default function App() {
   const [homologiaPdfScale, setHomologiaPdfScale] = useState(1);
   const [homologiaPdfStartPage, setHomologiaPdfStartPage] = useState(1);
   const [homologiaPdfJumpKey, setHomologiaPdfJumpKey] = useState(0);
+  const [homologiaPageWidth, setHomologiaPageWidth] = useState(0);
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
@@ -490,6 +491,7 @@ export default function App() {
   const restoredKey = useRef(null);
   const homologiaPdfScaleRef = useRef(1);
   const homologiaPdfPositionsRef = useRef({});
+  const homologiaPageListRef = useRef(null);
   const nicknamePromptedRef = useRef(new Set());
   const handledNotificationRef = useRef(null);
   const savedVerseReturnRef = useRef(null);
@@ -2371,7 +2373,7 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.homologiaReaderHeading}>
             <Text style={styles.homologiaReaderTitle}>{HOMOLOGIA_MENUS[homologiaSectionIndex]?.title}</Text>
-            <Text style={styles.homologiaPageRange}>{homologiaViewMode === 'pdf' ? '앱용 PDF · 바로가기 지원' : '원본 구성 · 글자 보기'}</Text>
+            <Text style={styles.homologiaPageRange}>{homologiaViewMode === 'pdf' ? '새로 작성한 PDF · 앱 바로가기' : '원본 구성 · 글자 보기'}</Text>
           </View>
           <View style={styles.homologiaFontTools}>
             {homologiaViewMode === 'text' && (
@@ -2411,30 +2413,62 @@ export default function App() {
           </View>
         )}
         {homologiaViewMode === 'pdf' ? (
-          <Pdf
-            key={`homologia-pdf-full-${homologiaSectionIndex}-${homologiaPdfJumpKey}`}
-            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
-            page={homologiaPdfStartPage}
-            scale={homologiaPdfScale}
-            minScale={1}
-            maxScale={5}
-            enablePaging={false}
-            enableAnnotationRendering
-            onScaleChanged={(scale) => {
-              const safeScale = Math.min(5, Math.max(1, Number(scale) || 1));
-              homologiaPdfScaleRef.current = safeScale;
-              AsyncStorage.setItem(HOMOLOGIA_PDF_SCALE_KEY, String(safeScale))
-                .catch((error) => console.warn('Homologia PDF scale save failed:', error));
-            }}
-            onPressLink={openHomologiaLink}
-            onPageChanged={(page) => saveHomologiaPdfPage(page)}
-            onError={(error) => {
-              console.warn('Homologia PDF open failed:', error);
-              Alert.alert('PDF 열기 실패', 'PDF 원본을 열 수 없습니다. 글자 보기로 확인해 주세요.');
-              setHomologiaViewMode('text');
-            }}
+          <View
             style={styles.homologiaPdf}
-          />
+            onLayout={(event) => setHomologiaPageWidth(Math.round(event.nativeEvent.layout.width))}
+          >
+            {homologiaPageWidth > 0 && (() => {
+              const pageHeight = Math.round(homologiaPageWidth * 841 / 595);
+              const itemHeight = pageHeight + 12;
+              return (
+                <FlatList
+                  key={`homologia-page-viewer-${homologiaSectionIndex}-${homologiaPdfJumpKey}-${homologiaPageWidth}`}
+                  ref={homologiaPageListRef}
+                  data={homologiaPageImages}
+                  keyExtractor={(_, index) => `homologia-page-${index + 1}`}
+                  initialScrollIndex={Math.max(0, Math.min(homologiaPageImages.length - 1, homologiaPdfStartPage - 1))}
+                  getItemLayout={(_, index) => ({ length: itemHeight, offset: itemHeight * index, index })}
+                  initialNumToRender={2}
+                  maxToRenderPerBatch={3}
+                  windowSize={3}
+                  removeClippedSubviews
+                  onMomentumScrollEnd={(event) => {
+                    const page = Math.max(1, Math.min(homologiaPageImages.length, Math.round(event.nativeEvent.contentOffset.y / itemHeight) + 1));
+                    saveHomologiaPdfPage(page);
+                  }}
+                  renderItem={({ item, index }) => {
+                    const pageNumber = index + 1;
+                    const pageLinks = homologiaPageLinks[String(pageNumber)] || [];
+                    return (
+                      <View style={[styles.homologiaRenderedPageWrap, { width: homologiaPageWidth, height: itemHeight }]}>
+                        <View style={{ width: homologiaPageWidth, height: pageHeight }}>
+                          <Image source={item} resizeMode="contain" style={styles.homologiaRenderedPageImage} />
+                          {pageLinks.map((link, linkIndex) => (
+                            <TouchableOpacity
+                              key={`${pageNumber}-${linkIndex}`}
+                              accessibilityRole="button"
+                              accessibilityLabel={link.type === 'page' ? `${link.target}쪽으로 이동` : '동영상 링크 열기'}
+                              activeOpacity={0.35}
+                              onPress={() => openHomologiaLink(link.type === 'page' ? `gfbible://homologia/page/${link.target}` : link.target)}
+                              style={[
+                                styles.homologiaPageLink,
+                                {
+                                  left: link.x * homologiaPageWidth,
+                                  top: link.y * pageHeight,
+                                  width: link.width * homologiaPageWidth,
+                                  height: link.height * pageHeight,
+                                },
+                              ]}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  }}
+                />
+              );
+            })()}
+          </View>
         ) : (
         <FlatList
           data={sectionBlocks}
@@ -3576,6 +3610,9 @@ const styles = StyleSheet.create({
   homologiaVideoLinkButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F0E8D7', borderWidth: 1, borderColor: '#D8C9A8' },
   homologiaVideoLinkText: { color: '#6C531F', fontSize: 11, fontWeight: '900' },
   homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
+  homologiaRenderedPageWrap: { paddingBottom: 12, backgroundColor: '#C9C7C1' },
+  homologiaRenderedPageImage: { width: '100%', height: '100%', backgroundColor: '#FFF' },
+  homologiaPageLink: { position: 'absolute', zIndex: 5, backgroundColor: 'rgba(23, 60, 112, 0.015)' },
   homologiaPages: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 80 : 40, backgroundColor: '#FFFEFB' },
   homologiaPage: { backgroundColor: '#FFFEFB', borderRadius: 8, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 22, marginBottom: 14, borderWidth: 1, borderColor: '#E5DECF' },
   homologiaPageNumber: { alignSelf: 'flex-end', color: '#9B9487', fontSize: 10, marginBottom: 2 },
