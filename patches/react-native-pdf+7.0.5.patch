@@ -22,16 +22,18 @@ index c3d3245..57cc8ac 100644
  
      }
  
-@@ -520,6 +522,13 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
+@@ -520,6 +522,15 @@ public class PdfView extends PDFView implements OnPageChangeListener,OnLoadCompl
       * @see https://github.com/barteksc/AndroidPdfViewer/blob/master/android-pdf-viewer/src/main/java/com/github/barteksc/pdfviewer/link/DefaultLinkHandler.java
       */
      private void handleUri(String uri) {
-+        try {
-+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-+            getContext().startActivity(intent);
-+        } catch (Exception ignored) {
-+            // Keep dispatching the React Native event below as a fallback.
++        if (!uri.startsWith("gfbible://")) {
++            try {
++                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
++                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++                getContext().startActivity(intent);
++            } catch (Exception ignored) {
++                // Keep dispatching the React Native event below as a fallback.
++            }
 +        }
          WritableMap event = Arguments.createMap();
          event.putString("message", "linkPressed|"+uri);

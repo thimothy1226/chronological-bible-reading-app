@@ -162,7 +162,7 @@ def main() -> None:
                 "blocks": extract_page_blocks(pdf.pages[page_number - 1]),
             }
 
-    data["title"] = f"GF호몰로기아 {args.version}"
+    data["title"] = f"GF호물로기아 {args.version}"
     data["pages"] = [pages_by_number[number] for number in sorted(pages_by_number)]
     args.data.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     write_pdf_module(args.pdf, args.pdf_module)

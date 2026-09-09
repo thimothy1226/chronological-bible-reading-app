@@ -412,6 +412,7 @@ export default function App() {
   const [homologiaViewMode, setHomologiaViewMode] = useState('pdf');
   const [homologiaPdfScale, setHomologiaPdfScale] = useState(1);
   const [homologiaPdfStartPage, setHomologiaPdfStartPage] = useState(1);
+  const [homologiaPdfJumpKey, setHomologiaPdfJumpKey] = useState(0);
   const [customBibles, setCustomBibles] = useState({});
   const [customTranslations, setCustomTranslations] = useState([]);
   const [importingBible, setImportingBible] = useState(false);
@@ -2337,8 +2338,19 @@ export default function App() {
       return text.replace(/[ \t]*\n[ \t]*/g, ' ');
     };
 
-    const openHomologiaLink = (url) => Linking.openURL(url)
-      .catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.'));
+    const openHomologiaLink = (url) => {
+      const pageMatch = /^gfbible:\/\/homologia\/page\/(\d+)$/.exec(String(url || ''));
+      if (pageMatch) {
+        const targetPage = Number(pageMatch[1]);
+        if (targetPage >= 1 && targetPage <= homologiaData.totalPages) {
+          setHomologiaPdfStartPage(targetPage);
+          setHomologiaPdfJumpKey((value) => value + 1);
+        }
+        return;
+      }
+      Linking.openURL(url)
+        .catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.'));
+    };
 
     const saveHomologiaPdfPage = (page) => {
       if (!Number.isFinite(page) || homologiaSectionIndex === null) return;
@@ -2359,7 +2371,7 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.homologiaReaderHeading}>
             <Text style={styles.homologiaReaderTitle}>{HOMOLOGIA_MENUS[homologiaSectionIndex]?.title}</Text>
-            <Text style={styles.homologiaPageRange}>{homologiaViewMode === 'pdf' ? '원본 PDF · 바로가기 지원' : '원본 구성 · 글자 보기'}</Text>
+            <Text style={styles.homologiaPageRange}>{homologiaViewMode === 'pdf' ? '앱용 PDF · 바로가기 지원' : '원본 구성 · 글자 보기'}</Text>
           </View>
           <View style={styles.homologiaFontTools}>
             {homologiaViewMode === 'text' && (
@@ -2367,6 +2379,11 @@ export default function App() {
                 <TouchableOpacity onPress={() => changeHomologiaFont(-0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A−</Text></TouchableOpacity>
                 <TouchableOpacity onPress={() => changeHomologiaFont(0.25)} style={styles.homologiaFontButton}><Text style={styles.homologiaFontButtonText}>A+</Text></TouchableOpacity>
               </>
+            )}
+            {homologiaViewMode === 'pdf' && (
+              <TouchableOpacity onPress={() => { setHomologiaPdfStartPage(3); setHomologiaPdfJumpKey((value) => value + 1); }} style={styles.homologiaFontButton}>
+                <Text style={styles.homologiaFontButtonText}>목차</Text>
+              </TouchableOpacity>
             )}
           </View>
         </View>
@@ -2381,7 +2398,7 @@ export default function App() {
             onPress={() => setHomologiaViewMode('pdf')}
             style={[styles.homologiaViewButton, homologiaViewMode === 'pdf' && styles.homologiaViewButtonActive]}
           >
-            <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'pdf' && styles.homologiaViewButtonTextActive]}>PDF 원본 보기</Text>
+            <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'pdf' && styles.homologiaViewButtonTextActive]}>PDF 보기</Text>
           </TouchableOpacity>
         </View>
         {homologiaViewMode === 'pdf' && (
@@ -2395,7 +2412,7 @@ export default function App() {
         )}
         {homologiaViewMode === 'pdf' ? (
           <Pdf
-            key={`homologia-pdf-full-${homologiaSectionIndex}`}
+            key={`homologia-pdf-full-${homologiaSectionIndex}-${homologiaPdfJumpKey}`}
             source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
             page={homologiaPdfStartPage}
             scale={homologiaPdfScale}
@@ -2661,7 +2678,7 @@ export default function App() {
 
         <View style={styles.tabs}>
           <TouchableOpacity disabled={visibleGroups.length === 0} onPress={() => { setAdminRoomMode(false); setNotificationDetailMode(false); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && !adminRoomMode && styles.tabActive, visibleGroups.length === 0 && styles.tabDisabled]}><Text style={[styles.tabText, screen === 'notice' && !adminRoomMode && styles.tabTextActive, visibleGroups.length === 0 && styles.tabTextDisabled]}>공지사항</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호몰로기아</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={openChapterReader} style={[styles.tab, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabActive]}><Text style={[styles.tabText, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setMoreMode(null); setScreen('more'); }} style={[styles.tab, screen === 'more' && styles.tabActive]}><Text style={[styles.tabText, screen === 'more' && styles.tabTextActive]}>더보기</Text></TouchableOpacity>
@@ -2766,7 +2783,7 @@ export default function App() {
           )
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
-            <Text style={styles.homologiaTitle}>GF호몰로기아</Text>
+            <Text style={styles.homologiaTitle}>GF호물로기아</Text>
             <Text style={styles.homologiaSubtitle}>원하는 메뉴를 선택해 주세요.</Text>
             <View style={styles.homologiaGrid}>
               {HOMOLOGIA_MENUS.map((menu) => (
