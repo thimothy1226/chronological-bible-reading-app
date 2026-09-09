@@ -2,6 +2,9 @@ name: Build GF Bible Android AAB
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - gf-bible-v1.3.0-final-source
 
 jobs:
   build-aab:
