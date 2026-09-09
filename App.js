@@ -2359,7 +2359,7 @@ export default function App() {
           </TouchableOpacity>
           <View style={styles.homologiaReaderHeading}>
             <Text style={styles.homologiaReaderTitle}>{HOMOLOGIA_MENUS[homologiaSectionIndex]?.title}</Text>
-            <Text style={styles.homologiaPageRange}>원본 구성 · 글자 보기</Text>
+            <Text style={styles.homologiaPageRange}>{homologiaViewMode === 'pdf' ? '원본 PDF · 바로가기 지원' : '원본 구성 · 글자 보기'}</Text>
           </View>
           <View style={styles.homologiaFontTools}>
             {homologiaViewMode === 'text' && (
@@ -2395,8 +2395,8 @@ export default function App() {
         )}
         {homologiaViewMode === 'pdf' ? (
           <Pdf
-            key={`homologia-pdf-${homologiaSectionIndex}`}
-            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64[homologiaSectionIndex]}` }}
+            key={`homologia-pdf-full-${homologiaSectionIndex}`}
+            source={{ uri: `data:application/pdf;base64,${homologiaPdfBase64}` }}
             page={homologiaPdfStartPage}
             scale={homologiaPdfScale}
             minScale={1}
@@ -2661,7 +2661,7 @@ export default function App() {
 
         <View style={styles.tabs}>
           <TouchableOpacity disabled={visibleGroups.length === 0} onPress={() => { setAdminRoomMode(false); setNotificationDetailMode(false); setSelectedNoticePost(null); setNoticeCategory(null); setScreen('notice'); }} style={[styles.tab, screen === 'notice' && !adminRoomMode && styles.tabActive, visibleGroups.length === 0 && styles.tabDisabled]}><Text style={[styles.tabText, screen === 'notice' && !adminRoomMode && styles.tabTextActive, visibleGroups.length === 0 && styles.tabTextDisabled]}>공지사항</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호물로기아</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setScreen('homologia')} style={[styles.tab, screen === 'homologia' && styles.tabActive]}><Text style={[styles.tabText, screen === 'homologia' && styles.tabTextActive]}>GF호몰로기아</Text></TouchableOpacity>
           <TouchableOpacity onPress={openChapterReader} style={[styles.tab, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabActive]}><Text style={[styles.tabText, (screen === 'bibleIndex' || (screen === 'reader' && readerContext?.type === 'chapter')) && styles.tabTextActive]}>성경보기</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setDisplayDay(currentDay); setScreen('today'); }} style={[styles.tab, screen === 'today' && styles.tabActive]}><Text style={[styles.tabText, screen === 'today' && styles.tabTextActive]}>오늘 일정</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => { setMoreMode(null); setScreen('more'); }} style={[styles.tab, screen === 'more' && styles.tabActive]}><Text style={[styles.tabText, screen === 'more' && styles.tabTextActive]}>더보기</Text></TouchableOpacity>
@@ -2766,7 +2766,7 @@ export default function App() {
           )
         ) : screen === 'homologia' ? (
           <ScrollView contentContainerStyle={styles.homologiaScreen} showsVerticalScrollIndicator={false}>
-            <Text style={styles.homologiaTitle}>GF호물로기아</Text>
+            <Text style={styles.homologiaTitle}>GF호몰로기아</Text>
             <Text style={styles.homologiaSubtitle}>원하는 메뉴를 선택해 주세요.</Text>
             <View style={styles.homologiaGrid}>
               {HOMOLOGIA_MENUS.map((menu) => (
@@ -2777,8 +2777,8 @@ export default function App() {
                     const section = homologiaData.sections[menu.sectionIndex];
                     const sectionLength = section.endPage - section.startPage + 1;
                     const restoredPage = savedPage >= section.startPage && savedPage <= section.endPage
-                      ? savedPage - section.startPage + 1
-                      : (savedPage >= 1 && savedPage <= sectionLength ? savedPage : 1);
+                      ? savedPage
+                      : (savedPage >= 1 && savedPage <= sectionLength ? section.startPage + savedPage - 1 : section.startPage);
                     setHomologiaPdfStartPage(restoredPage);
                     setHomologiaSectionIndex(menu.sectionIndex);
                     setHomologiaViewMode('pdf');
