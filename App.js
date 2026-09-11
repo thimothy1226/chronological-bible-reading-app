@@ -19,7 +19,7 @@ import homologiaPageImages from './assets/homologia-pages';
 import homologiaPageLinks from './assets/homologia-links.json';
 import { initializeApp } from 'firebase/app';
 import {
-  createUserWithEmailAndPassword, EmailAuthProvider, getReactNativePersistence, inMemoryPersistence,
+  EmailAuthProvider, getReactNativePersistence,
   initializeAuth, onAuthStateChanged, reauthenticateWithCredential, signInAnonymously, signInWithEmailAndPassword, signOut, updatePassword,
 } from 'firebase/auth';
 import {
@@ -42,8 +42,6 @@ const firebaseAuth = initializeAuth(firebaseApp, {
 });
 const firestore = getFirestore(firebaseApp);
 const firebaseFunctions = getFunctions(firebaseApp, 'asia-northeast3');
-const adminCreatorApp = initializeApp(FIREBASE_CONFIG, 'adminCreator');
-const adminCreatorAuth = initializeAuth(adminCreatorApp, { persistence: inMemoryPersistence });
 const memberApp = initializeApp(FIREBASE_CONFIG, 'memberClient');
 const memberAuth = initializeAuth(memberApp, { persistence: getReactNativePersistence(AsyncStorage) });
 const memberFirestore = getFirestore(memberApp);
@@ -672,10 +670,11 @@ export default function App() {
       });
       setMyMemberships(next);
       setMemberSnapshotReady(true);
+      const activeIds = Object.values(next).filter((item) => item.active !== false).map((item) => item.groupId);
       const removedIds = Object.values(next).filter((item) => item.active === false).map((item) => item.groupId);
-      if (removedIds.length) {
+      if (activeIds.length || removedIds.length) {
         setJoinedGroupIds((previous) => {
-          const filtered = previous.filter((id) => !removedIds.includes(id));
+          const filtered = [...new Set([...previous.filter((id) => !removedIds.includes(id)), ...activeIds])];
           if (removedIds.includes(currentGroupId)) {
             const nextId = filtered[0] || null;
             setCurrentGroupId(nextId);
@@ -683,7 +682,9 @@ export default function App() {
             else AsyncStorage.removeItem(CURRENT_GROUP_KEY).catch(() => {});
             setScreen('today');
           }
-          if (filtered.length === previous.length) return previous;
+          const unchanged = filtered.length === previous.length
+            && filtered.every((id, index) => id === previous[index]);
+          if (unchanged) return previous;
           AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(filtered)).catch(() => {});
           return filtered;
         });
@@ -1254,56 +1255,38 @@ export default function App() {
 
   const registerNewAdmin = async () => {
     if (!canManagePeople) return;
-    if (!newAdminEmail.trim() || newAdminPassword.length < 6) {
+    const normalizedEmail = newAdminEmail.trim().toLowerCase();
+    if (!normalizedEmail || newAdminPassword.length < 6 || !adminGroupId) {
       Alert.alert('입력 확인', '이메일과 6자리 이상의 임시 비밀번호를 입력해 주세요.');
       return;
     }
     setAdminBusy(true);
     try {
       const assignedRole = isSuperAdmin ? 'manager' : 'subAdmin';
-      const existingAdmins = await getDocs(isSuperAdmin
-        ? query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()))
-        : query(collection(firestore, 'admins'), where('email', '==', newAdminEmail.trim()), where('groupIds', 'array-contains', adminGroupId)));
-      if (!existingAdmins.empty) {
-        const existingDoc = existingAdmins.docs[0];
-        const data = existingDoc.data();
-        if (data.active !== false && data.groupIds?.includes(adminGroupId)) {
-          Alert.alert('등록 확인', '이미 이 기관의 관리자로 등록된 이메일입니다.');
-          return;
-        }
-        await updateDoc(doc(firestore, 'admins', existingDoc.id), {
-          active: true,
-          groupIds: [...new Set([...(data.groupIds || []), adminGroupId])],
-          groupRoles: { ...(data.groupRoles || {}), [adminGroupId]: assignedRole },
-          updatedAt: serverTimestamp(),
-        });
-        setNewAdminEmail('');
-        setNewAdminPassword('');
-        setAdminRegisterOpen(false);
-        Alert.alert('관리자 등록 완료', `${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'} 권한을 다시 활성화했습니다.`);
-        return;
-      }
-      const credential = await createUserWithEmailAndPassword(
-        adminCreatorAuth, newAdminEmail.trim(), newAdminPassword,
-      );
-      await setDoc(doc(firestore, 'admins', credential.user.uid), {
-        uid: credential.user.uid,
-        email: newAdminEmail.trim(),
-        role: assignedRole === 'manager' ? 'groupAdmin' : 'subAdmin',
-        groupIds: [adminGroupId],
-        groupRoles: { [adminGroupId]: assignedRole },
-        createdBy: adminUser.uid,
-        createdAt: serverTimestamp(),
+      const registerAdminAccount = httpsCallable(firebaseFunctions, 'registerAdminAccount');
+      const result = await registerAdminAccount({
+        email: normalizedEmail,
+        password: newAdminPassword,
+        groupId: adminGroupId,
+        assignedRole,
       });
-      await signOut(adminCreatorAuth).catch(() => {});
       setNewAdminEmail('');
       setNewAdminPassword('');
       setAdminRegisterOpen(false);
-      Alert.alert('관리자 등록 완료', `${adminGroupName}의 ${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'}가 등록되었습니다.`);
+      Alert.alert(
+        '관리자 등록 완료',
+        result.data?.reactivated
+          ? `${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'} 권한을 다시 활성화했습니다. 기존 비밀번호를 그대로 사용합니다.`
+          : `${adminGroupName}의 ${assignedRole === 'manager' ? '대표관리자' : '부대표관리자'}가 등록되었습니다.`,
+      );
     } catch (error) {
       console.warn('Admin registration failed:', error);
-      const duplicate = String(error?.code || '').includes('email-already-in-use');
-      Alert.alert('등록 실패', duplicate ? '이미 사용 중인 이메일입니다.' : '관리자를 등록하지 못했습니다. 입력 내용을 확인해 주세요.');
+      const code = String(error?.code || '');
+      Alert.alert('등록 실패', code.includes('already-exists')
+        ? '이미 이 기관의 관리자로 등록된 이메일입니다.'
+        : code.includes('permission-denied')
+          ? '관리자를 등록할 권한이 없습니다.'
+          : '관리자를 등록하지 못했습니다. 입력 내용을 확인해 주세요.');
     } finally {
       setAdminBusy(false);
     }
@@ -1351,11 +1334,17 @@ export default function App() {
       { text: '취소', style: 'cancel' },
       { text: '권한 삭제', style: 'destructive', onPress: async () => {
         try {
-          const nextIds = [...new Set([...(target.groupIds || []), adminGroupId])];
+          const nextIds = [...new Set((target.groupIds || []).filter((id) => id !== adminGroupId))];
           const nextRoles = { ...(target.groupRoles || {}) };
           delete nextRoles[adminGroupId];
+          const remainingRoles = Object.values(nextRoles);
+          const nextActive = remainingRoles.length > 0;
           await updateDoc(doc(firestore, 'admins', target.id), {
-            groupIds: nextIds, groupRoles: nextRoles, active: Object.keys(nextRoles).length > 0, updatedAt: serverTimestamp(),
+            groupIds: nextIds,
+            groupRoles: nextRoles,
+            active: nextActive,
+            role: remainingRoles.includes('manager') ? 'groupAdmin' : (nextActive ? 'subAdmin' : 'formerAdmin'),
+            updatedAt: serverTimestamp(),
           });
         } catch { Alert.alert('삭제 실패', '관리자 권한을 삭제하지 못했습니다.'); }
       } },
@@ -1476,6 +1465,7 @@ export default function App() {
     }
     const membershipId = `${nicknameTargetGroupId}_${memberUser.uid}`;
     const existing = myMemberships[nicknameTargetGroupId];
+    const isRejoining = existing?.active === false && existing?.removedByAdmin !== true;
     const remaining = nicknameRemainingText(existing);
     if (existing?.nickname && existing.nickname !== nickname && remaining) {
       Alert.alert('변경 대기 중', remaining);
@@ -1492,6 +1482,8 @@ export default function App() {
         active: true,
         removedByAdmin: false,
         joinedAt: existing?.joinedAt || serverTimestamp(),
+        leftAt: null,
+        rejoinedAt: isRejoining ? serverTimestamp() : (existing?.rejoinedAt || null),
         nicknameChangedAt: existing?.nickname && existing.nickname !== nickname ? serverTimestamp() : (existing?.nicknameChangedAt || null),
         updatedAt: serverTimestamp(),
       }, { merge: true });
@@ -1502,7 +1494,10 @@ export default function App() {
       const joinedName = pendingJoinGroup?.name;
       setNicknameEditorOpen(false);
       setPendingJoinGroup(null);
-      Alert.alert(existing?.nickname ? '닉네임 변경 완료' : '그룹 가입 완료', existing?.nickname ? '닉네임이 변경되었습니다.' : `${joinedName || '선택한 그룹'}에 가입했습니다.`);
+      Alert.alert(
+        isRejoining ? '그룹 재가입 완료' : existing?.nickname ? '닉네임 변경 완료' : '그룹 가입 완료',
+        isRejoining ? `${joinedName || currentGroupName || '선택한 그룹'}에 다시 가입했습니다.` : existing?.nickname ? '닉네임이 변경되었습니다.' : `${joinedName || '선택한 그룹'}에 가입했습니다.`,
+      );
     } catch (error) {
       console.warn('Nickname save failed:', error);
       Alert.alert('저장 실패', '닉네임을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');

@@ -2,6 +2,7 @@
 const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 
@@ -12,6 +13,90 @@ const chunk = (items, size) => {
   for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
   return result;
 };
+
+const SUPER_ADMIN_UID = 'XKWflFjskvSK016d8amlnTjLwX83';
+
+exports.registerAdminAccount = onCall({ region: 'asia-northeast3' }, async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError('unauthenticated', '관리자 로그인이 필요합니다.');
+
+  const email = String(request.data?.email || '').trim().toLowerCase();
+  const password = String(request.data?.password || '');
+  const groupId = String(request.data?.groupId || '').trim();
+  const assignedRole = request.data?.assignedRole === 'manager' ? 'manager' : 'subAdmin';
+  if (!email || password.length < 6 || !groupId) {
+    throw new HttpsError('invalid-argument', '이메일, 6자리 이상의 비밀번호, 관리 그룹이 필요합니다.');
+  }
+
+  const db = getFirestore();
+  const isSuperAdmin = callerUid === SUPER_ADMIN_UID;
+  if (!isSuperAdmin) {
+    const callerSnapshot = await db.collection('admins').doc(callerUid).get();
+    const caller = callerSnapshot.data() || {};
+    const callerRole = caller.groupRoles?.[groupId]
+      || (Array.isArray(caller.groupIds) && caller.groupIds.includes(groupId) && caller.role !== 'subAdmin' ? 'manager' : null);
+    if (!callerSnapshot.exists || caller.active === false || callerRole !== 'manager' || assignedRole !== 'subAdmin') {
+      throw new HttpsError('permission-denied', '이 그룹의 관리자를 등록할 권한이 없습니다.');
+    }
+  } else if (assignedRole !== 'manager') {
+    throw new HttpsError('permission-denied', '최고관리자는 대표관리자를 등록해야 합니다.');
+  }
+
+  const auth = getAuth();
+  let authUser = null;
+  try {
+    authUser = await auth.getUserByEmail(email);
+  } catch (error) {
+    if (error.code !== 'auth/user-not-found') throw error;
+  }
+  if (authUser?.uid === SUPER_ADMIN_UID) throw new HttpsError('failed-precondition', '최고관리자 계정은 변경할 수 없습니다.');
+
+  const emailSnapshot = await db.collection('admins').where('email', '==', email).limit(10).get();
+  const canonicalSnapshot = authUser ? await db.collection('admins').doc(authUser.uid).get() : null;
+  const legacyDocument = emailSnapshot.docs.find((item) => item.id !== authUser?.uid) || null;
+  const existingData = canonicalSnapshot?.exists
+    ? canonicalSnapshot.data()
+    : (legacyDocument?.data() || {});
+  const existingRoles = existingData.groupRoles && typeof existingData.groupRoles === 'object'
+    ? { ...existingData.groupRoles }
+    : Object.fromEntries((existingData.groupIds || []).map((id) => [String(id), existingData.role === 'subAdmin' ? 'subAdmin' : 'manager']));
+
+  if (existingData.active !== false && existingRoles[groupId]) {
+    throw new HttpsError('already-exists', '이미 이 기관의 관리자로 등록된 이메일입니다.');
+  }
+
+  const reactivated = !!authUser;
+  // 이미 다른 그룹에서 사용 중인 관리자 계정은 비밀번호를 바꾸지 않는다.
+  // 한 그룹 재등록 때문에 다른 그룹 로그인까지 끊기는 일을 방지한다.
+  if (authUser) await auth.updateUser(authUser.uid, { email, disabled: false });
+  else authUser = await auth.createUser({ email, password, disabled: false });
+
+  const groupRoles = { ...existingRoles, [groupId]: assignedRole };
+  const groupIds = Object.keys(groupRoles);
+  const role = Object.values(groupRoles).includes('manager') ? 'groupAdmin' : 'subAdmin';
+  await db.collection('admins').doc(authUser.uid).set({
+    uid: authUser.uid,
+    email,
+    role,
+    groupIds,
+    groupRoles,
+    active: true,
+    createdBy: existingData.createdBy || callerUid,
+    createdAt: existingData.createdAt || FieldValue.serverTimestamp(),
+    reactivatedAt: reactivated ? FieldValue.serverTimestamp() : null,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  if (legacyDocument && legacyDocument.id !== authUser.uid) {
+    await legacyDocument.ref.set({
+      active: false,
+      migratedTo: authUser.uid,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
+
+  return { uid: authUser.uid, reactivated, assignedRole };
+});
 
 exports.repairLegacyAdminAccess = onCall({ region: 'asia-northeast3' }, async (request) => {
   const uid = request.auth?.uid;
