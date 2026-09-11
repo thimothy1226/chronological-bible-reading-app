@@ -49,6 +49,18 @@ jobs:
           ls -lh assets/bibles/krv.json
           test -s assets/bibles/krv.json
 
+      - name: Configure existing-app update identity
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'app.json';
+          const app = JSON.parse(fs.readFileSync(path, 'utf8'));
+          app.expo.android.package = 'com.biblereading.chronological365';
+          fs.writeFileSync(path, `${JSON.stringify(app, null, 2)}\n`);
+          NODE
+          test "$(node -p "require('./app.json').expo.android.package")" = "com.biblereading.chronological365"
+
       - name: Generate Android project
         run: CI=1 npx expo prebuild --platform android
 
@@ -68,12 +80,13 @@ jobs:
       - name: Prepare APK
         run: |
           mkdir -p output
-          cp android/app/build/outputs/apk/release/app-release.apk "output/GF-Bible-v${{ steps.app_version.outputs.version }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk \
+            "output/GF-Bible-v${{ steps.app_version.outputs.version }}-existing-app-update.apk"
           ls -lh output
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GF-Bible-v${{ steps.app_version.outputs.version }}-release-apk
+          name: GF-Bible-v${{ steps.app_version.outputs.version }}-existing-app-update-apk
           path: output/*.apk
           retention-days: 30
