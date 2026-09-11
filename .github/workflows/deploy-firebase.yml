@@ -46,18 +46,18 @@ jobs:
 
       - name: Deploy Functions and Firestore rules
         if: ${{ github.event_name == 'push' || inputs.deploy_target == 'all' }}
-        run: firebase deploy --only functions,firestore:rules --project gf-bible-reading
+        run: firebase deploy --only functions,firestore:rules --project gfc-bible-reading
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Deploy Functions only
         if: ${{ inputs.deploy_target == 'functions' }}
-        run: firebase deploy --only functions --project gf-bible-reading
+        run: firebase deploy --only functions --project gfc-bible-reading
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Deploy Firestore rules only
         if: ${{ inputs.deploy_target == 'rules' }}
-        run: firebase deploy --only firestore:rules --project gf-bible-reading
+        run: firebase deploy --only firestore:rules --project gfc-bible-reading
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
