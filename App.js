@@ -75,6 +75,7 @@ const HIGHLIGHT_COLORS = [
   { key: 'pink', label: '분홍', color: '#FFD6E5' },
   { key: 'green', label: '연두', color: '#DDF3C4' },
   { key: 'blue', label: '하늘', color: '#D9ECFF' },
+  { key: 'lavender', label: '연보라', color: '#E8DDF8' },
 ];
 const BIBLE_SELECTION_KEY = '@chronological_bible/bible_selection';
 const HOMOLOGIA_FONT_SCALE_KEY = '@chronological_bible/homologia_font_scale';
@@ -165,6 +166,15 @@ function decodeBdfBytes(bytes) {
   return iconv.decode(Buffer.from(bytes), 'cp949');
 }
 
+function normalizeVerseText(book, bookKo, chapter, verse, text) {
+  const body = String(text || '');
+  const isProverbs = book === 'Proverbs' || bookKo === '잠언';
+  if (isProverbs && Number(chapter) === 8 && Number(verse) === 23) {
+    return body.replace(/^반세 전부터/, '만세 전부터');
+  }
+  return body;
+}
+
 function parseBdfFiles(files) {
   const booksByNumber = new Map();
   let verseCount = 0;
@@ -175,8 +185,9 @@ function parseBdfFiles(files) {
       const bookNumber = Number(match[1]);
       const chapterNumber = Number(match[2]);
       const verseNumber = Number(match[3]);
-      const body = match[4].trim();
+      const rawBody = match[4].trim();
       const meta = BIBLE_BOOKS[bookNumber - 1];
+      const body = normalizeVerseText(meta?.book, meta?.ko, chapterNumber, verseNumber, rawBody);
       if (!meta || !body) return;
       if (!booksByNumber.has(bookNumber)) {
         booksByNumber.set(bookNumber, { book: meta.book, koreanTitle: meta.ko, chapters: new Map() });
@@ -212,12 +223,6 @@ const HOMOLOGIA_MENUS = [
   { title: '호물로기아 3', color: '#705B08', sectionIndex: 6 },
   { title: '호물로기아 4', color: '#5B2C68', sectionIndex: 7 },
   { title: '이륙하기 버전', color: '#0E5947', sectionIndex: 8 },
-];
-
-const HOMOLOGIA_VIDEO_LINKS = [
-  { title: '소리내어 성경읽기 1', url: 'https://www.youtube.com/watch?v=mMI4QV0h3k4' },
-  { title: '소리내어 성경읽기 2', url: 'https://www.youtube.com/watch?v=Om7Eef_KDjs' },
-  { title: '소성에 대한 간증', url: 'https://www.youtube.com/watch?v=WIN8FYvXCCg' },
 ];
 
 const BOOK_NAME_KO = {
@@ -313,7 +318,13 @@ function getVersesForPassage(data, passage) {
         bookKo: passage.bookKo,
         chapter: chapterNo,
         verse: n,
-        text: verse.text ?? verse.hangulText ?? '',
+        text: normalizeVerseText(
+          passage.book,
+          passage.bookKo,
+          chapterNo,
+          n,
+          verse.text ?? verse.hangulText ?? '',
+        ),
       });
     }
   }
@@ -985,7 +996,13 @@ export default function App() {
       bookKo: readerContext.bookKo,
       chapter: readerContext.chapter,
       verse: Number(v.verse),
-      text: v.text ?? v.hangulText ?? '',
+      text: normalizeVerseText(
+        readerContext.book,
+        readerContext.bookKo,
+        readerContext.chapter,
+        Number(v.verse),
+        v.text ?? v.hangulText ?? '',
+      ),
     }));
     return [{
       passage: {
@@ -2403,15 +2420,6 @@ export default function App() {
             <Text style={[styles.homologiaViewButtonText, homologiaViewMode === 'pdf' && styles.homologiaViewButtonTextActive]}>PDF 보기</Text>
           </TouchableOpacity>
         </View>
-        {homologiaViewMode === 'pdf' && (
-          <View style={styles.homologiaVideoLinks}>
-            {HOMOLOGIA_VIDEO_LINKS.map((link) => (
-              <TouchableOpacity key={link.url} onPress={() => openHomologiaLink(link.url)} style={styles.homologiaVideoLinkButton}>
-                <Text numberOfLines={1} style={styles.homologiaVideoLinkText}>▶ {link.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
         {homologiaViewMode === 'pdf' ? (
           <View
             style={styles.homologiaPdf}
@@ -2579,6 +2587,7 @@ export default function App() {
           </View>
         )}
         <ScrollView
+          key={readerKey}
           ref={readerRef}
           contentContainerStyle={styles.readerContent}
           onContentSizeChange={handleContentReady}
@@ -2601,7 +2610,7 @@ export default function App() {
                     key={`${v.bookKo}-${v.chapter}-${v.verse}`}
                     onLayout={(e) => {
                       if (isTargetVerse && !savedY) {
-                        const targetY = Math.max(0, e.nativeEvent.layout.y + 72);
+                        const targetY = v.verse === 1 ? 0 : Math.max(0, e.nativeEvent.layout.y - 12);
                         pendingTargetY.current = targetY;
                         setTimeout(() => {
                           readerRef.current?.scrollTo({ y: targetY, animated: false });
@@ -2706,7 +2715,7 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.app}>
         <View style={styles.header}>
-          <View><Text style={styles.eyebrow}>GF BIBLE</Text><Text style={styles.title}>GF Bible</Text></View>
+          <Text style={styles.title}>GF Bible</Text>
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
@@ -3030,7 +3039,12 @@ export default function App() {
             />
           </View>
         ) : (
-          <View style={styles.indexWrapFlex}>
+          <ScrollView
+            style={styles.indexScreenScroll}
+            contentContainerStyle={styles.indexWrapFlex}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
             <View style={styles.indexHeaderRow}>
               <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장 · 절을 선택합니다.</Text></View>
               <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
@@ -3047,25 +3061,25 @@ export default function App() {
             <View style={styles.bibleSelectorColumns}>
               <View style={[styles.selectorColumn, styles.bookColumn]}>
                 <Text style={styles.selectorTitle}>성경책</Text>
-                <ScrollView>
+                <ScrollView nestedScrollEnabled>
                   {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onPress={() => { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
               <View style={styles.selectorColumn}>
                 <Text style={styles.selectorTitle}>장</Text>
-                <ScrollView>
+                <ScrollView nestedScrollEnabled>
                   {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.selectorRow, selectedChapter === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedChapter === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
               <View style={styles.selectorColumn}>
                 <Text style={styles.selectorTitle}>절</Text>
-                <ScrollView>
+                <ScrollView nestedScrollEnabled>
                   {Array.from({ length: verseCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => setSelectedVerse(n)} style={[styles.selectorRow, selectedVerse === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedVerse === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
             </View>
             <TouchableOpacity onPress={openChapterReader} style={[styles.completeButton, styles.indexOpenButton]}><Text style={styles.completeButtonText}>본문 보기</Text></TouchableOpacity>
-          </View>
+          </ScrollView>
         )}
       </View>
 
@@ -3417,7 +3431,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eyebrow: { fontSize: 10, letterSpacing: 1.6, fontWeight: '800', color: '#9A7C43', marginBottom: 5 }, title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
+  title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
   tabs: { marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
   tab: { width: '33.333%', minHeight: 42, paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
@@ -3590,7 +3604,7 @@ const styles = StyleSheet.create({
 
   selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   highlightPickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, highlightPickerCard: { width: '100%', maxWidth: 430, padding: 20, borderRadius: 20, backgroundColor: '#FFFEFB' }, highlightPickerTitle: { color: '#17223B', fontSize: 20, fontWeight: '900' }, highlightPickerSubtitle: { marginTop: 5, color: '#747C86', fontSize: 12, lineHeight: 18 }, highlightColorRow: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, highlightColorButton: { width: '47%', minHeight: 52, borderRadius: 13, borderWidth: 1, borderColor: '#D8D2C7', alignItems: 'center', justifyContent: 'center' }, highlightColorText: { color: '#3E4350', fontWeight: '900' }, highlightPickerActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, highlightRemoveButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, highlightRemoveText: { color: '#A04B3C', fontWeight: '900' }, highlightCancelButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, highlightCancelText: { color: '#5E6570', fontWeight: '900' },
-  indexWrapFlex: { flex: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: 48, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: '58%', maxHeight: 450, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
+  indexScreenScroll: { flex: 1, width: '100%' }, indexWrapFlex: { flexGrow: 1, paddingHorizontal: 30, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 96 : 56, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', height: 430, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 12, marginBottom: 24 },
   homologiaReaderSafe: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F4F1E9' },
   homologiaReaderHeader: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10, backgroundColor: '#FFFEFB', borderBottomWidth: 1, borderBottomColor: '#DED8C8', gap: 8 },
   homologiaBackButton: { paddingHorizontal: 8, paddingVertical: 10 },
@@ -3606,9 +3620,6 @@ const styles = StyleSheet.create({
   homologiaViewButtonActive: { backgroundColor: '#17223B' },
   homologiaViewButtonText: { color: '#777D87', fontSize: 13, fontWeight: '900' },
   homologiaViewButtonTextActive: { color: '#FFF' },
-  homologiaVideoLinks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 9 },
-  homologiaVideoLinkButton: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 9, backgroundColor: '#F0E8D7', borderWidth: 1, borderColor: '#D8C9A8' },
-  homologiaVideoLinkText: { color: '#6C531F', fontSize: 11, fontWeight: '900' },
   homologiaPdf: { flex: 1, width: '100%', backgroundColor: '#C9C7C1' },
   homologiaRenderedPageWrap: { paddingBottom: 12, backgroundColor: '#C9C7C1' },
   homologiaRenderedPageImage: { width: '100%', height: '100%', backgroundColor: '#FFF' },

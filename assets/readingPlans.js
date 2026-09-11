@@ -21,7 +21,7 @@ const HEBREW_OT_ORDER = [
   'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
   'Joshua', 'Judges', '1 Samuel', '2 Samuel', '1 Kings', '2 Kings',
   'Isaiah', 'Jeremiah', 'Ezekiel', 'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
-  'Psalms', 'Proverbs', 'Job', 'Song of Songs', 'Ruth', 'Lamentations', 'Ecclesiastes', 'Esther', 'Daniel', 'Ezra', 'Nehemiah', '1 Chronicles', '2 Chronicles',
+  'Psalms', 'Job', 'Proverbs', 'Ruth', 'Song of Songs', 'Ecclesiastes', 'Lamentations', 'Esther', 'Daniel', 'Ezra', 'Nehemiah', '1 Chronicles', '2 Chronicles',
 ];
 
 const NT_ORDER = CANONICAL_BOOKS.slice(39).map(([book]) => book);
