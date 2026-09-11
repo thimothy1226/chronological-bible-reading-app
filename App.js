@@ -4,6 +4,7 @@ import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Application from 'expo-application';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Notifications from 'expo-notifications';
@@ -70,6 +71,11 @@ const READER_POSITIONS_KEY = '@chronological_bible/reader_positions';
 const VERSE_NOTES_KEY = '@chronological_bible/verse_notes';
 const VERSE_BOOKMARKS_KEY = '@gf_bible/verse_bookmarks';
 const VERSE_HIGHLIGHTS_KEY = '@gf_bible/verse_highlights';
+const UPDATE_SNOOZE_UNTIL_KEY = '@gf_bible/update_snooze_until';
+const STORE_PACKAGE_NAME = 'com.gfcchurch.gfbible';
+const STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${STORE_PACKAGE_NAME}`;
+const STORE_APP_URL = `market://details?id=${STORE_PACKAGE_NAME}`;
+const STORE_VERSION_URL = 'https://raw.githubusercontent.com/thimothy1226/chronological-bible-reading-app/gf-bible-v1.3.0-final-source/store/store-version.json';
 const HIGHLIGHT_COLORS = [
   { key: 'yellow', label: '노랑', color: '#FFF3A8' },
   { key: 'pink', label: '분홍', color: '#FFD6E5' },
@@ -494,6 +500,7 @@ export default function App() {
   const [transferPassword, setTransferPassword] = useState('');
   const [memberSnapshotReady, setMemberSnapshotReady] = useState(false);
   const [highlightPickerOpen, setHighlightPickerOpen] = useState(false);
+  const [storeVersionState, setStoreVersionState] = useState({ status: 'checking', latestVersionName: null });
 
   const readerRef = useRef(null);
   const recordsRef = useRef(null);
@@ -506,6 +513,7 @@ export default function App() {
   const nicknamePromptedRef = useRef(new Set());
   const handledNotificationRef = useRef(null);
   const savedVerseReturnRef = useRef(null);
+  const updatePromptShownRef = useRef(false);
 
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
   const isAdmin = !!adminUser && adminAuthorized;
@@ -898,6 +906,60 @@ export default function App() {
     };
     load();
   }, []);
+
+  const currentAppVersion = Application.nativeApplicationVersion || '0.0.0';
+  const currentBuildCode = Number(Application.nativeBuildVersion || 0);
+
+  const openStoreUpdate = async () => {
+    try {
+      await Linking.openURL(STORE_APP_URL);
+    } catch (error) {
+      Linking.openURL(STORE_WEB_URL).catch(() => {
+        Alert.alert('플레이스토어 열기 실패', '플레이스토어에서 GF Bible을 검색해 업데이트해 주세요.');
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!loaded || Platform.OS !== 'android') return undefined;
+    let cancelled = false;
+    const checkStoreVersion = async () => {
+      try {
+        const response = await fetch(`${STORE_VERSION_URL}?checkedAt=${Date.now()}`);
+        if (!response.ok) throw new Error(`Version check failed: ${response.status}`);
+        const info = await response.json();
+        const latestVersionCode = Number(info.latestVersionCode || 0);
+        const latestVersionName = String(info.latestVersionName || '').trim() || null;
+        const updateAvailable = info.published === true && latestVersionCode > currentBuildCode;
+        if (cancelled) return;
+        setStoreVersionState({ status: updateAvailable ? 'update' : 'latest', latestVersionName });
+        if (!updateAvailable || updatePromptShownRef.current) return;
+        const snoozeUntil = Number(await AsyncStorage.getItem(UPDATE_SNOOZE_UNTIL_KEY) || 0);
+        if (cancelled || Date.now() < snoozeUntil) return;
+        updatePromptShownRef.current = true;
+        Alert.alert(
+          '새로운 업데이트가 있습니다',
+          `GF Bible ${latestVersionName || '최신 버전'}으로 지금 업데이트하시겠습니까?`,
+          [
+            {
+              text: '하루 동안 보지 않기',
+              onPress: () => AsyncStorage.setItem(UPDATE_SNOOZE_UNTIL_KEY, String(Date.now() + (24 * 60 * 60 * 1000))).catch(() => {}),
+            },
+            { text: '아니오', style: 'cancel' },
+            { text: '예', onPress: openStoreUpdate },
+          ],
+        );
+      } catch (error) {
+        console.warn('Store version check failed:', error);
+        if (!cancelled) setStoreVersionState({ status: 'unknown', latestVersionName: null });
+      }
+    };
+    const timer = setTimeout(checkStoreVersion, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [loaded, currentBuildCode]);
 
   const displayed = activeSchedule[displayDay - 1];
 
@@ -2733,7 +2795,22 @@ export default function App() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.app}>
         <View style={styles.header}>
-          <Text style={styles.title}>GF Bible</Text>
+          <View style={styles.headerBrand}>
+            <Text style={styles.title}>GF Bible</Text>
+            <TouchableOpacity
+              disabled={storeVersionState.status !== 'update'}
+              onPress={openStoreUpdate}
+              style={styles.versionStatusButton}
+            >
+              <Text
+                allowFontScaling={false}
+                numberOfLines={1}
+                style={[styles.versionStatusText, storeVersionState.status === 'update' && styles.versionStatusUpdate]}
+              >
+                (Ver {currentAppVersion}{storeVersionState.status === 'update' ? ' · 업데이트' : storeVersionState.status === 'latest' ? ' · 최신 버전' : storeVersionState.status === 'checking' ? ' · 확인 중' : ''})
+              </Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={exitApp} style={styles.exitButton}><Text style={styles.exitButtonText}>종료</Text></TouchableOpacity>
         </View>
 
@@ -3445,8 +3522,12 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  headerBrand: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
+  versionStatusButton: { flexShrink: 1, minHeight: 24, justifyContent: 'center' },
+  versionStatusText: { color: '#61705F', fontSize: 11, lineHeight: 15, fontWeight: '800' },
+  versionStatusUpdate: { color: '#B14A36', textDecorationLine: 'underline', fontWeight: '900' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
   tabs: { marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
   tab: { width: '33.333%', minHeight: 42, paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
