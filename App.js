@@ -87,6 +87,8 @@ const HOMOLOGIA_PDF_SCALE_KEY = '@chronological_bible/homologia_pdf_scale';
 const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_positions';
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 const BIBLE_IMPORT_FOLDER_URI_KEY = '@gf_bible/bible_import_folder_uri';
+const BIBLE_REPAIR_VERSION_KEY = '@gf_bible/bible_repair_version';
+const BIBLE_REPAIR_VERSION = '2026-09-14-1';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
@@ -175,6 +177,18 @@ function decodeBdfBytes(bytes) {
     return iconv.decode(buffer.subarray(2), 'utf16-be');
   }
   return iconv.decode(buffer, 'cp949');
+}
+
+function normalizeVerseText(book, bookKo, chapter, verse, text) {
+  const body = String(text || '');
+  const isProverbs = book === 'Proverbs' || bookKo === '잠언';
+  if (isProverbs && Number(chapter) === 8 && Number(verse) === 23) {
+    return body.replace(/^반세\s*전부터/, '만세 전부터');
+  }
+  if (isProverbs && Number(chapter) === 27 && Number(verse) === 1) {
+    return body.replace(/^네는(?=\s+내일\s+일을\s+자랑하지\s+말라)/, '너는');
+  }
+  return body;
 }
 
 function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
@@ -998,9 +1012,10 @@ export default function App() {
     const load = async () => {
       try {
         const rows = await AsyncStorage.multiGet([
-          CURRENT_DAY_KEY, COMPLETIONS_KEY, READING_PLAN_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, VERSE_BOOKMARKS_KEY, VERSE_HIGHLIGHTS_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
+          CURRENT_DAY_KEY, COMPLETIONS_KEY, READING_PLAN_KEY, TRANSLATION_KEY, FONT_SIZE_KEY, READER_POSITIONS_KEY, VERSE_NOTES_KEY, VERSE_BOOKMARKS_KEY, VERSE_HIGHLIGHTS_KEY, BIBLE_SELECTION_KEY, HOMOLOGIA_FONT_SCALE_KEY, HOMOLOGIA_PDF_SCALE_KEY, HOMOLOGIA_PDF_POSITIONS_KEY, CUSTOM_TRANSLATIONS_KEY, BIBLE_REPAIR_VERSION_KEY, COMMUNITY_GROUPS_KEY, CURRENT_GROUP_KEY,
         ]);
         const saved = Object.fromEntries(rows);
+        const shouldRepairImportedBibles = saved[BIBLE_REPAIR_VERSION_KEY] !== BIBLE_REPAIR_VERSION;
         const savedPlanId = READING_PLANS[saved[READING_PLAN_KEY]] ? saved[READING_PLAN_KEY] : DEFAULT_READING_PLAN_ID;
         const savedPlan = READING_PLANS[savedPlanId] || READING_PLANS[DEFAULT_READING_PLAN_ID];
         const persistedPlanProgress = safeParseJson(await AsyncStorage.getItem(readingPlanProgressKey(savedPlanId)), null);
@@ -1045,7 +1060,9 @@ export default function App() {
             const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
             if (!storedFile.exists) continue;
             const bibleData = JSON.parse(await storedFile.text());
-            const repaired = repairImportedBible(bibleData);
+            const repaired = shouldRepairImportedBibles
+              ? repairImportedBible(bibleData)
+              : { data: bibleData, repairCount: 0 };
             loadedBibles[info.id] = repaired.data;
             if (repaired.repairCount > 0) {
               storedFile.write(JSON.stringify(repaired.data));
@@ -1057,6 +1074,9 @@ export default function App() {
           } catch (error) {
             console.warn('Imported Bible load failed:', info?.id, error);
           }
+        }
+        if (shouldRepairImportedBibles) {
+          await AsyncStorage.setItem(BIBLE_REPAIR_VERSION_KEY, BIBLE_REPAIR_VERSION);
         }
         setCustomBibles(loadedBibles);
         setCustomTranslations(validImported);
