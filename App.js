@@ -164,46 +164,163 @@ const friendlyBdfName = (baseName, hasKorean = false) => {
 };
 
 function decodeBdfBytes(bytes) {
-  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-    return Buffer.from(bytes).toString('utf8');
+  const buffer = Buffer.from(bytes);
+  if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+    return buffer.subarray(3).toString('utf8');
   }
-  return iconv.decode(Buffer.from(bytes), 'cp949');
+  if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
+    return iconv.decode(buffer.subarray(2), 'utf16-le');
+  }
+  if (buffer[0] === 0xFE && buffer[1] === 0xFF) {
+    return iconv.decode(buffer.subarray(2), 'utf16-be');
+  }
+  return iconv.decode(buffer, 'cp949');
 }
 
-function normalizeVerseText(book, bookKo, chapter, verse, text) {
-  const body = String(text || '');
-  const isProverbs = book === 'Proverbs' || bookKo === '잠언';
-  if (isProverbs && Number(chapter) === 8 && Number(verse) === 23) {
-    return body.replace(/^반세 전부터/, '만세 전부터');
+function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
+  let repairCount = 0;
+  const ordered = [...sourceVerses].sort((a, b) => a.sourceOrder - b.sourceOrder);
+  const renumbered = [];
+
+  ordered.forEach((source, index) => {
+    let verseNumber = Number(source.verse);
+    const previous = renumbered[renumbered.length - 1];
+    const expected = previous ? previous.verse + 1 : verseNumber;
+    const nextRaw = Number(ordered[index + 1]?.verse);
+
+    if (previous && verseNumber !== expected) {
+      const obviousForwardTypo = verseNumber > expected && nextRaw === expected + 1;
+      const obviousDuplicateTypo = verseNumber <= previous.verse
+        && (nextRaw === expected || nextRaw === expected + 1);
+      if (obviousForwardTypo || obviousDuplicateTypo) {
+        verseNumber = expected;
+        repairCount += 1;
+      }
+    }
+    renumbered.push({ verse: verseNumber, text: String(source.text || '').trim() });
+  });
+
+  const byVerse = new Map();
+  renumbered.forEach((verse) => {
+    if (!byVerse.has(verse.verse)) byVerse.set(verse.verse, verse);
+  });
+
+  let splitAgain = true;
+  while (splitAgain) {
+    splitAgain = false;
+    [...byVerse.keys()].sort((a, b) => a - b).forEach((verseNumber) => {
+      const verse = byVerse.get(verseNumber);
+      const nextVerseNumber = verseNumber + 1;
+      if (!verse || byVerse.has(nextVerseNumber) || !/[가-힣]/.test(verse.text)) return;
+      const marker = new RegExp(`\\s+${nextVerseNumber}\\s+`);
+      const match = marker.exec(verse.text);
+      if (!match) return;
+      const before = verse.text.slice(0, match.index).trim();
+      const after = verse.text.slice(match.index + match[0].length).trim();
+      if (before.length < 8 || after.length < 8) return;
+      byVerse.set(verseNumber, { verse: verseNumber, text: before });
+      byVerse.set(nextVerseNumber, { verse: nextVerseNumber, text: after });
+      repairCount += 1;
+      splitAgain = true;
+    });
   }
-  return body;
+
+  const boundaryHints = {
+    '2:22:30': '너희는 내게 거룩한 사람이',
+    '9:13:22': '블레셋 사람들의 부대가',
+    '9:19:23': '그가 또 그의 옷을 벗고',
+    '9:30:30': '헤브론에 있는 자에게와',
+    '19:72:19': '이새의 아들 다윗의 기도가',
+  };
+  const boundaryKey = `${bookNumber}:${chapterNumber}:${[...byVerse.keys()].sort((a, b) => b - a)[0] || 0}`;
+  const hintedVerseNumber = Number(boundaryKey.split(':')[2]);
+  const boundaryMarker = boundaryHints[boundaryKey];
+  if (boundaryMarker && byVerse.has(hintedVerseNumber) && !byVerse.has(hintedVerseNumber + 1)) {
+    const verse = byVerse.get(hintedVerseNumber);
+    const boundaryIndex = verse.text.indexOf(boundaryMarker);
+    if (boundaryIndex > 7) {
+      const before = verse.text.slice(0, boundaryIndex).trim();
+      const after = verse.text.slice(boundaryIndex).trim();
+      if (after.length > 7) {
+        byVerse.set(hintedVerseNumber, { verse: hintedVerseNumber, text: before });
+        byVerse.set(hintedVerseNumber + 1, { verse: hintedVerseNumber + 1, text: after });
+        repairCount += 1;
+      }
+    }
+  }
+
+  if (bookNumber === 20 && chapterNumber === 8 && byVerse.has(23)) {
+    const verse = byVerse.get(23);
+    const corrected = verse.text.replace(/^반세\s*전부터/, '만세 전부터');
+    if (corrected !== verse.text) {
+      byVerse.set(23, { ...verse, text: corrected });
+      repairCount += 1;
+    }
+  }
+  if (bookNumber === 20 && chapterNumber === 27 && byVerse.has(1)) {
+    const verse = byVerse.get(1);
+    const corrected = verse.text.replace(/^네는(?=\s+내일\s+일을\s+자랑하지\s+말라)/, '너는');
+    if (corrected !== verse.text) {
+      byVerse.set(1, { ...verse, text: corrected });
+      repairCount += 1;
+    }
+  }
+
+  return {
+    verses: [...byVerse.values()].sort((a, b) => a.verse - b.verse),
+    repairCount,
+  };
+}
+
+function repairImportedBible(data) {
+  let repairCount = 0;
+  const books = normalizeBooks(data).map((book) => {
+    const bookNumber = BIBLE_BOOKS.findIndex((meta) => (
+      meta.book === book.book || meta.ko === book.koreanTitle || meta.ko === book.title
+    )) + 1;
+    if (!bookNumber) return book;
+    return {
+      ...book,
+      chapters: (book.chapters || []).map((chapter) => {
+        const repaired = repairImportedChapter(
+          bookNumber,
+          Number(chapter.chapter),
+          (chapter.verses || []).map((verse, sourceOrder) => ({ ...verse, sourceOrder })),
+        );
+        repairCount += repaired.repairCount;
+        return { ...chapter, verses: repaired.verses };
+      }),
+    };
+  });
+  const repairedData = Array.isArray(data) ? books : { ...data, books };
+  const verseCount = books.reduce((bookTotal, book) => (
+    bookTotal + (book.chapters || []).reduce((chapterTotal, chapter) => (
+      chapterTotal + (chapter.verses || []).length
+    ), 0)
+  ), 0);
+  return { data: repairedData, repairCount, verseCount };
 }
 
 function parseBdfFiles(files) {
   const booksByNumber = new Map();
-  let verseCount = 0;
+  let sourceOrder = 0;
   files.forEach(({ text }) => {
-    text.split(/\r?\n/).forEach((line) => {
+    String(text || '').replace(/\r\n?/g, '\n').split('\n').forEach((line) => {
       const match = line.match(/^(\d+).*?\s+(\d+):(\d+)\s+(.+)$/);
       if (!match) return;
       const bookNumber = Number(match[1]);
       const chapterNumber = Number(match[2]);
       const verseNumber = Number(match[3]);
-      const rawBody = match[4].trim();
+      const body = match[4].trim();
       const meta = BIBLE_BOOKS[bookNumber - 1];
-      const body = normalizeVerseText(meta?.book, meta?.ko, chapterNumber, verseNumber, rawBody);
       if (!meta || !body) return;
       if (!booksByNumber.has(bookNumber)) {
         booksByNumber.set(bookNumber, { book: meta.book, koreanTitle: meta.ko, chapters: new Map() });
       }
       const book = booksByNumber.get(bookNumber);
       if (!book.chapters.has(chapterNumber)) book.chapters.set(chapterNumber, []);
-      const verses = book.chapters.get(chapterNumber);
-      const existing = verses.findIndex((verse) => verse.verse === verseNumber);
-      const verse = { verse: verseNumber, text: body };
-      if (existing >= 0) verses[existing] = verse;
-      else verses.push(verse);
-      verseCount += 1;
+      book.chapters.get(chapterNumber).push({ verse: verseNumber, text: body, sourceOrder });
+      sourceOrder += 1;
     });
   });
   const books = [...booksByNumber.entries()].sort((a, b) => a[0] - b[0]).map(([, book]) => ({
@@ -211,10 +328,15 @@ function parseBdfFiles(files) {
     koreanTitle: book.koreanTitle,
     chapters: [...book.chapters.entries()].sort((a, b) => a[0] - b[0]).map(([chapter, verses]) => ({
       chapter,
-      verses: verses.sort((a, b) => a.verse - b.verse),
+      verses,
     })),
   }));
-  return { books, verseCount };
+  const repaired = repairImportedBible({ books });
+  return {
+    books: repaired.data.books,
+    verseCount: repaired.verseCount,
+    repairCount: repaired.repairCount,
+  };
 }
 
 const HOMOLOGIA_MENUS = [
@@ -879,8 +1001,12 @@ export default function App() {
             const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
             if (!storedFile.exists) continue;
             const bibleData = JSON.parse(await storedFile.text());
-            loadedBibles[info.id] = bibleData;
-            const hasKorean = bibleData.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
+            const repaired = repairImportedBible(bibleData);
+            loadedBibles[info.id] = repaired.data;
+            if (repaired.repairCount > 0) {
+              storedFile.write(JSON.stringify(repaired.data));
+            }
+            const hasKorean = repaired.data.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
             const previousName = String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '');
             const originalIdentifier = info.id || info.fileName || previousName;
             validImported.push({ ...info, name: friendlyBdfName(originalIdentifier, hasKorean) });
@@ -2293,10 +2419,10 @@ export default function App() {
         const storedFile = new File(importsDirectory, fileName);
         storedFile.create({ overwrite: true, intermediates: true });
         storedFile.write(JSON.stringify({ books: parsed.books }));
-        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount };
+        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount, repairCount: parsed.repairCount };
         nextBibles[id] = { books: parsed.books };
         nextTranslations = [...nextTranslations.filter((item) => item.id !== id), info];
-        summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절`);
+        summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절${parsed.repairCount ? ` · 자동 보정 ${parsed.repairCount}건` : ''}`);
       }
 
       if (!summaries.length) {
@@ -3693,7 +3819,7 @@ const styles = StyleSheet.create({
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
-  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#DCEBFA', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#ECEDEF', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   highlightPickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, highlightPickerCard: { width: '100%', maxWidth: 430, padding: 20, borderRadius: 20, backgroundColor: '#FFFEFB' }, highlightPickerTitle: { color: '#17223B', fontSize: 20, fontWeight: '900' }, highlightPickerSubtitle: { marginTop: 5, color: '#747C86', fontSize: 12, lineHeight: 18 }, highlightColorRow: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, highlightColorButton: { width: '47%', minHeight: 52, borderRadius: 13, borderWidth: 1, borderColor: '#D8D2C7', alignItems: 'center', justifyContent: 'center' }, highlightColorText: { color: '#3E4350', fontWeight: '900' }, highlightPickerActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, highlightRemoveButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, highlightRemoveText: { color: '#A04B3C', fontWeight: '900' }, highlightCancelButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, highlightCancelText: { color: '#5E6570', fontWeight: '900' },
   indexScreenScroll: { flex: 1, width: '100%', minHeight: 0 }, indexWrapFlex: { flex: 1, minHeight: 0, paddingHorizontal: 30, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 96 : 24, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', flex: 1, minHeight: 140, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, minHeight: 0, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 10, marginBottom: 0, flexShrink: 0 },
   homologiaReaderSafe: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F4F1E9' },
