@@ -313,25 +313,30 @@ function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
 
 function repairImportedBible(data) {
   let repairCount = 0;
-  const books = normalizeBooks(data).map((book) => {
+  const books = normalizeBooks(data);
+
+  books.forEach((book) => {
     const bookNumber = BIBLE_BOOKS.findIndex((meta) => (
       meta.book === book.book || meta.ko === book.koreanTitle || meta.ko === book.title
     )) + 1;
-    if (!bookNumber) return book;
-    return {
-      ...book,
-      chapters: (book.chapters || []).map((chapter) => {
-        const repaired = repairImportedChapter(
-          bookNumber,
-          Number(chapter.chapter),
-          (chapter.verses || []).map((verse, sourceOrder) => ({ ...verse, sourceOrder })),
-        );
-        repairCount += repaired.repairCount;
-        return { ...chapter, verses: repaired.verses };
-      }),
-    };
+    if (!bookNumber) return;
+
+    (book.chapters || []).forEach((chapter) => {
+      const repaired = repairImportedChapter(
+        bookNumber,
+        Number(chapter.chapter),
+        (chapter.verses || []).map((verse, sourceOrder) => ({ ...verse, sourceOrder })),
+      );
+      chapter.verses = repaired.verses;
+      repairCount += repaired.repairCount;
+    });
   });
-  const repairedData = Array.isArray(data) ? books : { ...data, books };
+
+  const repairedData = Array.isArray(data)
+    ? books
+    : (data && typeof data === 'object' ? data : { books });
+  if (!Array.isArray(repairedData)) repairedData.books = books;
+
   const verseCount = books.reduce((bookTotal, book) => (
     bookTotal + (book.chapters || []).reduce((chapterTotal, chapter) => (
       chapterTotal + (chapter.verses || []).length
