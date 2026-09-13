@@ -204,6 +204,30 @@ function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
     });
   }
 
+  const boundaryHints = {
+    '2:22:30': '너희는 내게 거룩한 사람이',
+    '9:13:22': '블레셋 사람들의 부대가',
+    '9:19:23': '그가 또 그의 옷을 벗고',
+    '9:30:30': '헤브론에 있는 자에게와',
+    '19:72:19': '이새의 아들 다윗의 기도가',
+  };
+  const boundaryKey = `${bookNumber}:${chapterNumber}:${[...byVerse.keys()].sort((a, b) => b - a)[0] || 0}`;
+  const hintedVerseNumber = Number(boundaryKey.split(':')[2]);
+  const boundaryMarker = boundaryHints[boundaryKey];
+  if (boundaryMarker && byVerse.has(hintedVerseNumber) && !byVerse.has(hintedVerseNumber + 1)) {
+    const verse = byVerse.get(hintedVerseNumber);
+    const boundaryIndex = verse.text.indexOf(boundaryMarker);
+    if (boundaryIndex > 7) {
+      const before = verse.text.slice(0, boundaryIndex).trim();
+      const after = verse.text.slice(boundaryIndex).trim();
+      if (after.length > 7) {
+        byVerse.set(hintedVerseNumber, { verse: hintedVerseNumber, text: before });
+        byVerse.set(hintedVerseNumber + 1, { verse: hintedVerseNumber + 1, text: after });
+        repairCount += 1;
+      }
+    }
+  }
+
   if (bookNumber === 20 && chapterNumber === 8 && byVerse.has(23)) {
     const verse = byVerse.get(23);
     const corrected = verse.text.replace(/^반세\s*전부터/, '만세 전부터');
