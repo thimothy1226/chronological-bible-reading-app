@@ -20,6 +20,7 @@ if (missing.length) {
   process.exit(1);
 }
 
+const appSource = fs.readFileSync(path.join(root, 'App.js'), 'utf8');
 const appJson = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
@@ -30,6 +31,16 @@ if (appJson?.expo?.name !== 'GF Bible') {
 
 if (pkg.name !== 'gf-bible') {
   console.error(`GF Bible validation failed: package name is '${pkg.name}'.`);
+  process.exit(1);
+}
+
+if (!/function\s+normalizeVerseText\s*\(/.test(appSource)) {
+  console.error('GF Bible validation failed: normalizeVerseText is missing.');
+  process.exit(1);
+}
+
+if (appJson?.expo?.version !== pkg.version) {
+  console.error(`GF Bible validation failed: app.json version '${appJson?.expo?.version}' and package.json version '${pkg.version}' differ.`);
   process.exit(1);
 }
 
