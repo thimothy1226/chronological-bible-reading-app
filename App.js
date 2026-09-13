@@ -143,17 +143,124 @@ const friendlyBdfName = (baseName, hasKorean = false) => {
 };
 
 function decodeBdfBytes(bytes) {
-  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-    return Buffer.from(bytes).toString('utf8');
+  const buffer = Buffer.from(bytes);
+  if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+    return buffer.subarray(3).toString('utf8');
   }
-  return iconv.decode(Buffer.from(bytes), 'cp949');
+  if (buffer[0] === 0xFF && buffer[1] === 0xFE) {
+    return iconv.decode(buffer.subarray(2), 'utf16-le');
+  }
+  if (buffer[0] === 0xFE && buffer[1] === 0xFF) {
+    return iconv.decode(buffer.subarray(2), 'utf16-be');
+  }
+  return iconv.decode(buffer, 'cp949');
+}
+
+function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
+  let repairCount = 0;
+  const ordered = [...sourceVerses].sort((a, b) => a.sourceOrder - b.sourceOrder);
+  const renumbered = [];
+
+  ordered.forEach((source, index) => {
+    let verseNumber = Number(source.verse);
+    const previous = renumbered[renumbered.length - 1];
+    const expected = previous ? previous.verse + 1 : verseNumber;
+    const nextRaw = Number(ordered[index + 1]?.verse);
+
+    if (previous && verseNumber !== expected) {
+      const obviousForwardTypo = verseNumber > expected && nextRaw === expected + 1;
+      const obviousDuplicateTypo = verseNumber <= previous.verse
+        && (nextRaw === expected || nextRaw === expected + 1);
+      if (obviousForwardTypo || obviousDuplicateTypo) {
+        verseNumber = expected;
+        repairCount += 1;
+      }
+    }
+    renumbered.push({ verse: verseNumber, text: String(source.text || '').trim() });
+  });
+
+  const byVerse = new Map();
+  renumbered.forEach((verse) => {
+    if (!byVerse.has(verse.verse)) byVerse.set(verse.verse, verse);
+  });
+
+  let splitAgain = true;
+  while (splitAgain) {
+    splitAgain = false;
+    [...byVerse.keys()].sort((a, b) => a - b).forEach((verseNumber) => {
+      const verse = byVerse.get(verseNumber);
+      const nextVerseNumber = verseNumber + 1;
+      if (!verse || byVerse.has(nextVerseNumber) || !/[가-힣]/.test(verse.text)) return;
+      const marker = new RegExp(`\\s+${nextVerseNumber}\\s+`);
+      const match = marker.exec(verse.text);
+      if (!match) return;
+      const before = verse.text.slice(0, match.index).trim();
+      const after = verse.text.slice(match.index + match[0].length).trim();
+      if (before.length < 8 || after.length < 8) return;
+      byVerse.set(verseNumber, { verse: verseNumber, text: before });
+      byVerse.set(nextVerseNumber, { verse: nextVerseNumber, text: after });
+      repairCount += 1;
+      splitAgain = true;
+    });
+  }
+
+  if (bookNumber === 20 && chapterNumber === 8 && byVerse.has(23)) {
+    const verse = byVerse.get(23);
+    const corrected = verse.text.replace(/^반세\s*전부터/, '만세 전부터');
+    if (corrected !== verse.text) {
+      byVerse.set(23, { ...verse, text: corrected });
+      repairCount += 1;
+    }
+  }
+  if (bookNumber === 20 && chapterNumber === 27 && byVerse.has(1)) {
+    const verse = byVerse.get(1);
+    const corrected = verse.text.replace(/^네는(?=\s+내일\s+일을\s+자랑하지\s+말라)/, '너는');
+    if (corrected !== verse.text) {
+      byVerse.set(1, { ...verse, text: corrected });
+      repairCount += 1;
+    }
+  }
+
+  return {
+    verses: [...byVerse.values()].sort((a, b) => a.verse - b.verse),
+    repairCount,
+  };
+}
+
+function repairImportedBible(data) {
+  let repairCount = 0;
+  const books = normalizeBooks(data).map((book) => {
+    const bookNumber = BIBLE_BOOKS.findIndex((meta) => (
+      meta.book === book.book || meta.ko === book.koreanTitle || meta.ko === book.title
+    )) + 1;
+    if (!bookNumber) return book;
+    return {
+      ...book,
+      chapters: (book.chapters || []).map((chapter) => {
+        const repaired = repairImportedChapter(
+          bookNumber,
+          Number(chapter.chapter),
+          (chapter.verses || []).map((verse, sourceOrder) => ({ ...verse, sourceOrder })),
+        );
+        repairCount += repaired.repairCount;
+        return { ...chapter, verses: repaired.verses };
+      }),
+    };
+  });
+  const repairedData = Array.isArray(data) ? books : { ...data, books };
+  const verseCount = books.reduce((bookTotal, book) => (
+    bookTotal + (book.chapters || []).reduce((chapterTotal, chapter) => (
+      chapterTotal + (chapter.verses || []).length
+    ), 0)
+  ), 0);
+  return { data: repairedData, repairCount, verseCount };
 }
 
 function parseBdfFiles(files) {
   const booksByNumber = new Map();
-  let verseCount = 0;
+  let sourceOrder = 0;
   files.forEach(({ text }) => {
-    text.split(/\r?\n/).forEach((line) => {
+    String(text || '').replace(/\r\n?/g, '\n').split('\n').forEach((line) => {
       const match = line.match(/^(\d+).*?\s+(\d+):(\d+)\s+(.+)$/);
       if (!match) return;
       const bookNumber = Number(match[1]);
@@ -167,12 +274,8 @@ function parseBdfFiles(files) {
       }
       const book = booksByNumber.get(bookNumber);
       if (!book.chapters.has(chapterNumber)) book.chapters.set(chapterNumber, []);
-      const verses = book.chapters.get(chapterNumber);
-      const existing = verses.findIndex((verse) => verse.verse === verseNumber);
-      const verse = { verse: verseNumber, text: body };
-      if (existing >= 0) verses[existing] = verse;
-      else verses.push(verse);
-      verseCount += 1;
+      book.chapters.get(chapterNumber).push({ verse: verseNumber, text: body, sourceOrder });
+      sourceOrder += 1;
     });
   });
   const books = [...booksByNumber.entries()].sort((a, b) => a[0] - b[0]).map(([, book]) => ({
@@ -180,10 +283,15 @@ function parseBdfFiles(files) {
     koreanTitle: book.koreanTitle,
     chapters: [...book.chapters.entries()].sort((a, b) => a[0] - b[0]).map(([chapter, verses]) => ({
       chapter,
-      verses: verses.sort((a, b) => a.verse - b.verse),
+      verses,
     })),
   }));
-  return { books, verseCount };
+  const repaired = repairImportedBible({ books });
+  return {
+    books: repaired.data.books,
+    verseCount: repaired.verseCount,
+    repairCount: repaired.repairCount,
+  };
 }
 
 const HOMOLOGIA_MENUS = [
@@ -793,8 +901,12 @@ export default function App() {
             const storedFile = new File(Paths.document, 'bible-imports', info.fileName);
             if (!storedFile.exists) continue;
             const bibleData = JSON.parse(await storedFile.text());
-            loadedBibles[info.id] = bibleData;
-            const hasKorean = bibleData.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
+            const repaired = repairImportedBible(bibleData);
+            loadedBibles[info.id] = repaired.data;
+            if (repaired.repairCount > 0) {
+              storedFile.write(JSON.stringify(repaired.data));
+            }
+            const hasKorean = repaired.data.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
             const previousName = String(info.name || '').replace(/\s*\(개인\s*파일\)\s*$/i, '');
             const originalIdentifier = info.id || info.fileName || previousName;
             validImported.push({ ...info, name: friendlyBdfName(originalIdentifier, hasKorean) });
@@ -1928,10 +2040,10 @@ export default function App() {
         const storedFile = new File(importsDirectory, fileName);
         storedFile.create({ overwrite: true, intermediates: true });
         storedFile.write(JSON.stringify({ books: parsed.books }));
-        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount };
+        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount, repairCount: parsed.repairCount };
         nextBibles[id] = { books: parsed.books };
         nextTranslations = [...nextTranslations.filter((item) => item.id !== id), info];
-        summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절`);
+        summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절${parsed.repairCount ? ` · 자동 보정 ${parsed.repairCount}건` : ''}`);
       }
 
       if (!summaries.length) {
