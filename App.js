@@ -249,6 +249,45 @@ function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
     }
   }
 
+  const missingVerseRepairs = [
+    {
+      book: 1,
+      chapter: 4,
+      verse: 21,
+      previousVerse: 20,
+      previousPrefix: '아다는 야발을 낳았으니',
+      nextVerse: 22,
+      nextPrefix: '씰라는 두발가인을 낳았으니',
+      text: '그의 아우의 이름은 유발이니 그는 수금과 퉁소를 잡는 모든 자의 조상이 되었으며',
+    },
+    {
+      book: 6,
+      chapter: 7,
+      verse: 26,
+      previousVerse: 25,
+      previousPrefix: '여호수아가 이르되 네가 어찌하여 우리를 괴롭게 하였느냐',
+      text: '그 위에 돌 무더기를 크게 쌓았더니 오늘까지 있더라 여호와께서 그의 맹렬한 진노를 그치시니 그러므로 그 곳 이름을 오늘까지 아골 골짜기라 부르더라',
+    },
+    {
+      book: 23,
+      chapter: 25,
+      verse: 12,
+      previousVerse: 11,
+      previousPrefix: '그가 헤엄치는 자가 헤엄치려고 손을 폄 같이',
+      text: '네 성벽의 높은 요새를 헐어 땅에 내리시되 진토에 미치게 하시리라',
+    },
+  ];
+  missingVerseRepairs.forEach((repair) => {
+    if (bookNumber !== repair.book || chapterNumber !== repair.chapter || byVerse.has(repair.verse)) return;
+    const previousMatches = byVerse.get(repair.previousVerse)?.text?.startsWith(repair.previousPrefix);
+    const nextMatches = !repair.nextVerse
+      || byVerse.get(repair.nextVerse)?.text?.startsWith(repair.nextPrefix);
+    if (previousMatches && nextMatches) {
+      byVerse.set(repair.verse, { verse: repair.verse, text: repair.text });
+      repairCount += 1;
+    }
+  });
+
   if (bookNumber === 20 && chapterNumber === 8 && byVerse.has(23)) {
     const verse = byVerse.get(23);
     const corrected = verse.text.replace(/^반세\s*전부터/, '만세 전부터');
