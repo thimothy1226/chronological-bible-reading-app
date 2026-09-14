@@ -3033,14 +3033,22 @@ export default function App() {
             <TouchableOpacity
               disabled={storeVersionState.status !== 'update'}
               onPress={openStoreUpdate}
-              style={styles.versionStatusButton}
+              style={[styles.versionStatusButton, storeVersionState.status === 'update' && styles.versionStatusButtonUpdate]}
             >
               <Text
                 allowFontScaling={false}
-                numberOfLines={1}
-                style={[styles.versionStatusText, storeVersionState.status === 'update' && styles.versionStatusUpdate]}
+                numberOfLines={2}
+                style={styles.versionStatusText}
               >
-                (Ver {currentAppVersion}{storeVersionState.status === 'update' ? ' · 업데이트' : storeVersionState.status === 'latest' ? ' · 최신 버전' : storeVersionState.status === 'checking' ? ' · 확인 중' : ''})
+                (Ver {currentAppVersion}
+                {storeVersionState.status === 'update'
+                  ? <Text style={styles.versionStatusUpdate}> · 여기 업데이트를 눌러 설치하세요</Text>
+                  : storeVersionState.status === 'latest'
+                    ? ' · 최신 버전'
+                    : storeVersionState.status === 'checking'
+                      ? ' · 확인 중'
+                      : ''}
+                )
               </Text>
             </TouchableOpacity>
           </View>
@@ -3759,8 +3767,9 @@ const styles = StyleSheet.create({
   headerBrand: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   versionStatusButton: { flexShrink: 1, minHeight: 24, justifyContent: 'center' },
+  versionStatusButtonUpdate: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 8, backgroundColor: '#FFF0D9', borderWidth: 1, borderColor: '#E7A84B' },
   versionStatusText: { color: '#61705F', fontSize: 11, lineHeight: 15, fontWeight: '800' },
-  versionStatusUpdate: { color: '#B14A36', textDecorationLine: 'underline', fontWeight: '900' },
+  versionStatusUpdate: { color: '#C2410C', textDecorationLine: 'underline', fontWeight: '900' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
   tabs: { marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
   tab: { width: '33.333%', minHeight: 42, paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
