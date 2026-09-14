@@ -88,7 +88,7 @@ const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_position
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 const BIBLE_IMPORT_FOLDER_URI_KEY = '@gf_bible/bible_import_folder_uri';
 const BIBLE_REPAIR_VERSION_KEY = '@gf_bible/bible_repair_version';
-const BIBLE_REPAIR_VERSION = '2026-09-14-1';
+const BIBLE_REPAIR_VERSION = '2026-09-14-2';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
@@ -180,13 +180,36 @@ function decodeBdfBytes(bytes) {
 }
 
 function normalizeVerseText(book, bookKo, chapter, verse, text) {
-  const body = String(text || '');
+  let body = String(text || '');
+  const chapterNumber = Number(chapter);
+  const verseNumber = Number(verse);
   const isProverbs = book === 'Proverbs' || bookKo === '잠언';
-  if (isProverbs && Number(chapter) === 8 && Number(verse) === 23) {
-    return body.replace(/^반세\s*전부터/, '만세 전부터');
+  const isPsalms = book === 'Psalms' || bookKo === '시편';
+
+  if (isProverbs && chapterNumber === 8 && verseNumber === 23) {
+    body = body.replace(/^반세\s*전부터/, '만세 전부터');
   }
-  if (isProverbs && Number(chapter) === 27 && Number(verse) === 1) {
-    return body.replace(/^네는(?=\s+내일\s+일을\s+자랑하지\s+말라)/, '너는');
+  if (isProverbs && chapterNumber === 27 && verseNumber === 1) {
+    body = body.replace(/^네는(?=\s+내일\s+일을\s+자랑하지\s+말라)/, '너는');
+  }
+
+  const psalmCorrections = {
+    '119:77': [['즐거움이니이라', '즐거움이니이다']],
+    '119:174': [['구원을 사로 하였사오며', '구원을 사모하였사오며']],
+    '128:3': [['네 질 안방에', '네 집 안방에']],
+    '132:2': [['그가 여호와의 맹세하며', '그가 여호와께 맹세하며']],
+    '135:2': [['뜰에서 있는', '뜰에 서 있는']],
+    '138:3': [['힘을 줄어', '힘을 주어']],
+  };
+  if (isPsalms) {
+    (psalmCorrections[`${chapterNumber}:${verseNumber}`] || []).forEach(([from, to]) => {
+      body = body.replace(from, to);
+    });
+  }
+
+  const isFirstTimothy = book === '1 Timothy' || book === '1Timothy' || bookKo === '디모데전서';
+  if (isFirstTimothy && chapterNumber === 6 && verseNumber === 15) {
+    body = body.replace('만p주p의', '만주의');
   }
   return body;
 }
@@ -318,6 +341,26 @@ function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
       repairCount += 1;
     }
   }
+
+  const knownTextCorrections = {
+    '19:119:77': [['즐거움이니이라', '즐거움이니이다']],
+    '19:119:174': [['구원을 사로 하였사오며', '구원을 사모하였사오며']],
+    '19:128:3': [['네 질 안방에', '네 집 안방에']],
+    '19:132:2': [['그가 여호와의 맹세하며', '그가 여호와께 맹세하며']],
+    '19:135:2': [['뜰에서 있는', '뜰에 서 있는']],
+    '19:138:3': [['힘을 줄어', '힘을 주어']],
+    '54:6:15': [['만p주p의', '만주의']],
+  };
+  byVerse.forEach((verse, verseNumber) => {
+    let corrected = verse.text;
+    (knownTextCorrections[`${bookNumber}:${chapterNumber}:${verseNumber}`] || []).forEach(([from, to]) => {
+      corrected = corrected.replace(from, to);
+    });
+    if (corrected !== verse.text) {
+      byVerse.set(verseNumber, { ...verse, text: corrected });
+      repairCount += 1;
+    }
+  });
 
   return {
     verses: [...byVerse.values()].sort((a, b) => a.verse - b.verse),
@@ -1052,6 +1095,18 @@ export default function App() {
         homologiaPdfScaleRef.current = initialPdfScale;
         setHomologiaPdfScale(initialPdfScale);
         homologiaPdfPositionsRef.current = safeParseJson(saved[HOMOLOGIA_PDF_POSITIONS_KEY], {});
+        const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
+        if (bibleSelection) {
+          if (bibleSelection.testament) setTestament(bibleSelection.testament);
+          if (bibleSelection.book) setSelectedBookKey(bibleSelection.book);
+          if (Number(bibleSelection.chapter) > 0) setSelectedChapter(Number(bibleSelection.chapter));
+          if (Number(bibleSelection.verse) > 0) setSelectedVerse(Number(bibleSelection.verse));
+        }
+
+        // 먼저 기본 화면을 표시한 뒤 큰 개인 성경 파일은 백그라운드에서 불러옵니다.
+        setLoaded(true);
+        await new Promise((resolve) => setTimeout(resolve, 80));
+
         const imported = safeParseJson(saved[CUSTOM_TRANSLATIONS_KEY], []);
         const loadedBibles = {};
         const validImported = [];
@@ -1081,13 +1136,6 @@ export default function App() {
         setCustomBibles(loadedBibles);
         setCustomTranslations(validImported);
         await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(validImported));
-        const bibleSelection = safeParseJson(saved[BIBLE_SELECTION_KEY], null);
-        if (bibleSelection) {
-          if (bibleSelection.testament) setTestament(bibleSelection.testament);
-          if (bibleSelection.book) setSelectedBookKey(bibleSelection.book);
-          if (Number(bibleSelection.chapter) > 0) setSelectedChapter(Number(bibleSelection.chapter));
-          if (Number(bibleSelection.verse) > 0) setSelectedVerse(Number(bibleSelection.verse));
-        }
       } catch (error) {
         // 저장 데이터 일부가 손상되어도 앱 자체는 실행되도록 기본값으로 복구합니다.
         console.warn('Saved data load failed:', error);
@@ -3883,7 +3931,7 @@ const styles = StyleSheet.create({
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', alignItems: 'center', justifyContent: 'center', padding: 24 }, pickerCard: { width: '100%', maxHeight: '72%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' }, pickerList: { padding: 12, paddingBottom: 18 }, pickerOption: { minHeight: 52, paddingHorizontal: 16, borderRadius: 12, marginBottom: 7, backgroundColor: '#FFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, pickerOptionActive: { backgroundColor: '#17223B' }, pickerOptionText: { fontSize: 15, fontWeight: '800', color: '#343E50' }, pickerOptionTextActive: { color: '#FFF' }, pickerCheck: { color: '#D8B46C', fontSize: 17, fontWeight: '900' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.28)', justifyContent: 'flex-end' }, modalSheet: { height: '76%', backgroundColor: '#F7F6F1', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }, modalHeader: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E1D8' }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#17223B' }, modalSubtitle: { marginTop: 3, fontSize: 11, color: '#777' }, modalClose: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#E9E5DC' }, modalCloseText: { fontWeight: '900', color: '#5E6570' }, dayList: { padding: 14, paddingBottom: 30 }, dayPickerRow: { height: 60, marginBottom: 8, borderRadius: 13, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF' }, dayPickerRowCompleted: { backgroundColor: '#E2E3E5' }, dayPickerTextCompleted: { color: '#8A8D92' }, dayPickerRowActive: { borderWidth: 2, borderColor: '#B28A48' }, dayPickerDay: { fontSize: 13, fontWeight: '900', color: '#17223B' }, dayPickerDayActive: { color: '#8B6B35' }, dayPickerReading: { marginTop: 3, fontSize: 11, color: '#777' }, dayPickerState: { width: 24, textAlign: 'center', color: '#B28A48', fontWeight: '900', fontSize: 17 },
 
-  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#ECEDEF', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
+  selectionBar: { paddingHorizontal: 10, paddingVertical: 9, backgroundColor: '#17223B', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }, selectionCount: { color: '#FFF', fontWeight: '900', marginRight: 'auto' }, selectionAction: { backgroundColor: '#FFF', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 9 }, selectionActionText: { color: '#17223B', fontWeight: '900' }, selectionClear: { paddingHorizontal: 8, paddingVertical: 8 }, selectionClearText: { color: '#E9D5A9', fontWeight: '900' }, highlightedVerseWrap: { borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, selectedVerseWrap: { backgroundColor: '#DDE0E4', borderRadius: 9, paddingHorizontal: 5, paddingVertical: 2 }, noteMark: { fontSize: 13 },
   highlightPickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', padding: 24 }, highlightPickerCard: { width: '100%', maxWidth: 430, padding: 20, borderRadius: 20, backgroundColor: '#FFFEFB' }, highlightPickerTitle: { color: '#17223B', fontSize: 20, fontWeight: '900' }, highlightPickerSubtitle: { marginTop: 5, color: '#747C86', fontSize: 12, lineHeight: 18 }, highlightColorRow: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, highlightColorButton: { width: '47%', minHeight: 52, borderRadius: 13, borderWidth: 1, borderColor: '#D8D2C7', alignItems: 'center', justifyContent: 'center' }, highlightColorText: { color: '#3E4350', fontWeight: '900' }, highlightPickerActions: { marginTop: 18, flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, highlightRemoveButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#F3E8E5', alignItems: 'center', justifyContent: 'center' }, highlightRemoveText: { color: '#A04B3C', fontWeight: '900' }, highlightCancelButton: { flex: 1, minHeight: 44, borderRadius: 12, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, highlightCancelText: { color: '#5E6570', fontWeight: '900' },
   indexScreenScroll: { flex: 1, width: '100%', minHeight: 0 }, indexWrapFlex: { flex: 1, minHeight: 0, paddingHorizontal: 30, paddingTop: 16, paddingBottom: Platform.OS === 'android' ? 96 : 24, alignItems: 'center' }, testamentTabs: { width: '94%', flexDirection: 'row', backgroundColor: '#E8E5DD', borderRadius: 13, padding: 4, marginBottom: 10 }, testamentTab: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10 }, testamentTabActive: { backgroundColor: '#17223B' }, testamentText: { color: '#6C727B', fontWeight: '900', fontSize: 16 }, testamentTextActive: { color: '#FFF' }, bibleSelectorColumns: { width: '94%', flex: 1, minHeight: 140, flexDirection: 'row', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E3DED2', borderRadius: 15, overflow: 'hidden' }, selectorColumn: { flex: 0.75, minHeight: 0, borderLeftWidth: 1, borderLeftColor: '#E5E1D8' }, bookColumn: { flex: 1.8, borderLeftWidth: 0 }, selectorTitle: { textAlign: 'center', paddingVertical: 10, fontWeight: '900', color: '#777E88', backgroundColor: '#F3F1EB', borderBottomWidth: 1, borderBottomColor: '#E5E1D8' }, selectorRow: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: '#F0EEE8' }, selectorRowActive: { backgroundColor: '#DCEBFA' }, selectorRowText: { color: '#283245', fontWeight: '800', fontSize: 14 }, selectorRowTextActive: { color: '#10223B', fontWeight: '900' }, indexOpenButton: { width: '94%', marginTop: 10, marginBottom: 0, flexShrink: 0 },
   homologiaReaderSafe: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F4F1E9' },
