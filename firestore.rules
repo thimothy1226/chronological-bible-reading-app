@@ -56,10 +56,17 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/memberships/$(groupId + '_' + request.auth.uid)).data.active == true;
     }
 
+    function isOperationalGroup(groupId) {
+      return exists(/databases/$(database)/documents/groups/$(groupId))
+        && (!('status' in get(/databases/$(database)/documents/groups/$(groupId)).data)
+          || get(/databases/$(database)/documents/groups/$(groupId)).data.status == 'active');
+    }
+
     match /communityPosts/{postId} {
       allow read: if managesGroup(resource.data.get('groupId', 'gfc'))
         || isMember(resource.data.get('groupId', 'gfc'));
-      allow create: if managesGroup(request.resource.data.groupId);
+      allow create: if managesGroup(request.resource.data.groupId)
+        && isOperationalGroup(request.resource.data.groupId);
       allow update, delete: if managesGroup(resource.data.get('groupId', 'gfc'));
     }
 
@@ -79,6 +86,7 @@ service cloud.firestore {
       );
 
       allow create: if signedIn()
+        && isOperationalGroup(request.resource.data.groupId)
         && request.resource.data.memberUid == request.auth.uid
         && request.resource.data.active == true
         && request.resource.data.removedByAdmin == false
@@ -114,6 +122,17 @@ service cloud.firestore {
         || (signedIn()
           && ('groupId' in resource.data)
           && managesGroup(resource.data.groupId));
+      allow create, update, delete: if false;
+    }
+
+    match /groupAuditLogs/{logId} {
+      allow read: if isSuperAdmin()
+        || (signedIn() && ('groupId' in resource.data) && managesGroup(resource.data.groupId));
+      allow create, update, delete: if false;
+    }
+
+    match /deletedGroups/{groupId} {
+      allow read: if isSuperAdmin();
       allow create, update, delete: if false;
     }
 
