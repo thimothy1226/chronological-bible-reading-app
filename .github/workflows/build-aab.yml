@@ -72,7 +72,7 @@ jobs:
 
       - name: Verify AAB signature
         run: |
-          jarsigner -verify android/app/build/outputs/bundle/release/app-release.ab
+          jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Read app version
         id: app_version
@@ -87,7 +87,7 @@ jobs:
           cp android/app/build/outputs/bundle/release/app-release.aab \
             "output/GF-Bible-v${{ steps.app_version.outputs.version }}-release.aab"
 
-       - name: Upload AAB artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: GF-Bible-v${{ steps.app_version.outputs.version }}-release-aab
