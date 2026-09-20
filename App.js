@@ -14,6 +14,7 @@ import { DEFAULT_READING_PLAN_ID, READING_PLAN_DEFINITIONS, READING_PLANS } from
 import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import nkrvOtCorrections from './assets/bibles/nkrv-ot-corrections.json';
+import nkrvNtCorrections from './assets/bibles/nkrv-nt-corrections';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
 import homologiaPageImages from './assets/homologia-pages';
@@ -90,7 +91,7 @@ const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_position
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 const BIBLE_IMPORT_FOLDER_URI_KEY = '@gf_bible/bible_import_folder_uri';
 const BIBLE_REPAIR_VERSION_KEY = '@gf_bible/bible_repair_version';
-const BIBLE_REPAIR_VERSION = '2026-09-16-1';
+const BIBLE_REPAIR_VERSION = '2026-09-20-1';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
@@ -224,6 +225,10 @@ function normalizeVerseText(book, bookKo, chapter, verse, text) {
   const isFirstTimothy = book === '1 Timothy' || book === '1Timothy' || bookKo === '디모데전서';
   if (isFirstTimothy && chapterNumber === 6 && verseNumber === 15) {
     body = body.replace('만p주p의', '만주의');
+  }
+  const isJude = book === 'Jude' || bookKo === '유다서';
+  if (isJude && chapterNumber === 1 && verseNumber === 9) {
+    body = body.replace(/^제\s+(?=그러나\s+천사장)/, '');
   }
   return body;
 }
@@ -364,6 +369,7 @@ function repairImportedChapter(bookNumber, chapterNumber, sourceVerses) {
     '19:135:2': [['뜰에서 있는', '뜰에 서 있는']],
     '19:138:3': [['힘을 줄어', '힘을 주어']],
     '54:6:15': [['만p주p의', '만주의']],
+    '65:1:9': [['제 그러나 천사장', '그러나 천사장']],
   };
   byVerse.forEach((verse, verseNumber) => {
     let corrected = verse.text;
@@ -421,18 +427,28 @@ function isNkrvTranslationInfo(info) {
   return /NKRV|KORNKRV|개역개정|GAEYUKGAEJUNG/.test(signature) && !/KCH|국한문/.test(signature);
 }
 
-function applyBundledNkrvOtCorrections(data) {
+function applyBundledNkrvCorrections(data) {
   const originalBooks = normalizeBooks(data);
-  const correctedByBook = new Map(normalizeBooks(nkrvOtCorrections).map((book) => [book.book, book]));
-  const preservedNewTestament = originalBooks.filter((book) => {
-    const index = BIBLE_BOOKS.findIndex((meta) => meta.book === book.book || meta.ko === book.koreanTitle || meta.ko === book.title);
-    return index >= 39;
+  const correctedOldTestament = new Map(normalizeBooks(nkrvOtCorrections).map((book) => [book.book, book]));
+  const books = originalBooks.map((book) => correctedOldTestament.get(book.book) || book);
+  const booksByName = new Map(books.map((book) => [book.book, book]));
+  let correctedNewTestamentVerses = 0;
+  nkrvNtCorrections.books.forEach((patchBook) => {
+    const book = booksByName.get(patchBook.book);
+    if (!book) return;
+    patchBook.verses.forEach((patchVerse) => {
+      const chapter = book.chapters.find((item) => Number(item.chapter) === Number(patchVerse.chapter));
+      if (!chapter) return;
+      const verse = chapter.verses.find((item) => Number(item.verse) === Number(patchVerse.verse));
+      if (verse) verse.text = patchVerse.text;
+      else {
+        chapter.verses.push({ verse: Number(patchVerse.verse), text: patchVerse.text });
+        chapter.verses.sort((a, b) => Number(a.verse) - Number(b.verse));
+      }
+      correctedNewTestamentVerses += 1;
+    });
   });
-  const books = [
-    ...BIBLE_BOOKS.slice(0, 39).map((meta) => correctedByBook.get(meta.book)).filter(Boolean),
-    ...preservedNewTestament,
-  ];
-  return { books };
+  return { data: { books }, correctedNewTestamentVerses };
 }
 
 function parseBdfFiles(files) {
@@ -1188,10 +1204,15 @@ export default function App() {
             const repaired = shouldRepairImportedBibles
               ? repairImportedBible(bibleData)
               : { data: bibleData, repairCount: 0 };
-            const shouldApplyNkrvOt = shouldRepairImportedBibles && isNkrvTranslationInfo(info);
-            if (shouldApplyNkrvOt) repaired.data = applyBundledNkrvOtCorrections(repaired.data);
+            const shouldApplyNkrvCorrections = shouldRepairImportedBibles && isNkrvTranslationInfo(info);
+            let correctedNewTestamentVerses = 0;
+            if (shouldApplyNkrvCorrections) {
+              const corrected = applyBundledNkrvCorrections(repaired.data);
+              repaired.data = corrected.data;
+              correctedNewTestamentVerses = corrected.correctedNewTestamentVerses;
+            }
             loadedBibles[info.id] = repaired.data;
-            if (repaired.repairCount > 0 || shouldApplyNkrvOt) {
+            if (repaired.repairCount > 0 || shouldApplyNkrvCorrections) {
               storedFile.write(JSON.stringify(repaired.data));
             }
             const hasKorean = repaired.data.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
@@ -1200,9 +1221,10 @@ export default function App() {
             validImported.push({
               ...info,
               name: friendlyBdfName(originalIdentifier, hasKorean),
-              ...(shouldApplyNkrvOt ? {
-                correctionVersion: nkrvOtCorrections.version,
+              ...(shouldApplyNkrvCorrections ? {
+                correctionVersion: nkrvNtCorrections.version,
                 correctedOldTestamentVerses: nkrvOtCorrections.verseCount,
+                correctedNewTestamentVerses,
               } : {}),
             });
           } catch (error) {
@@ -3319,7 +3341,7 @@ export default function App() {
         ) : screen === 'more' ? (
           <ScrollView contentContainerStyle={styles.moreScreen}>
             <View style={styles.moreHeaderRow}>
-              <View><Text style={styles.settingsTitle}>{moreMode ? (moreMode === 'bookmarks' ? '북마크 모아보기' : moreMode === 'highlights' ? '형광펜 모아보기' : '메모 모아보기') : '더보기'}</Text><Text style={styles.recordsSubtitle}>{moreMode ? '저장한 말씀을 한곳에서 확인합니다.' : '저장한 말씀과 메모를 모아볼 수 있습니다.'}</Text></View>
+              <View><Text style={styles.settingsTitle}>{moreMode ? (moreMode === 'bookmarks' ? '북마크 모아보기' : moreMode === 'highlights' ? '형광펜 모아보기' : '메모 모아보기') : '나의 기록'}</Text><Text style={styles.recordsSubtitle}>{moreMode ? '저장한 말씀을 한곳에서 확인합니다.' : '북마크·형광펜·메모를 모아볼 수 있습니다.'}</Text></View>
               {moreMode ? <TouchableOpacity onPress={() => setMoreMode(null)} style={styles.moreBackButton}><Text style={styles.moreBackButtonText}>‹ 목록</Text></TouchableOpacity> : null}
             </View>
             {!moreMode ? (
@@ -3330,9 +3352,10 @@ export default function App() {
                 <View style={styles.legalMenuDivider} />
                 <TouchableOpacity onPress={() => setMoreMode('notes')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>📝 메모 모아보기</Text><Text style={styles.moreMenuDescription}>작성한 메모 {Object.keys(verseNotes).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
                 <View style={styles.legalMenuDivider} />
-                <TouchableOpacity onPress={openCreateGroup} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>＋ 새로운 그룹 만들기</Text><Text style={styles.moreMenuDescription}>누구나 그룹을 만들고 대표관리자가 될 수 있습니다.</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
-                <View style={styles.legalMenuDivider} />
-                <TouchableOpacity onPress={() => setGroupPolicyOpen(true)} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>그룹 운영 원칙</Text><Text style={styles.moreMenuDescription}>그룹 운영 중지·재승인·삭제 기준을 확인합니다.</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.groupCreationSection}>
+                  <TouchableOpacity onPress={openCreateGroup} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>＋ 새로운 그룹 만들기</Text><Text style={styles.moreMenuDescription}>누구나 그룹을 만들고 대표관리자가 될 수 있습니다.</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => setGroupPolicyOpen(true)} style={styles.groupPolicyInlineButton}><Text style={styles.groupPolicyInlineText}>[그룹 운영 원칙]</Text></TouchableOpacity>
+                </View>
               </View>
             ) : (
               <View style={styles.savedVerseList}>
@@ -3999,7 +4022,7 @@ const styles = StyleSheet.create({
   noticePostLink: { color: '#1769AA', fontWeight: '800', textDecorationLine: 'underline' },
   noticePostActions: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#EEEAE1', flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }, noticeEditButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#EEF1F5' }, noticeEditText: { color: '#42526A', fontSize: 12, fontWeight: '900' }, noticeDeleteButton: { paddingHorizontal: 15, paddingVertical: 9, borderRadius: 10, backgroundColor: '#F3E8E5' }, noticeDeleteText: { color: '#A04B3C', fontSize: 12, fontWeight: '900' },
   settingsScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 },
-  moreScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 }, moreHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }, moreBackButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E9E5DC' }, moreBackButtonText: { color: '#655332', fontSize: 12, fontWeight: '900' }, moreMenuCard: { borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' }, moreMenuRow: { minHeight: 76, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, moreMenuTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' }, moreMenuDescription: { marginTop: 4, color: '#7A7F87', fontSize: 11, fontWeight: '700' }, savedVerseList: { gap: 10 }, savedVerseCard: { padding: 16, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' }, savedVerseLabel: { color: '#8B6B35', fontSize: 13, fontWeight: '900', marginBottom: 7 }, savedVerseText: { color: '#303B52', fontSize: 14, lineHeight: 21, fontWeight: '700' }, savedVerseDate: { marginTop: 8, color: '#93979E', fontSize: 10, fontWeight: '700' }, savedVerseOpenHint: { marginTop: 9, color: '#173C70', fontSize: 11, fontWeight: '900', textAlign: 'right' },
+  moreScreen: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 80 }, moreHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }, moreBackButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#E9E5DC' }, moreBackButtonText: { color: '#655332', fontSize: 12, fontWeight: '900' }, moreMenuCard: { borderRadius: 18, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8', overflow: 'hidden' }, moreMenuRow: { minHeight: 76, paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, moreMenuTitle: { color: '#17223B', fontSize: 16, fontWeight: '900' }, moreMenuDescription: { marginTop: 4, color: '#7A7F87', fontSize: 11, fontWeight: '700' }, groupCreationSection: { paddingBottom: 11 }, groupPolicyInlineButton: { alignSelf: 'flex-start', marginLeft: 18, paddingHorizontal: 2, paddingVertical: 3 }, groupPolicyInlineText: { color: '#725B32', fontSize: 11, fontWeight: '800', textDecorationLine: 'underline' }, savedVerseList: { gap: 10 }, savedVerseCard: { padding: 16, borderRadius: 15, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#E7E2D8' }, savedVerseLabel: { color: '#8B6B35', fontSize: 13, fontWeight: '900', marginBottom: 7 }, savedVerseText: { color: '#303B52', fontSize: 14, lineHeight: 21, fontWeight: '700' }, savedVerseDate: { marginTop: 8, color: '#93979E', fontSize: 10, fontWeight: '700' }, savedVerseOpenHint: { marginTop: 9, color: '#173C70', fontSize: 11, fontWeight: '900', textAlign: 'right' },
   settingsSectionGap: { height: 24 },
   settingsTitle: { fontSize: 26, fontWeight: '900', color: '#17223B', marginBottom: 22 },
   settingsSectionTitle: { fontSize: 15, fontWeight: '900', color: '#5F6876', marginBottom: 10 },
