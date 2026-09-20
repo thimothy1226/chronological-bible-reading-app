@@ -15,6 +15,7 @@ import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import nkrvOtCorrections from './assets/bibles/nkrv-ot-corrections.json';
 import nkrvNtCorrections from './assets/bibles/nkrv-nt-corrections';
+import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
 import homologiaPageImages from './assets/homologia-pages';
@@ -605,6 +606,15 @@ function getVersesForPassage(data, passage) {
     }
   }
   return result;
+}
+
+function getPsalmHeading(book, bookKo, chapter, firstVerseText) {
+  if (book !== 'Psalms' && book !== 'Psalm' && bookKo !== '시편') return null;
+  const heading = psalmHeadingsKo.headings?.[String(chapter)];
+  if (!heading) return null;
+  const text = String(firstVerseText || '').trim();
+  const alreadyIncluded = /^(?:\(|다윗의\s|아삽의\s|고라\s자손|솔로몬의\s|모세의\s|에스라인|성전에\s올라가는|위로\s올라가는|찬송시|A\s+(?:Psalm|Song|Prayer|Miktam|Maskil)|To\s+the\s+(?:Chief\s+Musician|choirmaster|director)|For\s+the\s+director|Of\s+David|A\s+Shiggaion)/i.test(text);
+  return alreadyIncluded ? null : heading;
 }
 
 function safeParseJson(raw, fallback = {}) {
@@ -3066,6 +3076,9 @@ export default function App() {
               ) : section.verses.map((v, idx) => {
                 const prev = section.verses[idx - 1];
                 const showChapter = !prev || prev.chapter !== v.chapter;
+                const psalmHeading = showChapter && v.verse === 1
+                  ? getPsalmHeading(section.passage.book, v.bookKo, v.chapter, v.text)
+                  : null;
                 const isTargetVerse = readerContext.type === 'chapter' && v.verse === readerContext.verse;
                 return (
                   <View
@@ -3083,6 +3096,12 @@ export default function App() {
                     style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && [styles.highlightedVerseWrap, { backgroundColor: verseHighlights[verseKey(v)]?.color || '#FFF3A8' }], selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
                     {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
+                    {psalmHeading ? (
+                      <View style={styles.psalmHeadingBox}>
+                        <Text style={styles.psalmHeadingLabel}>시편 표제</Text>
+                        <Text style={[styles.psalmHeadingText, { fontSize: Math.max(13, fontSize - 2), lineHeight: Math.round(Math.max(13, fontSize - 2) * 1.55) }]}>{psalmHeading}</Text>
+                      </View>
+                    ) : null}
                     <TouchableOpacity
                       activeOpacity={0.75}
                       onLongPress={() => toggleVerseSelection(v)}
@@ -4127,7 +4146,7 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 22, paddingTop: Platform.OS === 'android' ? 90 : 40, paddingBottom: 120 }, recordCard: { backgroundColor: '#FFF', borderRadius: 17, padding: 16, marginBottom: 10 }, recordCardCanceled: { backgroundColor: '#F2F1ED' }, recordTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 }, recordDay: { fontSize: 14, fontWeight: '900', color: '#17223B' }, recordStatus: { fontSize: 11, fontWeight: '900', color: '#8B6B35' }, canceledStatus: { color: '#9A9A95' }, recordStage: { fontSize: 11, color: '#838993', marginBottom: 4 }, recordReading: { fontSize: 15, lineHeight: 21, fontWeight: '800', color: '#303B52' }, recordDate: { fontSize: 11, lineHeight: 17, fontWeight: '700', color: '#9A7C43' }, mutedText: { color: '#A8AAA8' }, cancelDate: { marginTop: 3, fontSize: 11, color: '#A8AAA8', fontWeight: '700' }, dateHistoryBox: { marginTop: 9 }, recordActions: { marginTop: 12, flexDirection: 'row', justifyContent: 'flex-end' }, cancelButton: { borderWidth: 1, borderColor: '#D8CFC2', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 9 }, cancelButtonText: { fontSize: 12, fontWeight: '900', color: '#7F6750' }, readAgainButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }, readAgainButtonText: { color: '#FFF', fontSize: 12, fontWeight: '900' }, emptyCard: { marginTop: 24, backgroundColor: '#FFF', borderRadius: 16, padding: 22, alignItems: 'center' }, emptyText: { color: '#777', fontWeight: '700' },
   bibleHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E8E4DA', gap: 8 }, backButton: { paddingVertical: 8, paddingRight: 6 }, backText: { fontSize: 15, fontWeight: '900', color: '#9A7C43' }, bibleTitle: { flex: 1, fontSize: 18, fontWeight: '900', color: '#17223B' }, homeButton: { backgroundColor: '#17223B', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }, homeButtonText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
   readerTools: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF' }, translationButton: { paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, backgroundColor: '#F5F1E8' }, translationText: { fontWeight: '900', color: '#17223B' }, fontTools: { flexDirection: 'row', gap: 8 }, fontButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#17223B' }, fontButtonText: { color: '#FFF', fontWeight: '900' },
-  readerContent: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: Platform.OS === 'android' ? 150 : 84 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
+  readerContent: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: Platform.OS === 'android' ? 150 : 84 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, psalmHeadingBox: { marginBottom: 14, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#E3D8C3', backgroundColor: '#F8F3E8' }, psalmHeadingLabel: { marginBottom: 5, color: '#8B6B35', fontSize: 10, fontWeight: '900' }, psalmHeadingText: { color: '#4B4234', fontWeight: '800' }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
   chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 46 : 18, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
   indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
