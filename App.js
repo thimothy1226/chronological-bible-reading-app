@@ -3145,18 +3145,18 @@ function BibleApp() {
           )}
         </View>
 
+        </ScrollView>
         {readerContext.type === 'chapter' && (
-          <View style={[styles.chapterNavigation, { paddingBottom: 12, flexWrap: 'wrap', flexDirection: compactReader ? 'column' : 'row', alignItems: 'stretch' }]}>
-            <TouchableOpacity onPress={() => moveChapter(-1)} style={styles.chapterNavButton}>
+          <View style={[styles.chapterNavigation, { paddingBottom: 12, flexShrink: 0, alignItems: 'stretch', paddingHorizontal: compactReader ? 6 : 14, gap: compactReader ? 4 : 8 }]}>
+            <TouchableOpacity onPress={() => moveChapter(-1)} style={[styles.chapterNavButton, { paddingVertical: 8, minWidth: 0 }]}>
               <Text style={styles.chapterNavButtonText}>‹ 이전 장</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => closeReader('bibleIndex')} style={styles.chapterSearchButton}><Text style={styles.chapterSearchButtonText}>성경찾기</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => moveChapter(1)} style={styles.chapterNavButton}>
+            <TouchableOpacity onPress={() => closeReader('bibleIndex')} style={[styles.chapterSearchButton, { flex: 1, minWidth: 0, paddingVertical: 8 }]}><Text style={styles.chapterSearchButtonText}>성경찾기</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => moveChapter(1)} style={[styles.chapterNavButton, { paddingVertical: 8, minWidth: 0 }]}>
               <Text style={styles.chapterNavButtonText}>다음 장 ›</Text>
             </TouchableOpacity>
           </View>
         )}
-        </ScrollView>
 
         <TranslationPicker />
 
