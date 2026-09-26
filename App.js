@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, AppState, BackHandler, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, SafeAreaView, ScrollView, Share, StatusBar,
-  StyleSheet, Text, TextInput, TouchableOpacity, View,
+  StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView as InsetSafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Application from 'expo-application';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -679,6 +680,14 @@ function renderPostBodyWithLinks(body) {
 }
 
 export default function App() {
+  return <SafeAreaProvider><BibleApp /></SafeAreaProvider>;
+}
+
+function BibleApp() {
+  const { width: windowWidth, height: windowHeight, fontScale } = useWindowDimensions();
+  const compactReader = windowHeight < 500 || windowWidth / Math.max(1, fontScale) < 330;
+  const readerBodyTop = useRef(0);
+  const readerSectionTops = useRef({});
   const [screen, setScreen] = useState('today');
   const [readingPlanId, setReadingPlanId] = useState(DEFAULT_READING_PLAN_ID);
   const [readingPlanPickerOpen, setReadingPlanPickerOpen] = useState(false);
@@ -3023,8 +3032,19 @@ export default function App() {
     };
 
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <InsetSafeAreaView style={styles.responsiveReaderSafe}>
         <StatusBar barStyle="dark-content" />
+        <ScrollView
+          key={readerKey}
+          ref={readerRef}
+          style={styles.responsiveReaderScroll}
+          contentContainerStyle={[styles.responsiveReaderContent, { maxWidth: 1100 }]}
+          onContentSizeChange={handleContentReady}
+          onScroll={(e) => { lastScrollY.current = e.nativeEvent.contentOffset.y; }}
+          onScrollEndDrag={saveCurrentPosition}
+          onMomentumScrollEnd={saveCurrentPosition}
+          scrollEventThrottle={80}
+        >
         <View style={styles.bibleHeader}>
           <TouchableOpacity onPress={() => closeReader(readerReturnScreen)} style={styles.backButton}>
             <Text style={styles.backText}>‹ 이전</Text>
@@ -3034,8 +3054,8 @@ export default function App() {
             <Text style={styles.homeButtonText}>홈</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.readerTools}>
-          <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}>
+        <View style={[styles.readerTools, { flexWrap: 'wrap', gap: 8 }]}>
+          <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={[styles.translationButton, { flexShrink: 1, maxWidth: '100%' }]}>
             <Text style={styles.translationText}>번역본: {selectedTranslation.name} ▼</Text>
           </TouchableOpacity>
           <View style={styles.fontTools}>
@@ -3058,19 +3078,10 @@ export default function App() {
             <Text style={styles.fixedChapterHeaderText}>{readerContext.bookKo} {readerContext.chapter}장</Text>
           </View>
         )}
-        <ScrollView
-          key={readerKey}
-          ref={readerRef}
-          contentContainerStyle={styles.readerContent}
-          onContentSizeChange={handleContentReady}
-          onScroll={(e) => { lastScrollY.current = e.nativeEvent.contentOffset.y; }}
-          onScrollEndDrag={saveCurrentPosition}
-          onMomentumScrollEnd={saveCurrentPosition}
-          scrollEventThrottle={80}
-        >
+        <View onLayout={(e) => { readerBodyTop.current = e.nativeEvent.layout.y; }} style={[styles.readerContent, { paddingBottom: 24 }]}>
           {readerContext.type === 'day' && <Text style={styles.readerRange}>{readerRange}</Text>}
           {readerSections.map((section, sidx) => (
-            <View key={sidx} style={styles.section}>
+            <View key={sidx} onLayout={(e) => { readerSectionTops.current[sidx] = e.nativeEvent.layout.y; }} style={styles.section}>
               {section.verses.length === 0 ? (
                 <Text style={styles.missingText}>본문 데이터를 찾지 못했습니다.</Text>
               ) : section.verses.map((v, idx) => {
@@ -3085,9 +3096,10 @@ export default function App() {
                     key={`${v.bookKo}-${v.chapter}-${v.verse}`}
                     onLayout={(e) => {
                       if (isTargetVerse && !savedY) {
-                        const targetY = v.verse === 1 ? 0 : Math.max(0, e.nativeEvent.layout.y - 12);
-                        pendingTargetY.current = targetY;
+                        const verseTop = e.nativeEvent.layout.y;
                         setTimeout(() => {
+                          const targetY = v.verse === 1 ? 0 : Math.max(0, readerBodyTop.current + (readerSectionTops.current[sidx] || 0) + verseTop - 12);
+                          pendingTargetY.current = targetY;
                           readerRef.current?.scrollTo({ y: targetY, animated: false });
                           lastScrollY.current = targetY;
                         }, 180);
@@ -3131,10 +3143,10 @@ export default function App() {
               </Text>
             </TouchableOpacity>
           )}
-        </ScrollView>
+        </View>
 
         {readerContext.type === 'chapter' && (
-          <View style={styles.chapterNavigation}>
+          <View style={[styles.chapterNavigation, { paddingBottom: 12, flexWrap: 'wrap', flexDirection: compactReader ? 'column' : 'row', alignItems: 'stretch' }]}>
             <TouchableOpacity onPress={() => moveChapter(-1)} style={styles.chapterNavButton}>
               <Text style={styles.chapterNavButtonText}>‹ 이전 장</Text>
             </TouchableOpacity>
@@ -3144,6 +3156,7 @@ export default function App() {
             </TouchableOpacity>
           </View>
         )}
+        </ScrollView>
 
         <TranslationPicker />
 
@@ -3187,7 +3200,7 @@ export default function App() {
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+      </InsetSafeAreaView>
     );
   }
 
@@ -3979,6 +3992,9 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  responsiveReaderSafe: { flex: 1, backgroundColor: '#F7F6F1' },
+  responsiveReaderScroll: { flex: 1, minHeight: 0 },
+  responsiveReaderContent: { width: '100%', alignSelf: 'center', paddingBottom: 12 },
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   headerBrand: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
