@@ -26,4 +26,4 @@ const b64 = require('./book-64.json');
 const b65 = require('./book-65.json');
 const b66 = require('./book-66.json');
 
-module.exports = { version: '2026-09-20-1', correctionCount: 1111, books: [b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b60, b61, b62, b63, b64, b65, b66] };
+module.exports = { version: '2026-10-01-1', correctionCount: 1118, books: [b40, b41, b42, b43, b44, b45, b46, b47, b48, b49, b50, b51, b52, b53, b54, b55, b56, b57, b58, b59, b60, b61, b62, b63, b64, b65, b66] };

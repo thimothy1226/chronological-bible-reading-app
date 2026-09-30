@@ -25,7 +25,7 @@ const countedNewTestamentCorrections = ntCorrections.books.reduce((total, book) 
 if (otCorrections.books.length !== 39 || countedOldTestamentVerses !== 23144 || otCorrections.verseCount !== countedOldTestamentVerses) {
   throw new Error(`Invalid NKRV OT correction bundle: ${otCorrections.books.length} books, ${countedOldTestamentVerses} verses`);
 }
-if (ntCorrections.books.length !== 27 || countedNewTestamentCorrections !== 1111 || ntCorrections.correctionCount !== countedNewTestamentCorrections) {
+if (ntCorrections.books.length !== 27 || countedNewTestamentCorrections !== 1118 || ntCorrections.correctionCount !== countedNewTestamentCorrections) {
   throw new Error(`Invalid NKRV NT correction bundle: ${ntCorrections.books.length} books, ${countedNewTestamentCorrections} corrections`);
 }
 if (psalmHeadings.count !== 116 || Object.keys(psalmHeadings.headings || {}).length !== 116) {

@@ -15,6 +15,8 @@ import translations from './assets/bibles/translations.json';
 import krv from './assets/bibles/krv.json';
 import nkrvOtCorrections from './assets/bibles/nkrv-ot-corrections.json';
 import nkrvNtCorrections from './assets/bibles/nkrv-nt-corrections';
+import kkjvCorrections from './assets/bibles/kkjv-corrections';
+import { isKkjvTranslationInfo, applyVerseCorrections } from './scripts/translation-corrections';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
@@ -92,7 +94,7 @@ const HOMOLOGIA_PDF_POSITIONS_KEY = '@chronological_bible/homologia_pdf_position
 const CUSTOM_TRANSLATIONS_KEY = '@chronological_bible/custom_translations';
 const BIBLE_IMPORT_FOLDER_URI_KEY = '@gf_bible/bible_import_folder_uri';
 const BIBLE_REPAIR_VERSION_KEY = '@gf_bible/bible_repair_version';
-const BIBLE_REPAIR_VERSION = '2026-09-20-1';
+const BIBLE_REPAIR_VERSION = '2026-10-01-1';
 const COMMUNITY_GROUPS_KEY = '@chronological_bible/community_groups';
 const CURRENT_GROUP_KEY = '@chronological_bible/current_group';
 const DEFAULT_GROUP = { id: 'gfc', name: 'GFC 교회' };
@@ -593,6 +595,7 @@ function getVersesForPassage(data, passage) {
       if (isLast && passage.endVerse && n > passage.endVerse) continue;
       result.push({
         bookKo: passage.bookKo,
+        psalmHeading: chapter.psalmHeading,
         chapter: chapterNo,
         verse: n,
         text: normalizeVerseText(
@@ -1214,15 +1217,20 @@ export default function App() {
             const repaired = shouldRepairImportedBibles
               ? repairImportedBible(bibleData)
               : { data: bibleData, repairCount: 0 };
-            const shouldApplyNkrvCorrections = shouldRepairImportedBibles && isNkrvTranslationInfo(info);
+            const shouldApplyNkrvCorrections = isNkrvTranslationInfo(info) && info.correctionVersion !== nkrvNtCorrections.version;
+            const shouldApplyKkjvCorrections = isKkjvTranslationInfo(info) && info.correctionVersion !== kkjvCorrections.version;
             let correctedNewTestamentVerses = 0;
             if (shouldApplyNkrvCorrections) {
               const corrected = applyBundledNkrvCorrections(repaired.data);
               repaired.data = corrected.data;
               correctedNewTestamentVerses = corrected.correctedNewTestamentVerses;
             }
+            if (shouldApplyKkjvCorrections) {
+              const corrected = applyVerseCorrections({ books: normalizeBooks(repaired.data) }, kkjvCorrections, BIBLE_BOOKS);
+              repaired.data = corrected.data;
+            }
             loadedBibles[info.id] = repaired.data;
-            if (repaired.repairCount > 0 || shouldApplyNkrvCorrections) {
+            if (repaired.repairCount > 0 || shouldApplyNkrvCorrections || shouldApplyKkjvCorrections) {
               storedFile.write(JSON.stringify(repaired.data));
             }
             const hasKorean = repaired.data.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
@@ -1231,6 +1239,7 @@ export default function App() {
             validImported.push({
               ...info,
               name: friendlyBdfName(originalIdentifier, hasKorean),
+              ...(shouldApplyKkjvCorrections ? { correctionVersion: kkjvCorrections.version } : {}),
               ...(shouldApplyNkrvCorrections ? {
                 correctionVersion: nkrvNtCorrections.version,
                 correctedOldTestamentVerses: nkrvOtCorrections.verseCount,
@@ -1421,6 +1430,7 @@ export default function App() {
     const chapter = (book?.chapters || []).find((c) => Number(c.chapter) === readerContext.chapter);
     const verses = (chapter?.verses || []).map((v) => ({
       bookKo: readerContext.bookKo,
+      psalmHeading: chapter?.psalmHeading,
       chapter: readerContext.chapter,
       verse: Number(v.verse),
       text: normalizeVerseText(
@@ -2683,6 +2693,16 @@ export default function App() {
       for (const [base, files] of groups.entries()) {
         files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         const parsed = parseBdfFiles(files);
+        const translationInfo = { id: base, name: friendlyBdfName(base, true) };
+        let correctionVersion;
+        if (isNkrvTranslationInfo(translationInfo)) {
+          parsed.books = applyBundledNkrvCorrections({ books: parsed.books }).data.books;
+          correctionVersion = nkrvNtCorrections.version;
+        } else if (isKkjvTranslationInfo(translationInfo)) {
+          parsed.books = applyVerseCorrections({ books: parsed.books }, kkjvCorrections, BIBLE_BOOKS).data.books;
+          correctionVersion = kkjvCorrections.version;
+        }
+        parsed.verseCount = parsed.books.reduce((total, book) => total + book.chapters.reduce((sum, chapter) => sum + chapter.verses.length, 0), 0);
         if (!parsed.books.length) continue;
         const hasKorean = parsed.books.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
         const id = `CUSTOM_${base.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
@@ -2690,7 +2710,7 @@ export default function App() {
         const storedFile = new File(importsDirectory, fileName);
         storedFile.create({ overwrite: true, intermediates: true });
         storedFile.write(JSON.stringify({ books: parsed.books }));
-        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount, repairCount: parsed.repairCount };
+        const info = { id, name: friendlyBdfName(base, hasKorean), fileName, sourceFiles: files.length, verseCount: parsed.verseCount, repairCount: parsed.repairCount, ...(correctionVersion ? { correctionVersion } : {}) };
         nextBibles[id] = { books: parsed.books };
         nextTranslations = [...nextTranslations.filter((item) => item.id !== id), info];
         summaries.push(`${info.name}: ${parsed.books.length}권 · ${parsed.verseCount.toLocaleString()}절${parsed.repairCount ? ` · 자동 보정 ${parsed.repairCount}건` : ''}`);
@@ -3077,7 +3097,7 @@ export default function App() {
                 const prev = section.verses[idx - 1];
                 const showChapter = !prev || prev.chapter !== v.chapter;
                 const psalmHeading = showChapter && v.verse === 1
-                  ? getPsalmHeading(section.passage.book, v.bookKo, v.chapter, v.text)
+                  ? (v.psalmHeading || getPsalmHeading(section.passage.book, v.bookKo, v.chapter, v.text))
                   : null;
                 const isTargetVerse = readerContext.type === 'chapter' && v.verse === readerContext.verse;
                 return (
