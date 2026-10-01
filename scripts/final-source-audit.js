@@ -22,7 +22,7 @@ const ntCorrections = require(path.join(root, 'assets/bibles/nkrv-nt-corrections
 const psalmHeadings = require(path.join(root, 'assets/bibles/psalm-headings-ko.json'));
 const countedOldTestamentVerses = otCorrections.books.reduce((total, book) => total + book.chapters.reduce((sum, chapter) => sum + chapter.verses.length, 0), 0);
 const countedNewTestamentCorrections = ntCorrections.books.reduce((total, book) => total + book.verses.length, 0);
-if (otCorrections.books.length !== 39 || countedOldTestamentVerses !== 23144 || otCorrections.verseCount !== countedOldTestamentVerses) {
+if (otCorrections.books.length !== 39 || countedOldTestamentVerses !== 23145 || otCorrections.verseCount !== countedOldTestamentVerses) {
   throw new Error(`Invalid NKRV OT correction bundle: ${otCorrections.books.length} books, ${countedOldTestamentVerses} verses`);
 }
 if (ntCorrections.books.length !== 27 || countedNewTestamentCorrections !== 1118 || ntCorrections.correctionCount !== countedNewTestamentCorrections) {

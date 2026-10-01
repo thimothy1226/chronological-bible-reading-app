@@ -16,7 +16,8 @@ import krv from './assets/bibles/krv.json';
 import nkrvOtCorrections from './assets/bibles/nkrv-ot-corrections.json';
 import nkrvNtCorrections from './assets/bibles/nkrv-nt-corrections';
 import kkjvCorrections from './assets/bibles/kkjv-corrections';
-import { isKkjvTranslationInfo, applyVerseCorrections } from './scripts/translation-corrections';
+import hkjvCorrections from './assets/bibles/hkjv-corrections';
+import { isHkjvTranslationInfo, isKkjvTranslationInfo, applyVerseCorrections } from './scripts/translation-corrections';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
@@ -451,6 +452,12 @@ function applyBundledNkrvCorrections(data) {
       correctedNewTestamentVerses += 1;
     });
   });
+  // Keep user annotation stores untouched; remove only duplicated, noncanonical text rows.
+  [[44, 24, 7], [56, 3, 16]].forEach(([number, chapterNumber, verseNumber]) => {
+    const book = booksByName.get(BIBLE_BOOKS[number - 1].book);
+    const chapter = book?.chapters.find(item => Number(item.chapter) === chapterNumber);
+    if (chapter) chapter.verses = chapter.verses.filter(item => Number(item.verse) !== verseNumber);
+  });
   return { data: { books }, correctedNewTestamentVerses };
 }
 
@@ -797,8 +804,13 @@ export default function App() {
   const [storeVersionState, setStoreVersionState] = useState({ status: 'checking', latestVersionName: null });
 
   const readerRef = useRef(null);
+  const indexBookRef = useRef(null);
+  const indexChapterRef = useRef(null);
+  const indexVerseRef = useRef(null);
   const recordsRef = useRef(null);
   const lastScrollY = useRef(0);
+  const readerVerseLayouts = useRef(new Map());
+  const readerSectionLayouts = useRef(new Map());
   const pendingTargetY = useRef(null);
   const restoredKey = useRef(null);
   const homologiaPdfScaleRef = useRef(1);
@@ -1219,6 +1231,7 @@ export default function App() {
               : { data: bibleData, repairCount: 0 };
             const shouldApplyNkrvCorrections = isNkrvTranslationInfo(info) && info.correctionVersion !== nkrvNtCorrections.version;
             const shouldApplyKkjvCorrections = isKkjvTranslationInfo(info) && info.correctionVersion !== kkjvCorrections.version;
+            const shouldApplyHkjvCorrections = isHkjvTranslationInfo(info) && info.correctionVersion !== hkjvCorrections.version;
             let correctedNewTestamentVerses = 0;
             if (shouldApplyNkrvCorrections) {
               const corrected = applyBundledNkrvCorrections(repaired.data);
@@ -1229,8 +1242,11 @@ export default function App() {
               const corrected = applyVerseCorrections({ books: normalizeBooks(repaired.data) }, kkjvCorrections, BIBLE_BOOKS);
               repaired.data = corrected.data;
             }
+            if (shouldApplyHkjvCorrections) {
+              repaired.data = applyVerseCorrections({ books: normalizeBooks(repaired.data) }, hkjvCorrections, BIBLE_BOOKS).data;
+            }
             loadedBibles[info.id] = repaired.data;
-            if (repaired.repairCount > 0 || shouldApplyNkrvCorrections || shouldApplyKkjvCorrections) {
+            if (repaired.repairCount > 0 || shouldApplyNkrvCorrections || shouldApplyKkjvCorrections || shouldApplyHkjvCorrections) {
               storedFile.write(JSON.stringify(repaired.data));
             }
             const hasKorean = repaired.data.books?.some((book) => book.chapters?.some((chapter) => chapter.verses?.some((verse) => /[가-힣]/.test(verse.text || ''))));
@@ -1239,6 +1255,7 @@ export default function App() {
             validImported.push({
               ...info,
               name: friendlyBdfName(originalIdentifier, hasKorean),
+              ...(shouldApplyHkjvCorrections ? { correctionVersion: hkjvCorrections.version } : {}),
               ...(shouldApplyKkjvCorrections ? { correctionVersion: kkjvCorrections.version } : {}),
               ...(shouldApplyNkrvCorrections ? {
                 correctionVersion: nkrvNtCorrections.version,
@@ -1375,7 +1392,8 @@ export default function App() {
   const selectedBook = selectedBookMeta?.data;
   const chapterCount = selectedBook?.chapters?.length || 1;
   const selectedChapterData = (selectedBook?.chapters || []).find((c) => Number(c.chapter) === selectedChapter) || selectedBook?.chapters?.[0];
-  const verseCount = selectedChapterData?.verses?.length || 1;
+  const chapterVerseNumbers = (selectedChapterData?.verses || []).map(v => Number(v.verse)).filter(Number.isFinite);
+  const verseCount = Math.max(1, ...chapterVerseNumbers);
 
   useEffect(() => {
     if (selectedChapter > chapterCount) setSelectedChapter(1);
@@ -1566,6 +1584,21 @@ export default function App() {
       return;
     }
     await saveCurrentPosition();
+    if (destination === 'bibleIndex') {
+      const entries = [...readerVerseLayouts.current.values()]
+        .filter(item => item.readerKey === readerKey)
+        .map(item => ({ ...item, y: item.y + (readerSectionLayouts.current.get(item.section) || 0) }))
+        .sort((a, b) => a.y - b.y);
+      const position = entries.filter(item => item.y <= (lastScrollY.current || 0) + 12).pop() || entries[0];
+      const bookName = position?.book || readerContext?.book;
+      const meta = BIBLE_BOOKS.find(item => item.book === bookName);
+      if (meta) {
+        setTestament(meta.testament);
+        setSelectedBookKey(meta.book);
+        setSelectedChapter(position?.chapter || readerContext.chapter);
+        setSelectedVerse(position?.verse || readerContext.verse || 1);
+      }
+    }
     setScreen(destination);
   };
 
@@ -2701,6 +2734,9 @@ export default function App() {
         } else if (isKkjvTranslationInfo(translationInfo)) {
           parsed.books = applyVerseCorrections({ books: parsed.books }, kkjvCorrections, BIBLE_BOOKS).data.books;
           correctionVersion = kkjvCorrections.version;
+        } else if (isHkjvTranslationInfo(translationInfo)) {
+          parsed.books = applyVerseCorrections({ books: parsed.books }, hkjvCorrections, BIBLE_BOOKS).data.books;
+          correctionVersion = hkjvCorrections.version;
         }
         parsed.verseCount = parsed.books.reduce((total, book) => total + book.chapters.reduce((sum, chapter) => sum + chapter.verses.length, 0), 0);
         if (!parsed.books.length) continue;
@@ -3090,7 +3126,7 @@ export default function App() {
         >
           {readerContext.type === 'day' && <Text style={styles.readerRange}>{readerRange}</Text>}
           {readerSections.map((section, sidx) => (
-            <View key={sidx} style={styles.section}>
+            <View key={sidx} style={styles.section} onLayout={e => readerSectionLayouts.current.set(sidx, e.nativeEvent.layout.y)}>
               {section.verses.length === 0 ? (
                 <Text style={styles.missingText}>본문 데이터를 찾지 못했습니다.</Text>
               ) : section.verses.map((v, idx) => {
@@ -3104,6 +3140,7 @@ export default function App() {
                   <View
                     key={`${v.bookKo}-${v.chapter}-${v.verse}`}
                     onLayout={(e) => {
+                      readerVerseLayouts.current.set(`${sidx}-${v.chapter}-${v.verse}`, { readerKey, section: sidx, y: e.nativeEvent.layout.y, book: section.passage.book, chapter: v.chapter, verse: v.verse });
                       if (isTargetVerse && !savedY) {
                         const targetY = v.verse === 1 ? 0 : Math.max(0, e.nativeEvent.layout.y - 12);
                         pendingTargetY.current = targetY;
@@ -3588,20 +3625,20 @@ export default function App() {
             <View style={styles.bibleSelectorColumns}>
               <View style={[styles.selectorColumn, styles.bookColumn]}>
                 <Text style={styles.selectorTitle}>성경책</Text>
-                <ScrollView nestedScrollEnabled>
-                  {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onPress={() => { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
+                <ScrollView nestedScrollEnabled ref={indexBookRef}>
+                  {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onLayout={e => { if (selectedBookKey === meta.book) indexBookRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
               <View style={styles.selectorColumn}>
                 <Text style={styles.selectorTitle}>장</Text>
-                <ScrollView nestedScrollEnabled>
-                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.selectorRow, selectedChapter === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedChapter === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
+                <ScrollView nestedScrollEnabled ref={indexChapterRef}>
+                  {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onLayout={e => { if (selectedChapter === n) indexChapterRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.selectorRow, selectedChapter === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedChapter === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
               <View style={styles.selectorColumn}>
                 <Text style={styles.selectorTitle}>절</Text>
-                <ScrollView nestedScrollEnabled>
-                  {Array.from({ length: verseCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onPress={() => setSelectedVerse(n)} style={[styles.selectorRow, selectedVerse === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedVerse === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
+                <ScrollView nestedScrollEnabled ref={indexVerseRef}>
+                  {chapterVerseNumbers.map((n) => <TouchableOpacity key={n} onLayout={e => { if (selectedVerse === n) indexVerseRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => setSelectedVerse(n)} style={[styles.selectorRow, selectedVerse === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedVerse === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
             </View>
