@@ -820,6 +820,9 @@ export default function App() {
   const handledNotificationRef = useRef(null);
   const savedVerseReturnRef = useRef(null);
   const updatePromptShownRef = useRef(false);
+  const storeVersionCheckRef = useRef(null);
+  const storeVersionRequestRef = useRef(null);
+  const storeVersionLastCheckRef = useRef(0);
   const activityHeartbeatRef = useRef(new Set());
 
   const isSuperAdmin = adminUser?.uid === ADMIN_UID;
@@ -1299,19 +1302,26 @@ export default function App() {
   useEffect(() => {
     if (!loaded || Platform.OS !== 'android') return undefined;
     let cancelled = false;
-    const checkStoreVersion = async () => {
+    const checkStoreVersion = async (manual = false) => {
+      if (cancelled || storeVersionRequestRef.current) return;
+      const controller = new AbortController();
+      storeVersionRequestRef.current = controller;
+      storeVersionLastCheckRef.current = Date.now();
+      if (manual) setStoreVersionState((previous) => ({ ...previous, status: 'checking' }));
+      const timeout = setTimeout(() => controller.abort(), 10000);
       try {
-        const response = await fetch(`${STORE_VERSION_URL}?checkedAt=${Date.now()}`);
+        const response = await fetch(`${STORE_VERSION_URL}?checkedAt=${Date.now()}`, { signal: controller.signal, headers: { 'Cache-Control': 'no-cache' } });
         if (!response.ok) throw new Error(`Version check failed: ${response.status}`);
         const info = await response.json();
         const latestVersionCode = Number(info.latestVersionCode || 0);
         const latestVersionName = String(info.latestVersionName || '').trim() || null;
+        if (!Number.isInteger(latestVersionCode) || latestVersionCode <= 0 || typeof info.published !== 'boolean') throw new Error('Invalid version metadata');
         const updateAvailable = info.published === true && latestVersionCode > currentBuildCode;
         if (cancelled) return;
         setStoreVersionState({ status: updateAvailable ? 'update' : 'latest', latestVersionName });
-        if (!updateAvailable || updatePromptShownRef.current) return;
+        if (!updateAvailable || (!manual && updatePromptShownRef.current)) return;
         const snoozeUntil = Number(await AsyncStorage.getItem(UPDATE_SNOOZE_UNTIL_KEY) || 0);
-        if (cancelled || Date.now() < snoozeUntil) return;
+        if (cancelled || (!manual && Date.now() < snoozeUntil)) return;
         updatePromptShownRef.current = true;
         Alert.alert(
           '새로운 업데이트가 있습니다',
@@ -1328,12 +1338,25 @@ export default function App() {
       } catch (error) {
         console.warn('Store version check failed:', error);
         if (!cancelled) setStoreVersionState({ status: 'unknown', latestVersionName: null });
+      } finally {
+        clearTimeout(timeout);
+        if (storeVersionRequestRef.current === controller) storeVersionRequestRef.current = null;
       }
     };
-    const timer = setTimeout(checkStoreVersion, 700);
+    storeVersionCheckRef.current = checkStoreVersion;
+    const timer = setTimeout(() => checkStoreVersion(), 700);
+    let previousAppState = AppState.currentState;
+    const subscription = AppState.addEventListener('change', (state) => {
+      const returnedToApp = state === 'active' && previousAppState !== 'active';
+      previousAppState = state;
+      if (returnedToApp && Date.now() - storeVersionLastCheckRef.current >= 60 * 60 * 1000) checkStoreVersion();
+    });
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      subscription.remove();
+      if (storeVersionCheckRef.current === checkStoreVersion) storeVersionCheckRef.current = null;
+      storeVersionRequestRef.current?.abort();
     };
   }, [loaded, currentBuildCode]);
 
@@ -3256,8 +3279,9 @@ export default function App() {
           <View style={styles.headerBrand}>
             <Text style={styles.title}>GF Bible</Text>
             <TouchableOpacity
-              disabled={storeVersionState.status !== 'update'}
-              onPress={openStoreUpdate}
+              accessibilityRole="button"
+              accessibilityLabel="앱 버전 및 업데이트 확인"
+              onPress={() => storeVersionState.status === 'update' ? openStoreUpdate() : storeVersionCheckRef.current?.(true)}
               style={[styles.versionStatusButton, storeVersionState.status === 'update' && styles.versionStatusButtonUpdate]}
             >
               <Text
