@@ -1407,7 +1407,7 @@ export default function App() {
       return;
     }
     try {
-      await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions }));
+      await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions }), JSON.stringify({ currentDay, completions }));
       if (readingPlanId === DEFAULT_READING_PLAN_ID) {
         await syncStorage.multiSet([[CURRENT_DAY_KEY, String(currentDay)], [COMPLETIONS_KEY, JSON.stringify(completions)]]);
       }
@@ -1549,7 +1549,7 @@ export default function App() {
 
   const persistPositions = async (next) => {
     setReaderPositions(next);
-    await syncStorage.setItem(READER_POSITIONS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(READER_POSITIONS_KEY, JSON.stringify(next), JSON.stringify(readerPositions));
   };
 
   const saveCurrentPosition = async () => {
@@ -2477,7 +2477,7 @@ export default function App() {
     if (readingPlanId === DEFAULT_READING_PLAN_ID) {
       progressWrites.push([COMPLETIONS_KEY, JSON.stringify(next)], [CURRENT_DAY_KEY, String(nextDay)]);
     }
-    await syncStorage.multiSet(progressWrites);
+    await syncStorage.multiSet(progressWrites, { [readingPlanProgressKey(readingPlanId)]: JSON.stringify({ currentDay, completions }) });
     setCompletions(next);
     setCurrentDay(nextDay);
 
@@ -2524,7 +2524,7 @@ export default function App() {
                 canceledAt: formatKoreanDateTime(),
               },
             };
-            await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions: next }));
+            await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions: next }), JSON.stringify({ currentDay, completions }));
             if (readingPlanId === DEFAULT_READING_PLAN_ID) await syncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(next));
             setCompletions(next);
           },
@@ -2551,7 +2551,7 @@ export default function App() {
       else next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime() };
     });
     setVerseBookmarks(next);
-    await syncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next), JSON.stringify(verseBookmarks));
   };
 
   const applyHighlightColor = async (colorKey) => {
@@ -2562,7 +2562,7 @@ export default function App() {
       next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime(), colorKey, color };
     });
     setVerseHighlights(next);
-    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next), JSON.stringify(verseHighlights));
     setHighlightPickerOpen(false);
     setSelectedVerses([]);
   };
@@ -2572,7 +2572,7 @@ export default function App() {
     const next = { ...verseHighlights };
     selectedVerses.forEach((v) => delete next[v.key]);
     setVerseHighlights(next);
-    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next), JSON.stringify(verseHighlights));
     setHighlightPickerOpen(false);
     setSelectedVerses([]);
   };
@@ -2643,7 +2643,7 @@ export default function App() {
       else delete next[key];
     });
     setVerseNotes(next);
-    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next), JSON.stringify(verseNotes));
     setNoteModal(null);
     setNoteDraft('');
   };
@@ -2653,7 +2653,7 @@ export default function App() {
     const next = { ...verseNotes };
     noteModal.keys.forEach((key) => delete next[key]);
     setVerseNotes(next);
-    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next), JSON.stringify(verseNotes));
     setNoteModal(null);
     setNoteDraft('');
   };

@@ -101,3 +101,20 @@ test('crash between durable outbox and local write replays before synchronizatio
   const storage = new Storage({ [STATE_KEY]: JSON.stringify(state), [core.KEYS.notes]: '{}' });
   const e = await device('a', server, storage); assert.equal(core.parse(await storage.getItem(core.KEYS.notes)).v, 'recovered'); assert.equal(e.state.pendingRows, undefined); e.dispose();
 });
+test('stale app render editing one note does not delete a concurrently received different note', async () => {
+  const server = new Server(); const e = await device('a', server); await e.enable('a');
+  const shown = '{}';
+  server.records = { 'notes|remote': r('other device note', 500) }; server.revision = 1;
+  await e.sync();
+  await e.write([[core.KEYS.notes, '{"local":"my note"}']], { [core.KEYS.notes]: shown });
+  await e.sync();
+  assert.deepEqual(core.parse(await e.storage.getItem(core.KEYS.notes)), { remote: 'other device note', local: 'my note' }); e.dispose();
+});
+test('stale completion render preserves other days and the current day advanced remotely', async () => {
+  const server = new Server(); const e = await device('a', server); await e.enable('a');
+  server.records = { 'day|plan': r(8, 500), 'completion|plan|2': r({ active: true, dates: ['remote'], canceledAt: null }, 500) }; server.revision = 1;
+  await e.sync();
+  await e.write([[`${core.PREFIX}plan`, JSON.stringify({ currentDay: 1, completions: { 1: { active: true, dates: ['local'], canceledAt: null } } })]], { [`${core.PREFIX}plan`]: JSON.stringify({ currentDay: 1, completions: {} }) });
+  await e.sync(); const p = core.parse(await e.storage.getItem(`${core.PREFIX}plan`));
+  assert.equal(p.currentDay, 8); assert.ok(p.completions['1']); assert.ok(p.completions['2']); e.dispose();
+});

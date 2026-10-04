@@ -36,9 +36,26 @@ class PersonalSyncEngine {
       this.status(this.state.profileId ? 'pending' : 'unlinked');
     });
   }
-  async write(rows) {
+  async write(rows, basis = {}) {
     return this.serial(async () => {
-      const old = await this.readRows(); const desired = { ...old, ...Object.fromEntries(rows) };
+      const old = await this.readRows();
+      const effectiveRows = rows.map(([key, raw]) => {
+        if (!core.own(basis, key)) return [key, raw];
+        const previous = core.parse(basis[key]); const incoming = core.parse(raw); const actual = core.parse(old[key]);
+        const patchMap = (base, next, current) => {
+          const merged = { ...current };
+          for (const id of new Set([...Object.keys(base), ...Object.keys(next)])) {
+            if (core.same(base[id], next[id])) continue;
+            if (core.own(next, id)) merged[id] = next[id]; else delete merged[id];
+          }
+          return merged;
+        };
+        if (key.startsWith(core.PREFIX)) {
+          return [key, JSON.stringify({ currentDay: previous.currentDay === incoming.currentDay ? (actual.currentDay || 1) : incoming.currentDay, completions: patchMap(previous.completions || {}, incoming.completions || {}, actual.completions || {}) })];
+        }
+        return [key, JSON.stringify(patchMap(previous, incoming, actual))];
+      });
+      const desired = { ...old, ...Object.fromEntries(effectiveRows) };
       const before = core.flatten(old); const after = core.flatten(desired);
       const at = Math.max(this.state.lastTime + 1, this.now() + this.state.offset);
       let changed = false;
@@ -49,11 +66,11 @@ class PersonalSyncEngine {
       }
       if (changed) {
         this.state.lastTime = at;
-        this.state.pendingRows = Object.fromEntries(rows);
+        this.state.pendingRows = Object.fromEntries(effectiveRows);
         // Durable outbox first. Crash recovery replays the local write before sync.
         await this.persist();
       }
-      await this.storage.multiSet(rows);
+      await this.storage.multiSet(effectiveRows);
       if (changed) { delete this.state.pendingRows; await this.persist(); this.status(this.state.profileId ? 'pending' : 'unlinked'); this.schedule(); }
     });
   }

@@ -7,15 +7,15 @@ const { isTrackedKey } = require('../functions/device-sync-core');
 let currentEngine = null;
 // Existing local storage continues to work without opting in or connecting to a server.
 export const syncStorage = {
-  async setItem(key, value) {
-    if (currentEngine && isTrackedKey(key)) return currentEngine.write([[key, value]]);
+  async setItem(key, value, previous) {
+    if (currentEngine && isTrackedKey(key)) return currentEngine.write([[key, value]], previous === undefined ? {} : { [key]: previous });
     return AsyncStorage.setItem(key, value);
   },
-  async multiSet(rows) {
+  async multiSet(rows, basis = {}) {
     const tracked = rows.filter(([key]) => isTrackedKey(key));
     const other = rows.filter(([key]) => !isTrackedKey(key));
     if (tracked.length) {
-      if (currentEngine) await currentEngine.write(tracked);
+      if (currentEngine) await currentEngine.write(tracked, basis);
       else await AsyncStorage.multiSet(tracked);
     }
     if (other.length) await AsyncStorage.multiSet(other);
