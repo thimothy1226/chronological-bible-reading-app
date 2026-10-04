@@ -4,6 +4,8 @@ import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DeviceLinkModal, { syncStatusText } from './sync/DeviceLinkModal';
+import { startPersonalSync, syncStorage } from './sync/personal-sync-service';
 import * as Application from 'expo-application';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
@@ -117,7 +119,7 @@ const LEGAL_DOCUMENTS = {
     sections: [
       ['1. 처리 목적', '그룹 가입과 회원 관리, 공지사항·중보기도 제공, 관리자 인증 및 서비스 운영을 위해 필요한 최소한의 정보를 처리합니다.'],
       ['2. 처리하는 정보', '일반 회원: Firebase 익명 식별값(회원번호), 닉네임, 가입 그룹, 가입·탈퇴 상태와 일시\n알림 이용 시: 휴대폰의 푸시 알림 토큰, 기기 종류, 알림을 받을 그룹\n관리자: 이메일 주소, Firebase 인증 식별값, 담당 그룹과 권한\n게시글 작성 시: 제목, 내용, 작성자 식별정보와 작성일시'],
-      ['3. 휴대폰에만 저장되는 정보', '성경 통독 완료기록, 북마크, 형광펜 표시, 말씀 메모, 글자 크기와 읽던 위치, 사용자가 직접 등록한 BDF 성경 데이터는 해당 휴대폰에만 저장되며 서버로 전송하지 않습니다.'],
+      ['3. 기기 저장과 선택적 동기화', '기기 연결을 사용하지 않으면 읽기 기록·북마크·형광펜·메모·읽던 위치는 기기에만 저장됩니다. 사용자가 기기 연결을 시작하면 이 기록과 기기 식별값·기기 이름·변경 및 삭제 시각을 Firebase 서버에 보관하여 연결된 기기끼리 동기화합니다. 첫 연결 전 기록의 복구용 사본도 보관합니다. 글자 크기와 사용자가 구입하여 불러온 성경 본문 파일은 기기에만 저장되며 본문 파일과 북마크·형광펜에 포함된 본문 문구는 동기화 서버로 전송하지 않습니다. 앱 삭제 또는 데이터 초기화 시 기기에만 저장된 파일과 연결 권한을 잃을 수 있습니다. 서버 기록 및 복구용 사본의 삭제는 운영자에게 요청할 수 있습니다.'],
       ['4. 보유 및 파기', '개인정보는 서비스 이용 또는 그룹 가입 기간 동안 보관하며, 목적이 달성되거나 삭제 요청이 확인되면 지체 없이 파기합니다. 관리자에 의해 탈퇴 처리된 경우 재가입 제한과 분쟁 대응에 필요한 최소 기록은 서비스 운영 기간 동안 보관될 수 있습니다.'],
       ['5. 외부 서비스 이용', '인증, 데이터 저장 및 푸시 알림 전송을 위해 Google Firebase를 이용합니다. 관련 정보는 Firebase 기반 시설에서 처리될 수 있으며 Google의 보안 및 개인정보 보호 기준이 적용됩니다. 개인정보를 판매하거나 광고 목적으로 제3자에게 제공하지 않습니다.'],
       ['6. 이용자의 권리', '이용자는 닉네임 변경, 그룹 탈퇴를 직접 할 수 있으며 개인정보 열람·정정·삭제·처리정지를 앱 운영자 또는 소속 그룹 관리자에게 요청할 수 있습니다.'],
@@ -801,6 +803,11 @@ export default function App() {
   const [transferPassword, setTransferPassword] = useState('');
   const [memberSnapshotReady, setMemberSnapshotReady] = useState(false);
   const [highlightPickerOpen, setHighlightPickerOpen] = useState(false);
+  const [deviceLinkOpen, setDeviceLinkOpen] = useState(false);
+  const [personalSyncStatus, setPersonalSyncStatus] = useState({ status: 'unlinked' });
+  const personalSyncRef = useRef(null);
+  const personalPlanRef = useRef(readingPlanId);
+  personalPlanRef.current = readingPlanId;
   const [storeVersionState, setStoreVersionState] = useState({ status: 'checking', latestVersionName: null });
 
   const readerRef = useRef(null);
@@ -999,14 +1006,14 @@ export default function App() {
           if (removedIds.includes(currentGroupId)) {
             const nextId = filtered[0] || null;
             setCurrentGroupId(nextId);
-            if (nextId) AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId).catch(() => {});
+            if (nextId) syncStorage.setItem(CURRENT_GROUP_KEY, nextId).catch(() => {});
             else AsyncStorage.removeItem(CURRENT_GROUP_KEY).catch(() => {});
             setScreen('today');
           }
           const unchanged = filtered.length === previous.length
             && filtered.every((id, index) => id === previous[index]);
           if (unchanged) return previous;
-          AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(filtered)).catch(() => {});
+          syncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(filtered)).catch(() => {});
           return filtered;
         });
       }
@@ -1069,7 +1076,7 @@ export default function App() {
       setNotificationDetailMode(true);
       setSelectedNoticePost(null);
       setCurrentGroupId(data.groupId);
-      AsyncStorage.setItem(CURRENT_GROUP_KEY, data.groupId).catch(() => {});
+      syncStorage.setItem(CURRENT_GROUP_KEY, data.groupId).catch(() => {});
       setNoticeCategory(data.category);
       setPendingNotificationPost({ postId: data.postId, groupId: data.groupId });
       setScreen('notice');
@@ -1193,7 +1200,7 @@ export default function App() {
           : (savedPlanId === DEFAULT_READING_PLAN_ID ? legacyCompletions : {});
         setCompletions(migrated);
         if (!persistedPlanProgress && savedPlanId === DEFAULT_READING_PLAN_ID) {
-          await AsyncStorage.setItem(readingPlanProgressKey(savedPlanId), JSON.stringify({ currentDay: safeDay, completions: migrated }));
+          await syncStorage.setItem(readingPlanProgressKey(savedPlanId), JSON.stringify({ currentDay: safeDay, completions: migrated }));
         }
         setTranslationId(saved[TRANSLATION_KEY] || 'KRV');
         const f = Number(saved[FONT_SIZE_KEY] || 19);
@@ -1271,11 +1278,11 @@ export default function App() {
           }
         }
         if (shouldRepairImportedBibles) {
-          await AsyncStorage.setItem(BIBLE_REPAIR_VERSION_KEY, BIBLE_REPAIR_VERSION);
+          await syncStorage.setItem(BIBLE_REPAIR_VERSION_KEY, BIBLE_REPAIR_VERSION);
         }
         setCustomBibles(loadedBibles);
         setCustomTranslations(validImported);
-        await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(validImported));
+        await syncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(validImported));
       } catch (error) {
         // 저장 데이터 일부가 손상되어도 앱 자체는 실행되도록 기본값으로 복구합니다.
         console.warn('Saved data load failed:', error);
@@ -1285,6 +1292,38 @@ export default function App() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    if (!loaded || !memberUser?.uid) return undefined;
+    const service = startPersonalSync({
+      uid: memberUser.uid, functions: memberFunctions, firestore: memberFirestore,
+      onStatus: setPersonalSyncStatus,
+      onApply: async (rows) => {
+        setVerseNotes(safeParseJson(rows[VERSE_NOTES_KEY], {}));
+        setVerseBookmarks(safeParseJson(rows[VERSE_BOOKMARKS_KEY], {}));
+        setVerseHighlights(safeParseJson(rows[VERSE_HIGHLIGHTS_KEY], {}));
+        setReaderPositions(safeParseJson(rows[READER_POSITIONS_KEY], {}));
+        const nextPlanId = READING_PLANS[rows[READING_PLAN_KEY]] ? rows[READING_PLAN_KEY] : personalPlanRef.current;
+        const progress = safeParseJson(rows[readingPlanProgressKey(nextPlanId)], {});
+        const day = Math.min(READING_PLANS[nextPlanId].schedule.length, Math.max(1, Number(progress.currentDay || 1)));
+        personalPlanRef.current = nextPlanId;
+        setReadingPlanId(nextPlanId); setCurrentDay(day); setDisplayDay(day);
+        setCompletions(migrateCompletions(progress.completions || {}));
+        // Maintain legacy aliases for the default plan, without recording a second edit.
+        const defaultProgress = safeParseJson(rows[readingPlanProgressKey(DEFAULT_READING_PLAN_ID)], {});
+        await AsyncStorage.multiSet([[CURRENT_DAY_KEY, String(defaultProgress.currentDay || 1)], [COMPLETIONS_KEY, JSON.stringify(defaultProgress.completions || {})]]);
+        const selection = safeParseJson(rows[BIBLE_SELECTION_KEY], null);
+        if (selection) {
+          if (selection.testament) setTestament(selection.testament);
+          if (selection.book) setSelectedBookKey(selection.book);
+          if (selection.chapter) setSelectedChapter(selection.chapter);
+          if (selection.verse) setSelectedVerse(selection.verse);
+        }
+      },
+    });
+    personalSyncRef.current = service;
+    return () => { service.dispose(); if (personalSyncRef.current === service) personalSyncRef.current = null; };
+  }, [loaded, memberUser?.uid]);
 
   const currentAppVersion = Application.nativeApplicationVersion || '0.0.0';
   const currentBuildCode = Number(Application.nativeBuildVersion || 0);
@@ -1329,7 +1368,7 @@ export default function App() {
           [
             {
               text: '하루 동안 보지 않기',
-              onPress: () => AsyncStorage.setItem(UPDATE_SNOOZE_UNTIL_KEY, String(Date.now() + (24 * 60 * 60 * 1000))).catch(() => {}),
+              onPress: () => syncStorage.setItem(UPDATE_SNOOZE_UNTIL_KEY, String(Date.now() + (24 * 60 * 60 * 1000))).catch(() => {}),
             },
             { text: '아니오', style: 'cancel' },
             { text: '예', onPress: openStoreUpdate },
@@ -1368,9 +1407,9 @@ export default function App() {
       return;
     }
     try {
-      await AsyncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions }));
+      await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions }));
       if (readingPlanId === DEFAULT_READING_PLAN_ID) {
-        await AsyncStorage.multiSet([[CURRENT_DAY_KEY, String(currentDay)], [COMPLETIONS_KEY, JSON.stringify(completions)]]);
+        await syncStorage.multiSet([[CURRENT_DAY_KEY, String(currentDay)], [COMPLETIONS_KEY, JSON.stringify(completions)]]);
       }
       const nextPlan = READING_PLANS[nextPlanId];
       const raw = await AsyncStorage.getItem(readingPlanProgressKey(nextPlanId));
@@ -1383,7 +1422,7 @@ export default function App() {
       setDisplayDay(nextDay);
       setCompletions(nextCompletions);
       setReadingPlanPickerOpen(false);
-      await AsyncStorage.setItem(READING_PLAN_KEY, nextPlanId);
+      await syncStorage.setItem(READING_PLAN_KEY, nextPlanId);
     } catch (error) {
       console.warn('Reading plan change failed:', error);
       Alert.alert('통독 방식 변경 실패', '통독 방식을 변경하지 못했습니다. 다시 시도해 주세요.');
@@ -1428,7 +1467,7 @@ export default function App() {
 
   useEffect(() => {
     if (!loaded) return;
-    AsyncStorage.setItem(BIBLE_SELECTION_KEY, JSON.stringify({
+    syncStorage.setItem(BIBLE_SELECTION_KEY, JSON.stringify({
       testament,
       book: selectedBookKey,
       chapter: selectedChapter,
@@ -1510,7 +1549,7 @@ export default function App() {
 
   const persistPositions = async (next) => {
     setReaderPositions(next);
-    await AsyncStorage.setItem(READER_POSITIONS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(READER_POSITIONS_KEY, JSON.stringify(next));
   };
 
   const saveCurrentPosition = async () => {
@@ -1804,7 +1843,7 @@ export default function App() {
     setGroupPickerOpen(false);
     setSelectedNoticePost(null);
     setNoticeCategory(null);
-    await AsyncStorage.setItem(CURRENT_GROUP_KEY, groupId);
+    await syncStorage.setItem(CURRENT_GROUP_KEY, groupId);
   };
 
   const joinCommunityGroup = async () => {
@@ -1910,7 +1949,7 @@ export default function App() {
       const nextIds = [...new Set([...joinedGroupIds, nicknameTargetGroupId])];
       setJoinedGroupIds(nextIds);
       setCurrentGroupId(nicknameTargetGroupId);
-      await AsyncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, nicknameTargetGroupId]]);
+      await syncStorage.multiSet([[COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds)], [CURRENT_GROUP_KEY, nicknameTargetGroupId]]);
       const joinedName = pendingJoinGroup?.name;
       setNicknameEditorOpen(false);
       setPendingJoinGroup(null);
@@ -1971,8 +2010,8 @@ export default function App() {
           setJoinedGroupIds(nextIds);
           const nextId = nextIds[0] || null;
           setCurrentGroupId(nextId);
-          await AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds));
-          if (nextId) await AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId);
+          await syncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextIds));
+          if (nextId) await syncStorage.setItem(CURRENT_GROUP_KEY, nextId);
           else await AsyncStorage.removeItem(CURRENT_GROUP_KEY);
           setScreen('today');
           Alert.alert('탈퇴 완료', `${currentGroupName}에서 탈퇴했습니다.${isAdmin && !isSuperAdmin ? '\n해당 그룹의 관리자 권한도 해제되었습니다.' : ''}${signedOutFromAdmin ? '\n관리자 계정에서 로그아웃되었습니다.' : ''}`);
@@ -2217,11 +2256,11 @@ export default function App() {
             await callable({ groupId: group.id });
             const nextJoined = joinedGroupIds.filter((id) => id !== group.id);
             setJoinedGroupIds(nextJoined);
-            await AsyncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextJoined));
+            await syncStorage.setItem(COMMUNITY_GROUPS_KEY, JSON.stringify(nextJoined));
             if (currentGroupId === group.id) {
               const nextId = nextJoined[0] || null;
               setCurrentGroupId(nextId);
-              if (nextId) await AsyncStorage.setItem(CURRENT_GROUP_KEY, nextId);
+              if (nextId) await syncStorage.setItem(CURRENT_GROUP_KEY, nextId);
               else await AsyncStorage.removeItem(CURRENT_GROUP_KEY);
             }
             if (adminGroupId === group.id) setAdminGroupId(managedGroupIds.find((id) => id !== group.id) || null);
@@ -2388,6 +2427,7 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'android') return undefined;
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (deviceLinkOpen) { setDeviceLinkOpen(false); return true; }
       if (screen === 'homologiaReader') {
         setHomologiaPdfScale(homologiaPdfScaleRef.current);
         setScreen('homologia');
@@ -2408,7 +2448,7 @@ export default function App() {
       return true;
     });
     return () => subscription.remove();
-  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost, notificationDetailMode, currentDay, adminRoomMode]);
+  }, [screen, readerKey, readerPositions, readerContext?.type, noticeCategory, selectedNoticePost, notificationDetailMode, currentDay, adminRoomMode, deviceLinkOpen]);
 
   const completeDay = async (day, advanceIfCurrent = false, destination = 'today') => {
     const key = String(day);
@@ -2437,7 +2477,7 @@ export default function App() {
     if (readingPlanId === DEFAULT_READING_PLAN_ID) {
       progressWrites.push([COMPLETIONS_KEY, JSON.stringify(next)], [CURRENT_DAY_KEY, String(nextDay)]);
     }
-    await AsyncStorage.multiSet(progressWrites);
+    await syncStorage.multiSet(progressWrites);
     setCompletions(next);
     setCurrentDay(nextDay);
 
@@ -2484,8 +2524,8 @@ export default function App() {
                 canceledAt: formatKoreanDateTime(),
               },
             };
-            await AsyncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions: next }));
-            if (readingPlanId === DEFAULT_READING_PLAN_ID) await AsyncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(next));
+            await syncStorage.setItem(readingPlanProgressKey(readingPlanId), JSON.stringify({ currentDay, completions: next }));
+            if (readingPlanId === DEFAULT_READING_PLAN_ID) await syncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(next));
             setCompletions(next);
           },
         },
@@ -2511,7 +2551,7 @@ export default function App() {
       else next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime() };
     });
     setVerseBookmarks(next);
-    await AsyncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_BOOKMARKS_KEY, JSON.stringify(next));
   };
 
   const applyHighlightColor = async (colorKey) => {
@@ -2522,7 +2562,7 @@ export default function App() {
       next[v.key] = { label: `${v.bookKo} ${v.chapter}:${v.verse}`, text: v.text, savedAt: formatKoreanDateTime(), colorKey, color };
     });
     setVerseHighlights(next);
-    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
     setHighlightPickerOpen(false);
     setSelectedVerses([]);
   };
@@ -2532,7 +2572,7 @@ export default function App() {
     const next = { ...verseHighlights };
     selectedVerses.forEach((v) => delete next[v.key]);
     setVerseHighlights(next);
-    await AsyncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_HIGHLIGHTS_KEY, JSON.stringify(next));
     setHighlightPickerOpen(false);
     setSelectedVerses([]);
   };
@@ -2541,7 +2581,8 @@ export default function App() {
     const [savedTranslationId, bookKo, chapterText, verseText] = String(key).split(':');
     const chapter = Number(chapterText);
     const verse = Number(verseText);
-    const targetTranslation = allBibleData[savedTranslationId] ? savedTranslationId : translationId;
+    if (!allBibleData[savedTranslationId]) { Alert.alert('번역본 불러오기', '이 기록의 성경 번역본을 이 기기에도 먼저 불러와 주세요. 기록은 그대로 보관되어 있습니다.'); return; }
+    const targetTranslation = savedTranslationId;
     const targetBooks = BIBLE_BOOKS.map((meta) => ({ ...meta, data: getBook(allBibleData[targetTranslation], meta.book, meta.ko) })).filter((item) => item.data);
     const target = targetBooks.find((item) => item.ko === bookKo || item.book === bookKo);
     if (!target || !chapter || !verse) {
@@ -2602,7 +2643,7 @@ export default function App() {
       else delete next[key];
     });
     setVerseNotes(next);
-    await AsyncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
     setNoteModal(null);
     setNoteDraft('');
   };
@@ -2612,7 +2653,7 @@ export default function App() {
     const next = { ...verseNotes };
     noteModal.keys.forEach((key) => delete next[key]);
     setVerseNotes(next);
-    await AsyncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
+    await syncStorage.setItem(VERSE_NOTES_KEY, JSON.stringify(next));
     setNoteModal(null);
     setNoteDraft('');
   };
@@ -2620,7 +2661,7 @@ export default function App() {
   const changeFont = async (delta) => {
     const next = Math.min(48, Math.max(15, fontSize + delta));
     setFontSize(next);
-    await AsyncStorage.setItem(FONT_SIZE_KEY, String(next));
+    await syncStorage.setItem(FONT_SIZE_KEY, String(next));
   };
 
   const cycleTranslation = async () => {
@@ -2632,13 +2673,13 @@ export default function App() {
     const idx = enabled.findIndex((t) => t.id === translationId);
     const next = enabled[(idx + 1) % enabled.length];
     setTranslationId(next.id);
-    await AsyncStorage.setItem(TRANSLATION_KEY, next.id);
+    await syncStorage.setItem(TRANSLATION_KEY, next.id);
   };
 
   const chooseTranslation = async (id) => {
     setTranslationId(id);
     setTranslationPickerOpen(false);
-    await AsyncStorage.setItem(TRANSLATION_KEY, id);
+    await syncStorage.setItem(TRANSLATION_KEY, id);
     const targetBooks = BIBLE_BOOKS.map((meta) => ({
       ...meta,
       data: getBook(allBibleData[id], meta.book, meta.ko),
@@ -2723,7 +2764,7 @@ export default function App() {
         const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
         if (!permission?.granted || !permission?.directoryUri) return;
         selectedDirectory = new Directory(permission.directoryUri);
-        await AsyncStorage.setItem(BIBLE_IMPORT_FOLDER_URI_KEY, permission.directoryUri);
+        await syncStorage.setItem(BIBLE_IMPORT_FOLDER_URI_KEY, permission.directoryUri);
       }
 
       const bdfFiles = selectedDirectory.list().filter((item) => item.name?.toLowerCase().endsWith('.bdf'));
@@ -2781,7 +2822,7 @@ export default function App() {
       }
       setCustomBibles(nextBibles);
       setCustomTranslations(nextTranslations);
-      await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
+      await syncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
       Alert.alert('성경번역본 등록 완료', summaries.join('\n'));
     } catch (error) {
       if (!String(error?.message || error).toLowerCase().includes('cancel')) {
@@ -2808,10 +2849,10 @@ export default function App() {
         delete nextBibles[item.id];
         setCustomTranslations(nextTranslations);
         setCustomBibles(nextBibles);
-        await AsyncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
+        await syncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
         if (translationId === item.id) {
           setTranslationId('KRV');
-          await AsyncStorage.setItem(TRANSLATION_KEY, 'KRV');
+          await syncStorage.setItem(TRANSLATION_KEY, 'KRV');
         }
       }},
     ]);
@@ -2894,7 +2935,7 @@ export default function App() {
 
     const changeHomologiaFont = (delta) => setHomologiaFontScale((value) => {
       const next = Math.min(4, Math.max(0.75, Number((value + delta).toFixed(2))));
-      AsyncStorage.setItem(HOMOLOGIA_FONT_SCALE_KEY, String(next))
+      syncStorage.setItem(HOMOLOGIA_FONT_SCALE_KEY, String(next))
         .catch((error) => console.warn('Homologia font size save failed:', error));
       return next;
     });
@@ -2925,7 +2966,7 @@ export default function App() {
         ...homologiaPdfPositionsRef.current,
         [String(homologiaSectionIndex)]: page,
       };
-      AsyncStorage.setItem(HOMOLOGIA_PDF_POSITIONS_KEY, JSON.stringify(homologiaPdfPositionsRef.current))
+      syncStorage.setItem(HOMOLOGIA_PDF_POSITIONS_KEY, JSON.stringify(homologiaPdfPositionsRef.current))
         .catch((error) => console.warn('Homologia PDF position save failed:', error));
     };
 
@@ -3446,6 +3487,8 @@ export default function App() {
             </View>
             {!moreMode ? (
               <View style={styles.moreMenuCard}>
+                <TouchableOpacity onPress={() => setDeviceLinkOpen(true)} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>기기 연결</Text><Text style={styles.moreMenuDescription}>{syncStatusText(personalSyncStatus.status)}</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
+                <View style={styles.legalMenuDivider} />
                 <TouchableOpacity onPress={() => setMoreMode('bookmarks')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>🔖 북마크 모아보기</Text><Text style={styles.moreMenuDescription}>저장한 말씀 {Object.keys(verseBookmarks).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
                 <View style={styles.legalMenuDivider} />
                 <TouchableOpacity onPress={() => setMoreMode('highlights')} style={styles.moreMenuRow}><View><Text style={styles.moreMenuTitle}>🖍 형광펜 모아보기</Text><Text style={styles.moreMenuDescription}>표시한 말씀 {Object.keys(verseHighlights).length}개</Text></View><Text style={styles.legalMenuArrow}>›</Text></TouchableOpacity>
@@ -3462,7 +3505,11 @@ export default function App() {
                 {Object.entries(moreMode === 'bookmarks' ? verseBookmarks : moreMode === 'highlights' ? verseHighlights : verseNotes).length ? Object.entries(moreMode === 'bookmarks' ? verseBookmarks : moreMode === 'highlights' ? verseHighlights : verseNotes).map(([key, value]) => {
                   const parts = key.split(':');
                   const label = value?.label || `${parts[1] || ''} ${parts[2] || ''}:${parts[3] || ''}`;
-                  const body = typeof value === 'string' ? value : (value?.text || '');
+                  const savedBible = allBibleData[parts[0]];
+                  const savedBookMeta = BIBLE_BOOKS.find(meta => meta.ko === parts[1] || meta.book === parts[1]);
+                  const localBook = savedBible ? getBook(savedBible, savedBookMeta?.book || parts[1], parts[1]) : null;
+                  const localVerse = localBook?.chapters?.find(c => Number(c.chapter) === Number(parts[2]))?.verses?.find(v => Number(v.verse) === Number(parts[3]));
+                  const body = typeof value === 'string' ? value : (value?.text || localVerse?.text || '이 번역본을 먼저 불러와 주세요.');
                   return <TouchableOpacity key={key} onPress={() => openSavedVerse(key)} style={[styles.savedVerseCard, moreMode === 'highlights' && { borderLeftWidth: 7, borderLeftColor: value?.color || '#FFF3A8' }]}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}<Text style={styles.savedVerseOpenHint}>본문으로 이동 ›</Text></TouchableOpacity>;
                 }) : <View style={styles.emptyCard}><Text style={styles.emptyText}>아직 저장된 내용이 없습니다.</Text></View>}
               </View>
@@ -3905,6 +3952,8 @@ export default function App() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <DeviceLinkModal visible={deviceLinkOpen} onClose={() => setDeviceLinkOpen(false)} service={personalSyncRef.current} status={personalSyncStatus} />
 
       <Modal visible={adminLoginOpen} transparent animationType="fade" onRequestClose={() => setAdminLoginOpen(false)}>
         <KeyboardAvoidingView style={styles.keyboardModalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}>

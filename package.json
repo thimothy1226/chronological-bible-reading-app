@@ -1,6 +1,6 @@
 {
   "name": "gf-bible",
-  "version": "1.3.19",
+  "version": "1.3.20",
   "private": true,
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -14,7 +14,9 @@
     "firebase:deploy": "firebase deploy --only functions,firestore:rules",
     "release:info": "node scripts/release-info.js",
     "audit": "node scripts/final-source-audit.js",
-    "final:check": "npm run validate && npm run audit && npm run release:info && node --check functions/index.js"
+    "final:check": "npm run validate && npm run audit && npm run release:info && node --check functions/index.js",
+    "test:sync": "node --test tests/personal-sync.test.js",
+    "test:sync:server": "node --test tests/device-sync-server.test.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

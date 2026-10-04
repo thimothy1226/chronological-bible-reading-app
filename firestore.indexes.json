@@ -1,0 +1,7 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "private", "fieldPath": "records", "indexes": [] },
+    { "collectionGroup": "backups", "fieldPath": "records", "indexes": [] }
+  ]
+}
