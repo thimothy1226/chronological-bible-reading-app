@@ -534,3 +534,6 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
     throw error;
   }
 });
+
+// Personal reading sync is isolated from administrator and community permissions.
+Object.assign(exports, require('./device-sync'));
