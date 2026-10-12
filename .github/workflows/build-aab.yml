@@ -1,6 +1,7 @@
 name: Build GF Bible Android AAB
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
     branches:
@@ -43,6 +44,9 @@ jobs:
             "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json" \
             -o assets/bibles/krv.json
           test -s assets/bibles/krv.json
+
+      - name: Verify all 66 KRV books and chapter/verse data
+        run: node scripts/validate-krv-books.js
 
       - name: Generate Android project
         run: CI=1 npx expo prebuild --platform android

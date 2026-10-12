@@ -1,0 +1,53 @@
+name: Deploy reviewed GF Bible device sync
+on:
+  push:
+    branches: [gf-bible-v1.3.20-device-sync]
+    paths:
+      - .github/workflows/deploy-device-sync.yml
+      - scripts/prepare-sync-deploy.js
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gf-bible-production-sync-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install isolated validation and deployment tools
+        run: npm install --prefix .sync-test --no-audit --no-fund @babel/parser firebase-admin@13.6.0 firebase-functions@6.6.0 firebase@12.18.0 @firebase/rules-unit-testing@5.0.0 firebase-tools@14.17.0
+      - name: Verify source and offline synchronization
+        env:
+          NODE_PATH: ${{ github.workspace }}/.sync-test/node_modules
+        run: |
+          npm run final:check
+          npm run test:sync
+          node scripts/validate-sync-syntax.js
+          .sync-test/node_modules/.bin/firebase emulators:exec --config firebase.sync-test.json --only firestore --project demo-gf-sync 'npm run test:sync:server'
+      - name: Install Functions dependencies
+        run: npm --prefix functions install --no-audit --no-fund
+      - name: Verify published rules and preserve production indexes
+        env:
+          NODE_PATH: ${{ github.workspace }}/.sync-test/node_modules
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: node scripts/prepare-sync-deploy.js
+      - name: Save rollback configuration
+        uses: actions/upload-artifact@v4
+        with:
+          name: GF-Bible-device-sync-server-rollback
+          path: .sync-deploy-backup/
+          include-hidden-files: true
+      - name: Deploy only new synchronization functions and private rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: .sync-test/node_modules/.bin/firebase deploy --non-interactive --project gfc-bible-reading --only functions:initializePersonalSync,functions:exchangePersonalSync,functions:createPersonalLinkCode,functions:preparePersonalLink,functions:finishPersonalLink,functions:listPersonalSyncDevices,firestore:rules,firestore:indexes
