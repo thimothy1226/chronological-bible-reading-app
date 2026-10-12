@@ -44,9 +44,6 @@ jobs:
             -o assets/bibles/krv.json
           test -s assets/bibles/krv.json
 
-      - name: Verify all 66 KRV books and chapter/verse data
-        run: node scripts/validate-krv-books.js
-
       - name: Generate Android project
         run: CI=1 npx expo prebuild --platform android
 

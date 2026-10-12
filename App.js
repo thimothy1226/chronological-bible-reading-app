@@ -549,8 +549,7 @@ function getKoreanBookName(book) {
   const direct = book.koreanTitle || (BOOK_NAME_KO[book.title] ? null : book.title);
   if (direct && /[가-힣]/.test(direct)) return direct;
   const raw = book.book || book.name || book.title || '';
-  const canonical = BIBLE_BOOKS.find((meta) => normalizeBookKey(meta.book) === normalizeBookKey(raw));
-  return BOOK_NAME_KO[raw] || canonical?.ko || book.koreanTitle || book.title || book.name || book.book || '';
+  return BOOK_NAME_KO[raw] || book.koreanTitle || book.title || book.name || book.book || '';
 }
 
 const formatKoreanDateTime = (date = new Date()) => {
@@ -577,18 +576,14 @@ function normalizeBooks(data) {
   return [];
 }
 
-function normalizeBookKey(value) {
-  return String(value || '').normalize('NFKC').replace(/[\s_-]+/g, '').toLowerCase();
-}
-
 function getBook(data, englishName, koreanName) {
   const books = normalizeBooks(data);
-  const englishKey = normalizeBookKey(englishName);
-  const koreanKey = normalizeBookKey(koreanName);
-  return books.find((b) => [b.book, b.name, b.koreanTitle, b.title].some((name) => {
-    const key = normalizeBookKey(name);
-    return key && ((englishKey && key === englishKey) || (koreanKey && key === koreanKey));
-  }));
+  return books.find((b) =>
+    b.book === englishName ||
+    b.name === englishName ||
+    b.koreanTitle === koreanName ||
+    b.title === koreanName
+  );
 }
 
 function getVersesForPassage(data, passage) {
