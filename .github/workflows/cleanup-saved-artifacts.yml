@@ -1,0 +1,47 @@
+name: Clean preserved GF Bible build artifacts
+on:
+  push:
+    branches: [gf-bible-cleanup-20261101]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify final release then delete only inventoried previous app build artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          base = 'https://api.github.com/repos/thimothy1226/chronological-bible-reading-app'
+          def api(path, method='GET'):
+              request = urllib.request.Request(base+path, method=method, headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'], 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'})
+              with urllib.request.urlopen(request) as response:
+                  data=response.read()
+                  return json.loads(data) if data else None
+          final_run = 41256434356
+          final_artifact = 13063501993
+          run=api(f'/actions/runs/{final_run}')
+          assert run['conclusion']=='success' and run['head_sha']=='c54cdfc4a2b7f7d3fb8a95d234500e47dfcd0d3e', 'Final release verification failed'
+          final=api(f'/actions/artifacts/{final_artifact}')
+          assert final['workflow_run']['id']==final_run and not final['expired'] and final['name']=='GF-Bible-v1.3.22-release-apk-aab-source'
+          # Local downloads, SHA-256 checks and persistent final file saves were confirmed before this workflow was committed.
+          candidates = [{'id': 11733196696, 'name': 'GF-Bible-v1.3.21-release-aab', 'size': 90789829, 'run_id': 38217256729}, {'id': 11733007442, 'name': 'GF-Bible-v1.3.21-release-aab', 'size': 90833645, 'run_id': 38217646196}, {'id': 11732752826, 'name': 'GF-Bible-v1.3.21-release-aab', 'size': 90833641, 'run_id': 38217647399}, {'id': 11305425984, 'name': 'GF-Bible-v1.3.19-release-aab', 'size': 90791763, 'run_id': 37206501454}, {'id': 11302965778, 'name': 'GF-Bible-v1.3.19-release-aab', 'size': 90791779, 'run_id': 37200238079}, {'id': 11302930971, 'name': 'GF-Bible-v1.3.19-release-aab', 'size': 90791747, 'run_id': 37200345856}, {'id': 11299575209, 'name': 'GF-Bible-v1.3.20-release-aab', 'size': 90833074, 'run_id': 37190518941}, {'id': 11299431347, 'name': 'GF-Bible-v1.3.20-release-aab', 'size': 90833086, 'run_id': 37191097422}, {'id': 11298876727, 'name': 'GF-Bible-v1.3.20-release-aab', 'size': 90831715, 'run_id': 37190228022}, {'id': 11215011112, 'name': 'GF-Bible-v1.3.19-release-aab', 'size': 90791762, 'run_id': 36978310544}]
+          count=0; total=0
+          for candidate in candidates:
+              try: item=api('/actions/artifacts/'+str(candidate['id']))
+              except urllib.error.HTTPError as error:
+                  if error.code==404: continue
+                  raise
+              assert item['id']!=final_artifact and item['name']==candidate['name'] and item['size_in_bytes']==candidate['size']
+              assert item['workflow_run']['id']==candidate['run_id'] and item['workflow_run']['repository_id']==1351304778
+              assert item['name'].startswith('GF-Bible-v1.3.') and item['name'].endswith('-release-aab')
+              assert item['created_at'] < final['created_at']
+              api('/actions/artifacts/'+str(item['id']), 'DELETE')
+              count+=1; total+=item['size_in_bytes']
+              print('Deleted previous build artifact',item['id'],item['name'])
+          print(json.dumps({'deleted_artifacts':count,'deleted_bytes':total,'preserved_final_artifact':final_artifact}))
+          PY
