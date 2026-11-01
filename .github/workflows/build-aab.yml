@@ -44,6 +44,7 @@ jobs:
             "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json" \
             -o assets/bibles/krv.json
           test -s assets/bibles/krv.json
+          python3 -c "from pathlib import Path; p=Path('assets/bibles/krv.json'); b=p.read_bytes(); p.write_bytes(b if b.endswith(bytes([10])) else b+bytes([10]))"
           echo "69ae2d72790ff3a4a0faa9d5c2c727de044d8a48c5ca8995e2e2d6495a8c4f8c  assets/bibles/krv.json" | sha256sum -c -
 
       - name: Verify all 66 KRV books and chapter/verse data
