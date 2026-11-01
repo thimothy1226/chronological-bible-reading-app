@@ -1,7 +1,7 @@
 name: Verify and build GF Bible device sync
 on:
   push:
-    branches: [gf-bible-v1.3.20-device-sync, gf-bible-v1.3.22-reader-fixes]
+    branches: [gf-bible-v1.3.20-device-sync, gf-bible-v1.3.22-reader-fixes, gf-bible-v1.3.23-original-files]
   workflow_dispatch:
 permissions:
   contents: read

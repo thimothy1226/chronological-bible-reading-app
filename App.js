@@ -21,7 +21,7 @@ import kkjvCorrections from './assets/bibles/kkjv-corrections';
 import hkjvCorrections from './assets/bibles/hkjv-corrections';
 import { isHkjvTranslationInfo, isKkjvTranslationInfo, applyVerseCorrections } from './scripts/translation-corrections';
 import { chapterUnit, sortTranslations, safePosition } from './scripts/reader-state';
-import { parseOriginalFiles } from './scripts/original-files';
+import { parseOriginalFiles, dictionaryEntry } from './scripts/original-files';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
@@ -706,6 +706,9 @@ export default function App() {
   const [completions, setCompletions] = useState({});
   const [biblesReady, setBiblesReady] = useState(false);
   const [originalFiles, setOriginalFiles] = useState({ codes: {}, dictionary: {} });
+  const [originalLookupCode, setOriginalLookupCode] = useState(null);
+  const [originalLanguage, setOriginalLanguage] = useState('ko');
+  const [originalImportBusy, setOriginalImportBusy] = useState(false);
   const positionWriteAt = useRef(0);
   const [translationId, setTranslationId] = useState('KRV');
   const [fontSize, setFontSize] = useState(19);
@@ -1302,7 +1305,25 @@ export default function App() {
       }
     };
     load();
-    (async () => { try { const f = new File(Paths.document, "original-files.json"); if (f.exists) setOriginalFiles(parseOriginalFiles([JSON.parse(await f.text())])); } catch (e) { console.warn("Original files load failed", e); } })();
+    (async () => {
+      try {
+        const savedName = await AsyncStorage.getItem('@gf_bible/original_file_snapshot');
+        const fileName = savedName && /^original-files-[0-9]+\.json$/.test(savedName) ? savedName : 'original-files.json';
+        const f = new File(Paths.document, fileName);
+        if (f.exists) {
+          const saved = JSON.parse(await f.text());
+          let parsed = null;
+          if (saved.format === 'gf-bible-original-files-v2') {
+            if (!Array.isArray(saved.files) || !saved.files.length || saved.files.length > 20 || !saved.files.every(name => /^original-part-[0-9]+-[0-9]+\.json$/.test(name))) throw new Error('원어 저장 목록을 확인해 주세요.');
+            for (const name of saved.files) {
+              const part = new File(Paths.document, name);
+              parsed = parseOriginalFiles([JSON.parse(await part.text())], parsed);
+            }
+          } else parsed = parseOriginalFiles([saved]);
+          setOriginalFiles(parsed);
+        }
+      } catch (error) { console.warn('Original files load failed', error); Alert.alert('원어 자료 확인 필요', '원어 자료를 읽지 못했습니다. 기존 파일은 보존되어 있습니다. 변환 자료 폴더를 다시 가져와 주세요.'); }
+    })();
   }, []);
 
   useEffect(() => {
@@ -1445,8 +1466,9 @@ export default function App() {
   const availableTranslations = useMemo(() => [
     ...translations,
     ...customTranslations.map((item) => ({ ...item, enabled: true })),
-  ].sort(sortTranslations), [customTranslations]);
-  const allBibleData = useMemo(() => ({ ...BIBLE_DATA, ...customBibles }), [customBibles]);
+    ...Object.entries(originalFiles.bibles || {}).map(([id, bible]) => ({ id, name: bible.name, language: bible.language || 'ko', enabled: true })),
+  ].sort(sortTranslations), [customTranslations, originalFiles.bibles]);
+  const allBibleData = useMemo(() => ({ ...BIBLE_DATA, ...customBibles, ...(originalFiles.bibles || {}) }), [customBibles, originalFiles.bibles]);
   const selectedTranslation = availableTranslations.find((t) => t.id === translationId) || availableTranslations[0];
 
   const completedRows = useMemo(() => (
@@ -2753,18 +2775,39 @@ export default function App() {
 
   const importOriginalFolder = async () => {
     if (Platform.OS !== 'android') { Alert.alert('안내', '안드로이드에서 원어 JSON 폴더를 선택해 주세요.'); return; }
+    if (originalImportBusy) return;
+    setOriginalImportBusy(true);
     try {
       const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
       if (!permission?.granted) return;
-      const files = new Directory(permission.directoryUri).list().filter(f => f.name?.toLowerCase().endsWith('.json'));
-      const documents = [];
-      for (const file of files) documents.push(JSON.parse(await file.text()));
-      const parsed = parseOriginalFiles(documents);
-      const stored = { format: 'gf-bible-original-v1', type: 'bundle', ...parsed };
-      new File(Paths.document, 'original-files.json').write(JSON.stringify(stored));
+      const files = new Directory(permission.directoryUri).list().filter(f => f.name?.toLowerCase().endsWith('.json')).sort((a, b) => a.name.localeCompare(b.name));
+      if (!files.length || files.length > 20) throw new Error('변환 묶음의 import 폴더에서 JSON 파일 5개를 선택해 주세요.');
+      let parsed = null;
+      const stamp = Date.now();
+      const partNames = [];
+      // Parse and preserve one file at a time instead of retaining an 88 MB
+      // combined JSON string in the JS heap during import.
+      for (const [index, file] of files.entries()) {
+        if (file.size > 120 * 1024 * 1024) throw new Error('원어 JSON 파일이 너무 큽니다. 변환 묶음의 import 폴더를 선택해 주세요.');
+        const raw = await file.text();
+        parsed = parseOriginalFiles([JSON.parse(raw)], parsed);
+        const partName = `original-part-${stamp}-${index}.json`;
+        const part = new File(Paths.document, partName);
+        part.create({ overwrite: false, intermediates: true });
+        part.write(raw);
+        if (!part.exists || !part.size) throw new Error('원어 자료 저장을 확인하지 못했습니다. 기존 자료는 유지됩니다.');
+        partNames.push(partName);
+      }
+      const fileName = `original-files-${stamp}.json`;
+      const storedFile = new File(Paths.document, fileName);
+      storedFile.create({ overwrite: false, intermediates: true });
+      storedFile.write(JSON.stringify({ format: 'gf-bible-original-files-v2', files: partNames }));
+      await AsyncStorage.setItem('@gf_bible/original_file_snapshot', fileName);
       setOriginalFiles(parsed);
-      Alert.alert('원어 자료 등록', `구절 ${Object.keys(parsed.codes).length}개 · 사전 ${Object.keys(parsed.dictionary).length}개를 등록했습니다.`);
+      const bibleCount = Object.keys(parsed.bibles || {}).length;
+      Alert.alert('원어 자료 등록', `번역본 ${bibleCount}개 · 구절 ${Object.keys(parsed.codes).length.toLocaleString()}개 · 사전 코드 ${Object.keys(parsed.dictionary).length.toLocaleString()}개를 등록했습니다. 번역본 목록에서 개역개정_s, 원전분해_s, KJV_s를 선택해 주세요.`);
     } catch (error) { Alert.alert('원어 자료 등록 실패', error.message || 'JSON 파일 형식을 확인해 주세요.'); }
+    finally { setOriginalImportBusy(false); }
   };
 
   const importBibleFolder = async () => {
@@ -3270,7 +3313,9 @@ export default function App() {
                         {verseBookmarks[verseKey(v)] ? <Text style={styles.noteMark}>  🔖</Text> : null}{verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
                       </Text>
                     </TouchableOpacity>
-                    {(originalFiles.codes[`${translationId}|${section.passage.book}|${v.chapter}|${v.verse}`] || []).map(code => <Text key={code} style={styles.noteMark} onPress={() => { const entry = originalFiles.dictionary[code]; Alert.alert(code, entry ? [entry.lemma, entry.transliteration, entry.meaning].filter(Boolean).join('\n') : '이 코드의 사전 파일을 먼저 가져와 주세요.'); }}>{code}  </Text>)}
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginVertical: 2 }}>
+                      {(originalFiles.codes[`${translationId}|${section.passage.book}|${v.chapter}|${v.verse}`] || []).map(code => <TouchableOpacity key={code} accessibilityLabel={`${code} 원어사전 열기`} onPress={() => { const entry = originalFiles.dictionary[code]; setOriginalLanguage(entry?.language || 'default'); setOriginalLookupCode(code); }} style={{ paddingHorizontal: 7, paddingVertical: 5, marginRight: 5, marginBottom: 4, borderRadius: 5, backgroundColor: '#E8EDF4' }}><Text style={{ color: '#244A78', fontSize: Math.max(13, fontSize - 4) }}>{code}</Text></TouchableOpacity>)}
+                    </View>
                   </View>
                 );
               })}
@@ -3304,6 +3349,18 @@ export default function App() {
         )}
 
         <TranslationPicker />
+
+        <Modal visible={!!originalLookupCode} transparent animationType="fade" onRequestClose={() => setOriginalLookupCode(null)}>
+          <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#0008', padding: 20 }}>
+            <View style={{ backgroundColor: '#FFFEFA', borderRadius: 14, padding: 18, maxHeight: '85%', width: '100%', maxWidth: 680, alignSelf: 'center' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={styles.modalTitle}>{originalLookupCode} 원어사전</Text><TouchableOpacity onPress={() => setOriginalLookupCode(null)} accessibilityLabel="원어사전 닫기"><Text style={styles.backText}>닫기</Text></TouchableOpacity></View>
+              <View style={{ flexDirection: 'row', marginVertical: 12 }}>
+                {originalFiles.dictionary[originalLookupCode] && [originalFiles.dictionary[originalLookupCode].language || 'default', ...Object.keys(originalFiles.dictionary[originalLookupCode].alternates || {})].map(language => <TouchableOpacity key={language} onPress={() => setOriginalLanguage(language)} style={{ padding: 10, marginRight: 10, borderRadius: 7, backgroundColor: originalLanguage === language ? '#D9E5F2' : '#F0EDE5' }}><Text>{language === 'ko' ? '한글 사전' : language === 'en' ? '영문 사전' : '기본 사전'}</Text></TouchableOpacity>)}
+              </View>
+              <ScrollView style={{ flexShrink: 1 }}><Text selectable style={{ color: '#202B3B', fontSize: 17, lineHeight: 28 }}>{(() => { const entry = dictionaryEntry(originalFiles.dictionary, originalLookupCode, originalLanguage); return entry ? [entry.lemma, entry.transliteration, entry.meaning].filter(Boolean).join('\n\n') : '제공된 사전에 이 코드의 항목이 없습니다. 원본에 없는 뜻은 임의로 추가하지 않았습니다.'; })()}</Text></ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <Modal visible={highlightPickerOpen} transparent animationType="fade" onRequestClose={() => setHighlightPickerOpen(false)}>
           <View style={styles.highlightPickerBackdrop}>
@@ -3722,7 +3779,7 @@ export default function App() {
               <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={importOriginalFolder} style={styles.translationButton}><Text style={styles.translationText}>원어 코드·사전 JSON 가져오기</Text></TouchableOpacity>
+            <TouchableOpacity disabled={originalImportBusy} onPress={importOriginalFolder} style={styles.translationButton}><Text style={styles.translationText}>{originalImportBusy ? '원어 자료를 가져오는 중…' : '원어 코드·사전 JSON 가져오기'}</Text></TouchableOpacity>
             <View style={styles.testamentTabs}>
               {['구약','신약'].map((t) => <TouchableOpacity key={t} onPress={() => {
                 setTestament(t);
