@@ -1,0 +1,332 @@
+[
+  {
+    "book": "Genesis",
+    "ko": "창세기",
+    "testament": "구약"
+  },
+  {
+    "book": "Exodus",
+    "ko": "출애굽기",
+    "testament": "구약"
+  },
+  {
+    "book": "Leviticus",
+    "ko": "레위기",
+    "testament": "구약"
+  },
+  {
+    "book": "Numbers",
+    "ko": "민수기",
+    "testament": "구약"
+  },
+  {
+    "book": "Deuteronomy",
+    "ko": "신명기",
+    "testament": "구약"
+  },
+  {
+    "book": "Joshua",
+    "ko": "여호수아",
+    "testament": "구약"
+  },
+  {
+    "book": "Judges",
+    "ko": "사사기",
+    "testament": "구약"
+  },
+  {
+    "book": "Ruth",
+    "ko": "룻기",
+    "testament": "구약"
+  },
+  {
+    "book": "1 Samuel",
+    "ko": "사무엘상",
+    "testament": "구약"
+  },
+  {
+    "book": "2 Samuel",
+    "ko": "사무엘하",
+    "testament": "구약"
+  },
+  {
+    "book": "1 Kings",
+    "ko": "열왕기상",
+    "testament": "구약"
+  },
+  {
+    "book": "2 Kings",
+    "ko": "열왕기하",
+    "testament": "구약"
+  },
+  {
+    "book": "1 Chronicles",
+    "ko": "역대상",
+    "testament": "구약"
+  },
+  {
+    "book": "2 Chronicles",
+    "ko": "역대하",
+    "testament": "구약"
+  },
+  {
+    "book": "Ezra",
+    "ko": "에스라",
+    "testament": "구약"
+  },
+  {
+    "book": "Nehemiah",
+    "ko": "느헤미야",
+    "testament": "구약"
+  },
+  {
+    "book": "Esther",
+    "ko": "에스더",
+    "testament": "구약"
+  },
+  {
+    "book": "Job",
+    "ko": "욥기",
+    "testament": "구약"
+  },
+  {
+    "book": "Psalms",
+    "ko": "시편",
+    "testament": "구약"
+  },
+  {
+    "book": "Proverbs",
+    "ko": "잠언",
+    "testament": "구약"
+  },
+  {
+    "book": "Ecclesiastes",
+    "ko": "전도서",
+    "testament": "구약"
+  },
+  {
+    "book": "Song of Solomon",
+    "ko": "아가",
+    "testament": "구약"
+  },
+  {
+    "book": "Isaiah",
+    "ko": "이사야",
+    "testament": "구약"
+  },
+  {
+    "book": "Jeremiah",
+    "ko": "예레미야",
+    "testament": "구약"
+  },
+  {
+    "book": "Lamentations",
+    "ko": "예레미야애가",
+    "testament": "구약"
+  },
+  {
+    "book": "Ezekiel",
+    "ko": "에스겔",
+    "testament": "구약"
+  },
+  {
+    "book": "Daniel",
+    "ko": "다니엘",
+    "testament": "구약"
+  },
+  {
+    "book": "Hosea",
+    "ko": "호세아",
+    "testament": "구약"
+  },
+  {
+    "book": "Joel",
+    "ko": "요엘",
+    "testament": "구약"
+  },
+  {
+    "book": "Amos",
+    "ko": "아모스",
+    "testament": "구약"
+  },
+  {
+    "book": "Obadiah",
+    "ko": "오바댜",
+    "testament": "구약"
+  },
+  {
+    "book": "Jonah",
+    "ko": "요나",
+    "testament": "구약"
+  },
+  {
+    "book": "Micah",
+    "ko": "미가",
+    "testament": "구약"
+  },
+  {
+    "book": "Nahum",
+    "ko": "나훔",
+    "testament": "구약"
+  },
+  {
+    "book": "Habakkuk",
+    "ko": "하박국",
+    "testament": "구약"
+  },
+  {
+    "book": "Zephaniah",
+    "ko": "스바냐",
+    "testament": "구약"
+  },
+  {
+    "book": "Haggai",
+    "ko": "학개",
+    "testament": "구약"
+  },
+  {
+    "book": "Zechariah",
+    "ko": "스가랴",
+    "testament": "구약"
+  },
+  {
+    "book": "Malachi",
+    "ko": "말라기",
+    "testament": "구약"
+  },
+  {
+    "book": "Matthew",
+    "ko": "마태복음",
+    "testament": "신약"
+  },
+  {
+    "book": "Mark",
+    "ko": "마가복음",
+    "testament": "신약"
+  },
+  {
+    "book": "Luke",
+    "ko": "누가복음",
+    "testament": "신약"
+  },
+  {
+    "book": "John",
+    "ko": "요한복음",
+    "testament": "신약"
+  },
+  {
+    "book": "Acts",
+    "ko": "사도행전",
+    "testament": "신약"
+  },
+  {
+    "book": "Romans",
+    "ko": "로마서",
+    "testament": "신약"
+  },
+  {
+    "book": "1 Corinthians",
+    "ko": "고린도전서",
+    "testament": "신약"
+  },
+  {
+    "book": "2 Corinthians",
+    "ko": "고린도후서",
+    "testament": "신약"
+  },
+  {
+    "book": "Galatians",
+    "ko": "갈라디아서",
+    "testament": "신약"
+  },
+  {
+    "book": "Ephesians",
+    "ko": "에베소서",
+    "testament": "신약"
+  },
+  {
+    "book": "Philippians",
+    "ko": "빌립보서",
+    "testament": "신약"
+  },
+  {
+    "book": "Colossians",
+    "ko": "골로새서",
+    "testament": "신약"
+  },
+  {
+    "book": "1 Thessalonians",
+    "ko": "데살로니가전서",
+    "testament": "신약"
+  },
+  {
+    "book": "2 Thessalonians",
+    "ko": "데살로니가후서",
+    "testament": "신약"
+  },
+  {
+    "book": "1 Timothy",
+    "ko": "디모데전서",
+    "testament": "신약"
+  },
+  {
+    "book": "2 Timothy",
+    "ko": "디모데후서",
+    "testament": "신약"
+  },
+  {
+    "book": "Titus",
+    "ko": "디도서",
+    "testament": "신약"
+  },
+  {
+    "book": "Philemon",
+    "ko": "빌레몬서",
+    "testament": "신약"
+  },
+  {
+    "book": "Hebrews",
+    "ko": "히브리서",
+    "testament": "신약"
+  },
+  {
+    "book": "James",
+    "ko": "야고보서",
+    "testament": "신약"
+  },
+  {
+    "book": "1 Peter",
+    "ko": "베드로전서",
+    "testament": "신약"
+  },
+  {
+    "book": "2 Peter",
+    "ko": "베드로후서",
+    "testament": "신약"
+  },
+  {
+    "book": "1 John",
+    "ko": "요한일서",
+    "testament": "신약"
+  },
+  {
+    "book": "2 John",
+    "ko": "요한이서",
+    "testament": "신약"
+  },
+  {
+    "book": "3 John",
+    "ko": "요한삼서",
+    "testament": "신약"
+  },
+  {
+    "book": "Jude",
+    "ko": "유다서",
+    "testament": "신약"
+  },
+  {
+    "book": "Revelation",
+    "ko": "요한계시록",
+    "testament": "신약"
+  }
+]

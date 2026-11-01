@@ -26,6 +26,7 @@ function cleanValue(kind, value) {
     if (kind === 'highlights') { out.colorKey = String(value?.colorKey || 'yellow'); out.color = String(value?.color || '#FFF3A8'); }
     return out;
   }
+  if (kind === 'positions') return Math.min(1e8, Math.max(0, Number.isFinite(value) ? value : 0));
   if (kind === 'notes') return String(value || '');
   if (kind === 'completion') {
     if (typeof value === 'string') return { active: true, dates: [value], canceledAt: null };

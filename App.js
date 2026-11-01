@@ -20,6 +20,8 @@ import nkrvNtCorrections from './assets/bibles/nkrv-nt-corrections';
 import kkjvCorrections from './assets/bibles/kkjv-corrections';
 import hkjvCorrections from './assets/bibles/hkjv-corrections';
 import { isHkjvTranslationInfo, isKkjvTranslationInfo, applyVerseCorrections } from './scripts/translation-corrections';
+import { chapterUnit, sortTranslations, safePosition } from './scripts/reader-state';
+import { parseOriginalFiles } from './scripts/original-files';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
 import homologiaBoxes from './assets/homologia-boxes.json';
@@ -169,7 +171,7 @@ const friendlyBdfName = (baseName, hasKorean = false) => {
     if (/korktv/i.test(code) || /^ktv$/i.test(code)) return '바른성경';
     if (/nkrv|gaeyukgaejung/i.test(code)) return '개역개정';
     if (/hrv|krv|gaeyukhangul/i.test(code)) return '개역한글';
-    if (/knrsv|kornewstandard|saebeonyeok/i.test(code)) return '새번역';
+    if (/kornrsv|knrsv|kornewstandard|saebeonyeok/i.test(code)) return '새번역';
     if (/nkcb|commonrevised/i.test(code)) return '공동번역 개정판';
     if (/kcb|commontranslation/i.test(code)) return '공동번역';
     if (/kkjv|koreankingjames/i.test(code)) return '한글킹제임스';
@@ -702,6 +704,9 @@ export default function App() {
   const [currentDay, setCurrentDay] = useState(1);
   const [displayDay, setDisplayDay] = useState(1);
   const [completions, setCompletions] = useState({});
+  const [biblesReady, setBiblesReady] = useState(false);
+  const [originalFiles, setOriginalFiles] = useState({ codes: {}, dictionary: {} });
+  const positionWriteAt = useRef(0);
   const [translationId, setTranslationId] = useState('KRV');
   const [fontSize, setFontSize] = useState(19);
   const [readerPositions, setReaderPositions] = useState({});
@@ -1292,10 +1297,12 @@ export default function App() {
         // 저장 데이터 일부가 손상되어도 앱 자체는 실행되도록 기본값으로 복구합니다.
         console.warn('Saved data load failed:', error);
       } finally {
+        setBiblesReady(true);
         setLoaded(true);
       }
     };
     load();
+    (async () => { try { const f = new File(Paths.document, "original-files.json"); if (f.exists) setOriginalFiles(parseOriginalFiles([JSON.parse(await f.text())])); } catch (e) { console.warn("Original files load failed", e); } })();
   }, []);
 
   useEffect(() => {
@@ -1438,7 +1445,7 @@ export default function App() {
   const availableTranslations = useMemo(() => [
     ...translations,
     ...customTranslations.map((item) => ({ ...item, enabled: true })),
-  ], [customTranslations]);
+  ].sort(sortTranslations), [customTranslations]);
   const allBibleData = useMemo(() => ({ ...BIBLE_DATA, ...customBibles }), [customBibles]);
   const selectedTranslation = availableTranslations.find((t) => t.id === translationId) || availableTranslations[0];
 
@@ -1463,22 +1470,22 @@ export default function App() {
   const verseCount = Math.max(1, ...chapterVerseNumbers);
 
   useEffect(() => {
-    if (selectedChapter > chapterCount) setSelectedChapter(1);
-  }, [selectedBookKey, chapterCount, selectedChapter]);
+    if (loaded && biblesReady && selectedBookMeta?.book === selectedBookKey && selectedChapter > chapterCount) setSelectedChapter(1);
+  }, [loaded, biblesReady, selectedBookKey, selectedBookMeta?.book, chapterCount, selectedChapter]);
 
   useEffect(() => {
-    if (selectedVerse > verseCount) setSelectedVerse(1);
-  }, [selectedChapter, verseCount, selectedVerse]);
+    if (loaded && biblesReady && selectedBookMeta?.book === selectedBookKey && Number(selectedChapterData?.chapter) === selectedChapter && selectedVerse > verseCount) setSelectedVerse(1);
+  }, [loaded, biblesReady, selectedBookKey, selectedBookMeta?.book, selectedChapterData, selectedChapter, verseCount, selectedVerse]);
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !biblesReady || savedVerseReturnRef.current) return;
     syncStorage.setItem(BIBLE_SELECTION_KEY, JSON.stringify({
       testament,
       book: selectedBookKey,
       chapter: selectedChapter,
       verse: selectedVerse,
     })).catch((error) => console.warn('Bible selection save failed:', error));
-  }, [loaded, testament, selectedBookKey, selectedChapter, selectedVerse]);
+  }, [loaded, biblesReady, testament, selectedBookKey, selectedChapter, selectedVerse]);
 
   const readerKey = useMemo(() => {
     if (!readerContext) return null;
@@ -1487,7 +1494,7 @@ export default function App() {
   }, [readerContext, translationId]);
 
   useEffect(() => {
-    if (screen !== 'reader' || readerContext?.type !== 'chapter' || readerContext.verse !== 1) return undefined;
+    if (screen !== 'reader' || readerContext?.type !== 'chapter' || readerContext.verse !== 1 || readerPositions[readerKey] > 0) return undefined;
     pendingTargetY.current = 0;
     lastScrollY.current = 0;
     const scrollToFirstVerse = () => readerRef.current?.scrollTo({ y: 0, animated: false });
@@ -1543,13 +1550,13 @@ export default function App() {
       const item = activeSchedule[readerContext.day - 1];
       return `${item?.dayLabel || ''} 본문`;
     }
-    return `${readerContext.bookKo} ${readerContext.chapter}장`;
+    return `${readerContext.bookKo} ${readerContext.chapter}${chapterUnit(readerContext.book)}`;
   }, [readerContext]);
 
   const readerRange = useMemo(() => {
     if (!readerContext) return '';
     if (readerContext.type === 'day') return activeSchedule[readerContext.day - 1]?.reading || '';
-    return `${readerContext.bookKo} ${readerContext.chapter}장`;
+    return `${readerContext.bookKo} ${readerContext.chapter}${chapterUnit(readerContext.book)}`;
   }, [readerContext]);
 
   const persistPositions = async (next) => {
@@ -1558,10 +1565,16 @@ export default function App() {
   };
 
   const saveCurrentPosition = async () => {
-    if (!readerKey) return;
-    const next = { ...readerPositions, [readerKey]: lastScrollY.current || 0 };
+    if (!readerKey || restoredKey.current !== readerKey || savedVerseReturnRef.current) return;
+    const next = { ...readerPositions, [readerKey]: safePosition(lastScrollY.current) };
     await persistPositions(next);
   };
+
+  useEffect(() => {
+    if (screen !== 'reader') return undefined;
+    const listener = AppState.addEventListener('change', state => { if (state !== 'active') saveCurrentPosition().catch(console.warn); });
+    return () => listener.remove();
+  }, [screen, readerKey, readerPositions]);
 
   const openDayReader = (day, returnTo = 'today') => {
     setSelectedVerses([]);
@@ -2642,6 +2655,7 @@ export default function App() {
 
   const saveNote = async () => {
     if (!noteModal) return;
+    if (noteDraft.trim().length > 20000) { Alert.alert('메모 길이 확인', '메모는 20,000자 이내로 저장해 주세요. 입력 내용은 그대로 유지됩니다.'); return; }
     const next = { ...verseNotes };
     noteModal.keys.forEach((key) => {
       if (noteDraft.trim()) next[key] = noteDraft.trim();
@@ -2736,6 +2750,22 @@ export default function App() {
       </TouchableOpacity>
     </Modal>
   );
+
+  const importOriginalFolder = async () => {
+    if (Platform.OS !== 'android') { Alert.alert('안내', '안드로이드에서 원어 JSON 폴더를 선택해 주세요.'); return; }
+    try {
+      const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!permission?.granted) return;
+      const files = new Directory(permission.directoryUri).list().filter(f => f.name?.toLowerCase().endsWith('.json'));
+      const documents = [];
+      for (const file of files) documents.push(JSON.parse(await file.text()));
+      const parsed = parseOriginalFiles(documents);
+      const stored = { format: 'gf-bible-original-v1', type: 'bundle', ...parsed };
+      new File(Paths.document, 'original-files.json').write(JSON.stringify(stored));
+      setOriginalFiles(parsed);
+      Alert.alert('원어 자료 등록', `구절 ${Object.keys(parsed.codes).length}개 · 사전 ${Object.keys(parsed.dictionary).length}개를 등록했습니다.`);
+    } catch (error) { Alert.alert('원어 자료 등록 실패', error.message || 'JSON 파일 형식을 확인해 주세요.'); }
+  };
 
   const importBibleFolder = async () => {
     if (Platform.OS !== 'android') {
@@ -3180,7 +3210,7 @@ export default function App() {
         )}
         {readerContext.type === 'chapter' && (
           <View style={styles.fixedChapterHeader}>
-            <Text style={styles.fixedChapterHeaderText}>{readerContext.bookKo} {readerContext.chapter}장</Text>
+            <Text style={styles.fixedChapterHeaderText}>{readerContext.bookKo} {readerContext.chapter}{chapterUnit(readerContext.book)}</Text>
           </View>
         )}
         <ScrollView
@@ -3188,7 +3218,7 @@ export default function App() {
           ref={readerRef}
           contentContainerStyle={styles.readerContent}
           onContentSizeChange={handleContentReady}
-          onScroll={(e) => { lastScrollY.current = e.nativeEvent.contentOffset.y; }}
+          onScroll={(e) => { lastScrollY.current = safePosition(e.nativeEvent.contentOffset.y); if (Date.now() - positionWriteAt.current > 500) { positionWriteAt.current = Date.now(); saveCurrentPosition().catch(console.warn); } }}
           onScrollEndDrag={saveCurrentPosition}
           onMomentumScrollEnd={saveCurrentPosition}
           scrollEventThrottle={80}
@@ -3221,11 +3251,12 @@ export default function App() {
                     }}
                     style={[isTargetVerse && styles.targetVerseWrap, verseHighlights[verseKey(v)] && [styles.highlightedVerseWrap, { backgroundColor: verseHighlights[verseKey(v)]?.color || '#FFF3A8' }], selectedVerses.some((x) => x.key === verseKey(v)) && styles.selectedVerseWrap]}
                   >
-                    {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}장</Text>}
+                    {showChapter && readerContext.type === 'day' && <Text style={styles.chapterHeading}>{v.bookKo} {v.chapter}{chapterUnit(section.passage.book)}</Text>}
                     {psalmHeading ? (
                       <View style={styles.psalmHeadingBox}>
-                        <Text style={styles.psalmHeadingLabel}>시편 표제</Text>
+                        <Text style={styles.psalmHeadingLabel}>시편 표제 · 다락방 정리</Text>
                         <Text style={[styles.psalmHeadingText, { fontSize: Math.max(13, fontSize - 2), lineHeight: Math.round(Math.max(13, fontSize - 2) * 1.55) }]}>{psalmHeading}</Text>
+                        <Text style={[styles.psalmHeadingLabel, { marginTop: 7, marginBottom: 0, fontWeight: '400' }]}>앱 수록 자료를 정리한 표제로, 본문 번역의 공식 표제와 표현이 다를 수 있습니다.</Text>
                       </View>
                     ) : null}
                     <TouchableOpacity
@@ -3239,6 +3270,7 @@ export default function App() {
                         {verseBookmarks[verseKey(v)] ? <Text style={styles.noteMark}>  🔖</Text> : null}{verseNotes[verseKey(v)] ? <Text onPress={() => openNoteForVerse(v)} style={styles.noteMark}>  📝</Text> : null}
                       </Text>
                     </TouchableOpacity>
+                    {(originalFiles.codes[`${translationId}|${section.passage.book}|${v.chapter}|${v.verse}`] || []).map(code => <Text key={code} style={styles.noteMark} onPress={() => { const entry = originalFiles.dictionary[code]; Alert.alert(code, entry ? [entry.lemma, entry.transliteration, entry.meaning].filter(Boolean).join('\n') : '이 코드의 사전 파일을 먼저 가져와 주세요.'); }}>{code}  </Text>)}
                   </View>
                 );
               })}
@@ -3262,11 +3294,11 @@ export default function App() {
         {readerContext.type === 'chapter' && (
           <View style={styles.chapterNavigation}>
             <TouchableOpacity onPress={() => moveChapter(-1)} style={styles.chapterNavButton}>
-              <Text style={styles.chapterNavButtonText}>‹ 이전 장</Text>
+              <Text style={styles.chapterNavButtonText}>‹ 이전 {chapterUnit(readerContext.book)}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => closeReader('bibleIndex')} style={styles.chapterSearchButton}><Text style={styles.chapterSearchButtonText}>성경찾기</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => moveChapter(1)} style={styles.chapterNavButton}>
-              <Text style={styles.chapterNavButtonText}>다음 장 ›</Text>
+              <Text style={styles.chapterNavButtonText}>다음 {chapterUnit(readerContext.book)} ›</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -3686,10 +3718,11 @@ export default function App() {
           <View style={styles.indexScreenScroll}>
             <View style={styles.indexWrapFlex}>
             <View style={styles.indexHeaderRow}>
-              <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장 · 절을 선택합니다.</Text></View>
+              <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장(시편은 편) · 절을 선택합니다.</Text></View>
               <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
+            <TouchableOpacity onPress={importOriginalFolder} style={styles.translationButton}><Text style={styles.translationText}>원어 코드·사전 JSON 가져오기</Text></TouchableOpacity>
             <View style={styles.testamentTabs}>
               {['구약','신약'].map((t) => <TouchableOpacity key={t} onPress={() => {
                 setTestament(t);
@@ -3702,11 +3735,11 @@ export default function App() {
               <View style={[styles.selectorColumn, styles.bookColumn]}>
                 <Text style={styles.selectorTitle}>성경책</Text>
                 <ScrollView nestedScrollEnabled ref={indexBookRef}>
-                  {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onLayout={e => { if (selectedBookKey === meta.book) indexBookRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
+                  {testamentBooks.map((meta) => <TouchableOpacity key={meta.book} onLayout={e => { if (selectedBookKey === meta.book) indexBookRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => { if (selectedBookKey !== meta.book) { setSelectedBookKey(meta.book); setSelectedChapter(1); setSelectedVerse(1); } }} style={[styles.selectorRow, selectedBookKey === meta.book && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedBookKey === meta.book && styles.selectorRowTextActive]}>{meta.ko}</Text></TouchableOpacity>)}
                 </ScrollView>
               </View>
               <View style={styles.selectorColumn}>
-                <Text style={styles.selectorTitle}>장</Text>
+                <Text style={styles.selectorTitle}>{chapterUnit(selectedBookKey)}</Text>
                 <ScrollView nestedScrollEnabled ref={indexChapterRef}>
                   {Array.from({ length: chapterCount }, (_, i) => i + 1).map((n) => <TouchableOpacity key={n} onLayout={e => { if (selectedChapter === n) indexChapterRef.current?.scrollTo({ y: Math.max(0, e.nativeEvent.layout.y - 40), animated: false }); }} onPress={() => { setSelectedChapter(n); setSelectedVerse(1); }} style={[styles.selectorRow, selectedChapter === n && styles.selectorRowActive]}><Text style={[styles.selectorRowText, selectedChapter === n && styles.selectorRowTextActive]}>{n}</Text></TouchableOpacity>)}
                 </ScrollView>

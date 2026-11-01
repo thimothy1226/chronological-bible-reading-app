@@ -44,6 +44,7 @@ jobs:
             "https://raw.githubusercontent.com/bluesaurel/Korean-Bible-1961-KRV/main/bible_1961_krv.json" \
             -o assets/bibles/krv.json
           test -s assets/bibles/krv.json
+          echo "69ae2d72790ff3a4a0faa9d5c2c727de044d8a48c5ca8995e2e2d6495a8c4f8c  assets/bibles/krv.json" | sha256sum -c -
 
       - name: Verify all 66 KRV books and chapter/verse data
         run: node scripts/validate-krv-books.js
@@ -60,7 +61,7 @@ jobs:
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/gfbible-upload-key.jks"
           test -s "$RUNNER_TEMP/gfbible-upload-key.jks"
 
-      - name: Build signed release AAB
+      - name: Build signed release APK and AAB
         working-directory: android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -68,7 +69,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon \
+          ./gradlew bundleRelease assembleRelease --no-daemon \
             -Pandroid.injected.signing.store.file="$RUNNER_TEMP/gfbible-upload-key.jks" \
             -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
@@ -77,6 +78,8 @@ jobs:
       - name: Verify AAB signature
         run: |
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify android/app/build/outputs/apk/release/app-release.apk
 
       - name: Read app version
         id: app_version
@@ -91,9 +94,16 @@ jobs:
           cp android/app/build/outputs/bundle/release/app-release.aab \
             "output/GF-Bible-v${{ steps.app_version.outputs.version }}-release.aab"
 
+      - name: Prepare APK and source snapshot
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk "output/GF-Bible-v${{ steps.app_version.outputs.version }}-release.apk"
+          git archive --format=zip HEAD -o "output/GF-Bible-v${{ steps.app_version.outputs.version }}-source.zip"
+          zip -u "output/GF-Bible-v${{ steps.app_version.outputs.version }}-source.zip" assets/bibles/krv.json
+          cd output && sha256sum *.apk *.aab *.zip > SHA256SUMS.txt
+
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GF-Bible-v${{ steps.app_version.outputs.version }}-release-aab
-          path: output/*.aab
+          name: GF-Bible-v${{ steps.app_version.outputs.version }}-release-apk-aab-source
+          path: output/*
           retention-days: 30

@@ -1,7 +1,7 @@
 name: Verify and build GF Bible device sync
 on:
   push:
-    branches: [gf-bible-v1.3.20-device-sync]
+    branches: [gf-bible-v1.3.20-device-sync, gf-bible-v1.3.22-reader-fixes]
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,6 +22,7 @@ jobs:
         run: |
           npm run final:check
           npm run test:sync
+          node --test tests/reader-import.test.js
           node --check functions/device-sync.js
           node --check functions/device-sync-core.js
       - name: Install isolated test dependencies

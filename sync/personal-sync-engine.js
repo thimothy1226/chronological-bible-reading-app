@@ -30,9 +30,34 @@ class PersonalSyncEngine {
           this.state.dirty[key] = this.state.records[key];
         }
       }
+      if (saved) {
+        // Recover invalid historical bounce offsets before uploading the durable outbox.
+        const bad = Object.entries(this.state.records).filter(([key, e]) => key.startsWith('positions|') && !e.deleted && (!Number.isFinite(e.value) || e.value < 0 || e.value > 1e8));
+        if (bad.length) {
+          await this.backup('스크롤 위치 호환 복구 전 기록');
+          for (const [key, e] of bad) {
+            const entry = { ...e, value: Math.min(1e8, Math.max(0, Number.isFinite(e.value) ? e.value : 0)), at: Math.max(this.state.lastTime + 1, this.now() + this.state.offset), seq: ++this.state.seq, device: this.deviceId };
+            this.state.records[key] = entry; this.state.dirty[key] = entry; this.state.lastTime = entry.at;
+          }
+        }
+      }
       this.state.deviceId = this.deviceId;
       await this.persist();
-      if (saved) await this.onApply?.(core.materialize(this.state.records, rows));
+      if (saved) {
+        const applied = core.materialize(this.state.records, rows);
+        // Selection on disk is the last durable local navigation, not the cached sync snapshot.
+        if (rows[core.KEYS.selection]) {
+          const value = core.parse(rows[core.KEYS.selection], null);
+          const old = this.state.records['selection|current'];
+          if (value && (!old || !core.same(old.value, value))) {
+            const entry = { value, deleted: false, at: Math.max(this.state.lastTime + 1, this.now() + this.state.offset), seq: ++this.state.seq, device: this.deviceId };
+            this.state.records['selection|current'] = entry; this.state.dirty['selection|current'] = entry; this.state.lastTime = entry.at;
+            await this.persist();
+          }
+          applied[core.KEYS.selection] = rows[core.KEYS.selection];
+        }
+        await this.onApply?.(applied);
+      }
       this.status(this.state.profileId ? 'pending' : 'unlinked');
     });
   }

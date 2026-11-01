@@ -118,3 +118,35 @@ test('stale completion render preserves other days and the current day advanced 
   await e.sync(); const p = core.parse(await e.storage.getItem(`${core.PREFIX}plan`));
   assert.equal(p.currentDay, 8); assert.ok(p.completions['1']); assert.ok(p.completions['2']); e.dispose();
 });
+test('negative bounce offsets are repaired with backup and a valid outbox after restart', async () => {
+  const server = new Server(); const storage = new Storage({ [core.KEYS.positions]: JSON.stringify({ chapter: -17 }) });
+  const e = await device('a', server, storage);
+  assert.equal(e.state.records['positions|chapter'].value, 0);
+  // Reproduce an old release's invalid durable state.
+  e.state.records['positions|chapter'].value = -17;
+  e.state.dirty['positions|chapter'] = { ...e.state.records['positions|chapter'] };
+  await e.persist(); e.dispose();
+  const reopened = await device('a', server, storage);
+  const entry = reopened.state.dirty['positions|chapter'];
+  assert.equal(entry.value, 0); assert.ok(core.validRecord('positions|chapter', entry, 1000));
+  assert.ok(JSON.parse(await storage.getItem(BACKUP_KEY)).some(b => b.records['positions|chapter'].value === -17));
+  reopened.dispose();
+});
+test('multiple-verse memo survives restart and creates independently valid sync records', async () => {
+  const server = new Server(); const e = await device('a', server);
+  const notes = Object.fromEntries([1,2,3].map(v => [`KRV:시편:42:${v}`, '여러 절에 함께 저장한 메모']));
+  await e.write([[core.KEYS.notes, JSON.stringify(notes)]]); await e.enable('phone');
+  for (const [key, entry] of Object.entries(server.records)) assert.ok(core.validRecord(key, entry, 1000));
+  const storage = e.storage; e.dispose(); const reopened = await device('a', server, storage);
+  assert.deepEqual(JSON.parse(await storage.getItem(core.KEYS.notes)), notes); reopened.dispose();
+});
+test('durable last chapter wins over a stale cached selection at startup', async () => {
+  const server = new Server(); const e = await device('a', server);
+  const first = { testament: '구약', book: 'Psalms', chapter: 1, verse: 1 };
+  await e.write([[core.KEYS.selection, JSON.stringify(first)]]); const storage = e.storage; e.dispose();
+  const actual = { ...first, chapter: 42, verse: 8 }; await storage.setItem(core.KEYS.selection, JSON.stringify(actual));
+  const reopened = await device('a', server, storage);
+  assert.deepEqual(reopened.state.records['selection|current'].value, actual);
+  await reopened.enable('phone');
+  assert.deepEqual(server.records['selection|current'].value, actual); reopened.dispose();
+});
