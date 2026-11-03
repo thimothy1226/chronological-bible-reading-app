@@ -21,3 +21,11 @@ test('all source pages retain every non-whitespace character and style run',()=>
   assert.equal(result.length,block.spans.length);
  }
 });
+
+test('text reader imports the reflow helper it calls', () => {
+ const fs = require('node:fs');
+ const path = require('node:path');
+ const app = fs.readFileSync(path.join(__dirname, '../App.js'), 'utf8');
+ assert.match(app, /import\s*\{\s*reflowHomologiaSpans\s*\}\s*from\s*['"]\.\/scripts\/homologia-reflow['"]/);
+ assert.match(app, /reflowHomologiaSpans\(block\.spans/);
+});
