@@ -2773,14 +2773,40 @@ export default function App() {
     </Modal>
   );
 
-  const importOriginalFolder = async () => {
+  const importScriptureData = async () => {
+    if (importingBible || originalImportBusy) return;
+    if (Platform.OS !== 'android') { Alert.alert('안내', '안드로이드에서 자료 폴더를 선택해 주세요.'); return; }
+    setImportingBible(true);
+    try {
+      const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!permission?.granted || !permission.directoryUri) return;
+      const directory = new Directory(permission.directoryUri);
+      const files = directory.list();
+      const hasBdf = files.some(file => /\.bdf$/i.test(file.name || ''));
+      const hasJson = files.some(file => /\.json$/i.test(file.name || ''));
+      if (!hasBdf && !hasJson) { Alert.alert('자료 없음', '성경 본문 BDF 또는 원어 자료 JSON 파일이 들어 있는 폴더를 선택해 주세요.'); return; }
+      const results = [];
+      if (hasBdf) {
+        const result = await importBibleFolder(directory, true);
+        results.push(`성경 본문: ${result?.error || result?.summary || '등록 가능한 본문 없음'}`);
+      }
+      if (hasJson) {
+        const result = await importOriginalFolder(directory, true);
+        results.push(`원어 자료: ${result?.error || result?.summary || '등록되지 않음'}`);
+      }
+      Alert.alert('성경데이터 등록 결과', results.join('\n\n'));
+    } catch (error) { Alert.alert('등록 오류', error.message || '폴더 접근 권한과 파일을 확인해 주세요.'); }
+    finally { setImportingBible(false); }
+  };
+
+  const importOriginalFolder = async (directory = null, silent = false) => {
     if (Platform.OS !== 'android') { Alert.alert('안내', '안드로이드에서 원어 JSON 폴더를 선택해 주세요.'); return; }
     if (originalImportBusy) return;
     setOriginalImportBusy(true);
     try {
-      const permission = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (!permission?.granted) return;
-      const files = new Directory(permission.directoryUri).list().filter(f => f.name?.toLowerCase().endsWith('.json')).sort((a, b) => a.name.localeCompare(b.name));
+      const permission = directory ? null : await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!directory && !permission?.granted) return;
+      const files = (directory || new Directory(permission.directoryUri)).list().filter(f => f.name?.toLowerCase().endsWith('.json')).sort((a, b) => a.name.localeCompare(b.name));
       if (!files.length || files.length > 20) throw new Error('변환 묶음의 import 폴더에서 JSON 파일 5개를 선택해 주세요.');
       let parsed = null;
       const stamp = Date.now();
@@ -2805,24 +2831,26 @@ export default function App() {
       await AsyncStorage.setItem('@gf_bible/original_file_snapshot', fileName);
       setOriginalFiles(parsed);
       const bibleCount = Object.keys(parsed.bibles || {}).length;
-      Alert.alert('원어 자료 등록', `번역본 ${bibleCount}개 · 구절 ${Object.keys(parsed.codes).length.toLocaleString()}개 · 사전 코드 ${Object.keys(parsed.dictionary).length.toLocaleString()}개를 등록했습니다. 번역본 목록에서 개역개정_s, 원전분해_s, KJV_s를 선택해 주세요.`);
-    } catch (error) { Alert.alert('원어 자료 등록 실패', error.message || 'JSON 파일 형식을 확인해 주세요.'); }
+      const summary = `번역본 ${bibleCount}개 · 구절 ${Object.keys(parsed.codes).length.toLocaleString()}개 · 사전 코드 ${Object.keys(parsed.dictionary).length.toLocaleString()}개를 등록했습니다. 번역본 목록에서 개역개정_s, 원전분해_s, KJV_s를 선택해 주세요.`;
+      if (!silent) Alert.alert('원어 자료 등록', summary);
+      return { summary };
+    } catch (error) { if (!silent) Alert.alert('원어 자료 등록 실패', error.message || 'JSON 파일 형식을 확인해 주세요.'); return { error: error.message || '원어 자료 형식 오류' }; }
     finally { setOriginalImportBusy(false); }
   };
 
-  const importBibleFolder = async () => {
+  const importBibleFolder = async (directory = null, silent = false) => {
     if (Platform.OS !== 'android') {
       Alert.alert('안내', '현재 BDF 폴더 등록은 안드로이드에서 사용할 수 있습니다.');
       return;
     }
     setImportingBible(true);
     try {
-      let selectedDirectory = null;
+      let selectedDirectory = directory;
       let savedFolderUri = await AsyncStorage.getItem(BIBLE_IMPORT_FOLDER_URI_KEY);
 
       // Android 보안 정책상 Download/Bible을 앱이 무단으로 훑을 수는 없습니다.
       // 한 번 사용자가 폴더 접근을 허용하면 이후부터는 저장된 폴더를 먼저 자동 확인합니다.
-      if (savedFolderUri) {
+      if (!selectedDirectory && savedFolderUri) {
         try {
           const remembered = new Directory(savedFolderUri);
           const rememberedFiles = remembered.list().filter((item) => item.name?.toLowerCase().endsWith('.bdf'));
@@ -2901,11 +2929,13 @@ export default function App() {
       setCustomBibles(nextBibles);
       setCustomTranslations(nextTranslations);
       await syncStorage.setItem(CUSTOM_TRANSLATIONS_KEY, JSON.stringify(nextTranslations));
-      Alert.alert('성경번역본 등록 완료', summaries.join('\n'));
+      if (!silent) Alert.alert('성경번역본 등록 완료', summaries.join('\n'));
+      return { summary: summaries.join('\n') };
     } catch (error) {
       if (!String(error?.message || error).toLowerCase().includes('cancel')) {
         console.warn('BDF import failed:', error);
-        Alert.alert('등록 오류', 'BDF 파일을 읽지 못했습니다. 파일들이 들어 있는 폴더를 다시 선택해 주세요.');
+        if (!silent) Alert.alert('등록 오류', 'BDF 파일을 읽지 못했습니다. 파일들이 들어 있는 폴더를 다시 선택해 주세요.');
+        return { error: '성경 본문 파일을 읽지 못했습니다. 기존 등록 내용을 확인해 주세요.' };
       }
     } finally {
       setImportingBible(false);
@@ -3178,7 +3208,7 @@ export default function App() {
                 ]}
               >
                 <Text style={{ textAlign: block.align || 'left', fontSize: baseFontSize, lineHeight: blockLineHeight }}>
-                  {block.spans.map((span, spanIndex) => (
+                  {reflowHomologiaSpans(block.spans, !isHeading && !block.background && block.align === 'left' && !(block.indent > 0)).map((span, spanIndex) => (
                     <Text
                       key={spanIndex}
                       style={{
@@ -3189,7 +3219,7 @@ export default function App() {
                         textDecorationLine: span.url ? 'underline' : 'none',
                       }}
                       onPress={span.url ? () => Linking.openURL(span.url).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.')) : undefined}
-                    >{formatFlowingText(block.spans, spanIndex, true)}</Text>
+                    >{span.text}</Text>
                   ))}
                 </Text>
               </View>
@@ -3610,7 +3640,7 @@ export default function App() {
             )}
           </ScrollView>
         ) : screen === 'settings' ? (
-          <ScrollView contentContainerStyle={styles.settingsScreen}>
+          <ScrollView style={{ flex: 1, minHeight: 0 }} contentContainerStyle={styles.settingsScreen}>
             <Text style={styles.settingsTitle}>설정</Text>
             <Text style={styles.settingsSectionTitle}>그룹</Text>
             <View style={styles.settingsCard}>
@@ -3645,12 +3675,12 @@ export default function App() {
               <TouchableOpacity onPress={openNotificationSettings} style={styles.notificationSettingsButton}><Text style={styles.notificationSettingsButtonText}>{notificationPermission === 'undetermined' ? '알림 허용하기' : '휴대폰 알림 설정 열기'}</Text></TouchableOpacity>
             </View>
             <View style={styles.settingsSectionGap} />
-            <Text style={styles.settingsSectionTitle}>개인 성경 번역본</Text>
+            <Text style={styles.settingsSectionTitle}>성경 및 원어 자료</Text>
             <View style={styles.settingsCard}>
-              <Text style={styles.settingsCardTitle}>BDF 성경 데이터 등록</Text>
-              <Text style={styles.settingsDescription}>처음 한 번 Download/Bible 폴더 접근을 허용하면 이후에는 그 폴더의 새 BDF 파일을 먼저 자동 확인합니다. 접근이 없거나 파일이 없으면 폴더를 다시 선택할 수 있습니다.</Text>
-              <TouchableOpacity disabled={importingBible} onPress={importBibleFolder} style={[styles.importBibleButton, importingBible && styles.importBibleButtonDisabled]}>
-                <Text style={styles.importBibleButtonText}>{importingBible ? 'BDF 파일 확인 중…' : '＋ BDF 자동 확인 · 번역본 추가'}</Text>
+              <Text style={styles.settingsCardTitle}>성경데이터 등록</Text>
+              <Text style={styles.settingsDescription}>성경 본문(BDF)과 원어 코드·사전(JSON)이 들어 있는 폴더를 선택하세요. 같은 폴더의 지원 자료를 구분하여 등록합니다. 원어 자료는 변환 묶음의 import 폴더에 있는 JSON 형식을 사용해 주세요.</Text>
+              <TouchableOpacity disabled={importingBible || originalImportBusy} onPress={importScriptureData} style={[styles.importBibleButton, importingBible && styles.importBibleButtonDisabled]}>
+                <Text style={styles.importBibleButtonText}>{importingBible || originalImportBusy ? '성경데이터 확인 중…' : '＋ 성경데이터 등록'}</Text>
               </TouchableOpacity>
               <Text style={styles.privateImportNotice}>APK와 GitHub에는 개인 번역본이 포함되지 않으며 인터넷 연결 없이 사용합니다.</Text>
             </View>
@@ -3779,7 +3809,6 @@ export default function App() {
               <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
-            <TouchableOpacity disabled={originalImportBusy} onPress={importOriginalFolder} style={styles.translationButton}><Text style={styles.translationText}>{originalImportBusy ? '원어 자료를 가져오는 중…' : '원어 코드·사전 JSON 가져오기'}</Text></TouchableOpacity>
             <View style={styles.testamentTabs}>
               {['구약','신약'].map((t) => <TouchableOpacity key={t} onPress={() => {
                 setTestament(t);
@@ -4205,7 +4234,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, backgroundColor: '#F7F6F1' }, app: { flex: 1 }, loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  header: { flexShrink: 0, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   headerBrand: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
   title: { fontSize: 22, lineHeight: 29, fontWeight: '900', color: '#17223B' },
   versionStatusButton: { flexShrink: 1, minHeight: 24, justifyContent: 'center' },
@@ -4213,7 +4242,7 @@ const styles = StyleSheet.create({
   versionStatusText: { color: '#61705F', fontSize: 11, lineHeight: 15, fontWeight: '800' },
   versionStatusUpdate: { color: '#C2410C', textDecorationLine: 'underline', fontWeight: '900' },
   exitButton: { borderWidth: 1, borderColor: '#D6D2C8', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#FFF' }, exitButtonText: { color: '#5B6471', fontWeight: '800', fontSize: 13 },
-  tabs: { marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
+  tabs: { flexShrink: 0, marginHorizontal: 14, flexDirection: 'row', flexWrap: 'wrap', padding: 4, borderRadius: 14, backgroundColor: '#EAE8E1' },
   tab: { width: '33.333%', minHeight: 42, paddingHorizontal: 3, paddingVertical: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   tabDisabled: { opacity: 0.35 },
   tabActive: { backgroundColor: '#FFF' },
@@ -4374,7 +4403,7 @@ const styles = StyleSheet.create({
   readerContent: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: Platform.OS === 'android' ? 150 : 84 }, readerRange: { fontSize: 21, lineHeight: 31, fontWeight: '900', color: '#17223B', marginBottom: 20 }, section: { marginBottom: 18 }, chapterHeading: { fontSize: 19, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 8 }, psalmHeadingBox: { marginBottom: 14, paddingHorizontal: 15, paddingVertical: 12, borderRadius: 13, borderWidth: 1, borderColor: '#E3D8C3', backgroundColor: '#F8F3E8' }, psalmHeadingLabel: { marginBottom: 5, color: '#8B6B35', fontSize: 10, fontWeight: '900' }, psalmHeadingText: { color: '#4B4234', fontWeight: '800' }, verseText: { color: '#2E374A', marginBottom: 10 }, verseNumber: { fontWeight: '900', color: '#9A7C43' }, missingText: { color: '#A24A4A', fontWeight: '700' }, sourceBox: { marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#F0EEE7' }, sourceText: { fontSize: 11, lineHeight: 17, color: '#6B6F75' }, targetVerseWrap: { borderRadius: 8, paddingHorizontal: 4 },
   fixedChapterHeader: { paddingHorizontal: 18, paddingVertical: 11, backgroundColor: '#FFFEFB', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E3DED2', alignItems: 'center' }, fixedChapterHeaderText: { color: '#17223B', fontSize: 19, fontWeight: '900' },
   chapterNavigation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 14, paddingTop: 12, paddingBottom: Platform.OS === 'android' ? 46 : 18, backgroundColor: '#F7F6F1', borderTopWidth: 1, borderTopColor: '#E3DED2', elevation: 8 }, chapterNavButton: { flex: 1, minHeight: 48, borderRadius: 13, backgroundColor: '#173C70', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 }, chapterNavButtonText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, chapterSearchButton: { minWidth: 94, minHeight: 48, paddingHorizontal: 12, borderRadius: 13, backgroundColor: '#E9E5DC', alignItems: 'center', justifyContent: 'center' }, chapterSearchButtonText: { color: '#17223B', fontSize: 13, fontWeight: '900' },
-  indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
+  indexWrap: { padding: 22, paddingBottom: 45 }, indexHeaderRow: { width: '94%', flexDirection: 'column', alignItems: 'stretch', marginBottom: 14, gap: 12 }, indexLabel: { fontSize: 15, fontWeight: '900', color: '#17223B', marginTop: 18, marginBottom: 10 }, bookGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, bookChip: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#ECEAE4' }, bookChipActive: { backgroundColor: '#17223B' }, bookChipText: { color: '#5D6470', fontWeight: '800', fontSize: 12 }, bookChipTextActive: { color: '#FFF' }, numberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 }, numberChip: { width: 43, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#ECEAE4' }, numberChipActive: { backgroundColor: '#B28A48' }, numberChipText: { fontWeight: '900', color: '#5D6470' }, numberChipTextActive: { color: '#FFF' }, indexHint: { marginTop: 10, textAlign: 'center', fontSize: 11, lineHeight: 17, color: '#777' },
   dropdownButton: { marginBottom: 10, borderWidth: 1, borderColor: '#DED9CE', borderRadius: 14, backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, dropdownLabel: { fontSize: 13, fontWeight: '800', color: '#777E88' }, dropdownValue: { fontSize: 16, fontWeight: '900', color: '#17223B' },
   translationPickerCard: { width: '100%', maxHeight: '70%', backgroundColor: '#F7F6F1', borderRadius: 22, overflow: 'hidden' },
   translationPickerList: { padding: 13, paddingBottom: 20 },
