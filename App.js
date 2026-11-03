@@ -24,6 +24,7 @@ import { chapterUnit, sortTranslations, safePosition } from './scripts/reader-st
 import { parseOriginalFiles, dictionaryEntry } from './scripts/original-files';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
+import { reflowHomologiaSpans } from './scripts/homologia-reflow';
 import homologiaBoxes from './assets/homologia-boxes.json';
 import homologiaPageImages from './assets/homologia-pages';
 import homologiaPageLinks from './assets/homologia-links.json';
@@ -3805,7 +3806,7 @@ export default function App() {
           <View style={styles.indexScreenScroll}>
             <View style={styles.indexWrapFlex}>
             <View style={styles.indexHeaderRow}>
-              <View><Text style={styles.recordsTitle}>성경보기</Text><Text style={styles.recordsSubtitle}>구약/신약 · 성경책 · 장(시편은 편) · 절을 선택합니다.</Text></View>
+              <View><Text style={styles.recordsTitle}>성경보기</Text></View>
               <TouchableOpacity onPress={() => setTranslationPickerOpen(true)} style={styles.translationButton}><Text style={styles.translationText}>{selectedTranslation.name} ▼</Text></TouchableOpacity>
             </View>
 
