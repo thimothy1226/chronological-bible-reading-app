@@ -477,7 +477,6 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
           groupName: String(groupName).slice(0, 80),
           postTitle: String(post.title || '').slice(0, 120),
           route: 'communityPost',
-          click_action: 'OPEN_COMMUNITY_POST',
         },
         android: {
           priority: 'high',
@@ -487,7 +486,6 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
             channelId: 'group-posts',
             sound: 'default',
             tag: `community-${postId}`,
-            clickAction: 'OPEN_COMMUNITY_POST',
           },
         },
       });
