@@ -1,0 +1,27 @@
+name: Deploy GF Bible community notifications
+
+on:
+  push:
+    branches: [gf-bible-v1.3.24-layout-import]
+    paths:
+      - functions/index.js
+      - .github/workflows/deploy-community-notifications.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm --prefix functions install
+      - run: node --check functions/index.js
+      - run: npx --yes firebase-tools deploy --only functions:notifyCommunityPostCreated --project gfc-bible-reading --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
