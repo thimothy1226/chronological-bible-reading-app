@@ -1,0 +1,13 @@
+name: Prepare Homologia update
+on:
+  push:
+    branches: [gf-bible-v1.3.24-layout-import]
+    paths: [.github/workflows/prepare-homologia-update.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git rev-parse HEAD HEAD^{tree}
