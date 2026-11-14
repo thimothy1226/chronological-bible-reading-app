@@ -2,12 +2,12 @@
   "expo": {
     "name": "GF Bible",
     "slug": "gf-bible",
-    "version": "1.3.25",
+    "version": "1.3.26",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "android": {
       "package": "com.gfcchurch.gfbible",
-      "versionCode": 39,
+      "versionCode": 40,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {

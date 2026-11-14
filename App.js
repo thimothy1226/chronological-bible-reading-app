@@ -514,6 +514,7 @@ const HOMOLOGIA_MENUS = [
   { title: '호물로기아 3', color: '#705B08', sectionIndex: 6 },
   { title: '호물로기아 4', color: '#5B2C68', sectionIndex: 7 },
   { title: '이륙하기 버전', color: '#0E5947', sectionIndex: 8 },
+  { title: '치유 선포문', color: '#0E5947', sectionIndex: 9 },
 ];
 
 const BOOK_NAME_KO = {
@@ -3025,7 +3026,7 @@ export default function App() {
       const sentenceContinues = previousText && !/[.!?。！？…]["'”’）)\]]*$/.test(previousText);
       const similarSize = previous && Math.abs((previous.baseSize || 28) - (block.baseSize || 28)) <= 2;
 
-      if (previousIsBody && currentIsBody && sentenceContinues && similarSize) {
+      if (previousIsBody && currentIsBody && !block.preserveParagraph && sentenceContinues && similarSize) {
         const joinStyle = block.spans[0] || previous.spans[previous.spans.length - 1];
         previous.spans = [
           ...previous.spans,
@@ -4450,3 +4451,4 @@ const styles = StyleSheet.create({
 
   celebrateBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center', padding: 20 }, celebrateCard: { width: '100%', backgroundColor: '#FFFEFB', borderRadius: 24, padding: 22, alignItems: 'center' }, confetti: { fontSize: 30, marginBottom: 4 }, celebrateTitle: { fontSize: 30, fontWeight: '900', color: '#17223B', marginBottom: 18 }, celebrateSummary: { width: '100%', backgroundColor: '#FBF7EF', borderWidth: 1, borderColor: '#EADDBE', borderRadius: 18, padding: 18 }, celebrateSmall: { fontSize: 13, fontWeight: '800', color: '#747C86', marginBottom: 8 }, celebrateDayBadge: { alignSelf: 'flex-start', backgroundColor: '#17223B', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 12 }, celebrateDayText: { color: '#FFF', fontWeight: '900' }, celebrateStage: { fontSize: 16, lineHeight: 23, fontWeight: '900', color: '#8B6B35' }, celebrateDivider: { height: 1, backgroundColor: '#E8DDC6', marginVertical: 14 }, celebrateReading: { fontSize: 23, lineHeight: 32, fontWeight: '900', color: '#17223B' }, celebrateSuccess: { marginTop: 18, fontSize: 19, lineHeight: 28, fontWeight: '900', color: '#17223B', textAlign: 'center' }, finalCongrats: { marginTop: 8, fontSize: 13, lineHeight: 20, color: '#8B6B35', fontWeight: '800', textAlign: 'center' }, celebrateButton: { width: '100%', marginTop: 18, backgroundColor: '#173C70', borderRadius: 14, paddingVertical: 15, alignItems: 'center' }, celebrateButtonText: { color: '#FFF', fontSize: 17, fontWeight: '900' },
 });
+

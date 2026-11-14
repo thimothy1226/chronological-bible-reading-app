@@ -95,6 +95,9 @@ const pages = [
   require('./homologia-pages/page-094.jpg'),
   require('./homologia-pages/page-095.jpg'),
   require('./homologia-pages/page-096.jpg'),
+  require('./homologia-pages/page-097.jpg'),
+  require('./homologia-pages/page-098.jpg'),
+  require('./homologia-pages/page-099.jpg'),
+  require('./homologia-pages/page-100.jpg'),
 ];
-
 export default pages;
