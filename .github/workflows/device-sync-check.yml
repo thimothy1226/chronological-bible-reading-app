@@ -1,0 +1,40 @@
+name: Verify and build GF Bible device sync
+on:
+  push:
+    branches: [gf-bible-v1.3.20-device-sync]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Check source and local sync behavior
+        run: |
+          npm run final:check
+          npm run test:sync
+          node --check functions/device-sync.js
+          node --check functions/device-sync-core.js
+      - name: Install isolated test dependencies
+        run: npm install --prefix .sync-test --no-audit --no-fund @babel/parser firebase-admin@13.6.0 firebase-functions@6.6.0 firebase@12.18.0 @firebase/rules-unit-testing@5.0.0 firebase-tools@14.17.0
+      - name: Parse app screens
+        env:
+          NODE_PATH: ${{ github.workspace }}/.sync-test/node_modules
+        run: node scripts/validate-sync-syntax.js
+      - name: Validate pairing and private access with emulator
+        env:
+          NODE_PATH: ${{ github.workspace }}/.sync-test/node_modules
+        run: .sync-test/node_modules/.bin/firebase emulators:exec --config firebase.sync-test.json --only firestore --project demo-gf-sync 'npm run test:sync:server'
+  build:
+    needs: checks
+    uses: ./.github/workflows/build-aab.yml
+    secrets: inherit
