@@ -78,3 +78,40 @@ test('guessed numeric codes are rate-limited', async () => {
   for (let i = 0; i < 5; i++) await assert.rejects(run('preparePersonalLink', 'guesser', { code: '123456' }));
   await assert.rejects(run('preparePersonalLink', 'guesser', { code: '123456' }), /10분/);
 });
+
+test('linked community migrates existing devices, propagates edits and protects admin removal', async () => {
+  const { Timestamp } = require('firebase-admin/firestore');
+  const community = require('../functions/community-sync');
+  const invoke = uid => community.syncLinkedCommunity.run(request(uid));
+  const pid = 'community-existing-profile';
+  for (const uid of ['community-a','community-b']) {
+    await db.doc(`personalSyncDevices/${uid}`).set({ profileId: pid });
+    await db.doc(`personalSyncProfiles/${pid}/devices/${uid}`).set({ name: uid });
+  }
+  await db.doc('groups/community-group').set({ name: 'test', normalizedInviteCode: 'secret' });
+  const a = db.doc('memberships/community-group_community-a');
+  const b = db.doc('memberships/community-group_community-b');
+  await a.set({ memberUid: 'community-a', groupId: 'community-group', nickname: '기존닉네임', active: true, removedByAdmin: false, joinedAt: Timestamp.fromMillis(1000), updatedAt: Timestamp.fromMillis(1000) });
+  await invoke('community-b');
+  assert.equal((await b.get()).data().nickname, '기존닉네임');
+  assert.equal((await b.get()).data().memberUid, 'community-b');
+  await b.update({ nickname: '변경닉네임', nicknameChangedAt: Timestamp.fromMillis(2000), updatedAt: Timestamp.fromMillis(2000) });
+  await invoke('community-a');
+  assert.equal((await a.get()).data().nickname, '변경닉네임');
+  await a.update({ active: false, leftAt: Timestamp.fromMillis(3000), updatedAt: Timestamp.fromMillis(3000) });
+  await invoke('community-b');
+  assert.equal((await b.get()).data().active, false);
+  await b.update({ active: true, rejoinedAt: Timestamp.fromMillis(4000), updatedAt: Timestamp.fromMillis(4000) });
+  await invoke('community-a');
+  assert.equal((await a.get()).data().active, true);
+  await a.update({ active: false, removedByAdmin: true, updatedAt: Timestamp.fromMillis(5000) });
+  await b.update({ active: true, updatedAt: Timestamp.fromMillis(6000) });
+  await invoke('community-b');
+  assert.equal((await b.get()).data().removedByAdmin, true);
+  assert.equal((await b.get()).data().active, false);
+  await invoke('community-b');
+  assert.equal((await b.get()).data().active, false);
+  assert.deepEqual(await invoke('community-outsider'), { linked: false });
+  await assert.rejects(community.syncLinkedCommunity.run({ data: { uid: 'community-a' } }), /로그인/);
+  assert.equal((await db.doc('memberships/community-group_community-outsider').get()).exists, false);
+});

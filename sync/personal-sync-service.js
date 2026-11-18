@@ -26,6 +26,14 @@ export function startPersonalSync({ uid, functions, firestore, onApply, onStatus
   const engine = new PersonalSyncEngine({ storage: AsyncStorage, deviceId: uid, call, onApply, onStatus });
   let disposed = false; let profileListener = null; let boundProfile = null;
   const ready = engine.init(); currentEngine = engine;
+  let communityRunning = false;
+  const syncCommunity = async () => {
+    if (disposed || communityRunning || !engine.state?.profileId) return;
+    communityRunning = true;
+    try { await call('syncLinkedCommunity', {}); }
+    catch (error) { engine.status('pending', error); }
+    finally { communityRunning = false; }
+  };
   const watch = profileId => {
     if (profileId === boundProfile) return;
     profileListener?.(); boundProfile = profileId;
@@ -45,17 +53,17 @@ export function startPersonalSync({ uid, functions, firestore, onApply, onStatus
     if (!engine.state.profileId) {
       await engine.serial(async () => { engine.state.profileId = profileId; await engine.persist(); });
     } else if (engine.state.profileId !== profileId) await engine.switchProfile(profileId);
-    watch(profileId); if (AppState.currentState === 'active') engine.sync().catch(() => {});
+    watch(profileId); if (AppState.currentState === 'active') { engine.sync().catch(() => {}); syncCommunity(); }
   }, error => { if (engine.state?.profileId) engine.status('pending', error); });
-  const appListener = AppState.addEventListener('change', state => engine.setActive(state === 'active'));
+  const appListener = AppState.addEventListener('change', state => { engine.setActive(state === 'active'); if (state === 'active') syncCommunity(); });
   ready.then(() => { if (disposed) return; engine.setActive(AppState.currentState === 'active'); if (engine.state.profileId) watch(engine.state.profileId); }).catch(error => engine.status('error', error));
   return {
     ready, engine,
     async createCode(name) { await ready; const result = await engine.createCode(name); watch(engine.state.profileId); return result; },
     async prepare(code, name) { await ready; const result = await engine.prepare(code, name); watch(engine.state.profileId); return result; },
-    async finish(link, mode) { await ready; const result = await engine.finish(link, mode); watch(result.profileId); return result; },
+    async finish(link, mode) { await ready; const result = await engine.finish(link, mode); watch(result.profileId); await syncCommunity(); return result; },
     async listDevices() { await ready; return call('listPersonalSyncDevices', {}); },
-    async sync() { await ready; return engine.sync(); },
+    async sync() { await ready; await syncCommunity(); return engine.sync(); },
     async restore() { await ready; return engine.restoreBackup(); },
     dispose() { disposed = true; if (currentEngine === engine) currentEngine = null; bindingListener(); profileListener?.(); appListener.remove(); engine.dispose(); },
   };

@@ -24,6 +24,7 @@ import { chapterUnit, sortTranslations, safePosition } from './scripts/reader-st
 import { parseOriginalFiles, dictionaryEntry } from './scripts/original-files';
 import psalmHeadingsKo from './assets/bibles/psalm-headings-ko.json';
 import homologiaData from './assets/homologia.json';
+import { captureAnchor, resolveAnchor } from './scripts/reader-anchor';
 import { reflowHomologiaSpans } from './scripts/homologia-reflow';
 import homologiaBoxes from './assets/homologia-boxes.json';
 import homologiaPageImages from './assets/homologia-pages';
@@ -834,6 +835,8 @@ export default function App() {
   const readerVerseLayouts = useRef(new Map());
   const readerSectionLayouts = useRef(new Map());
   const pendingTargetY = useRef(null);
+  const translationAnchorRef = useRef(null);
+  const homologiaTextRef = useRef(null);
   const restoredKey = useRef(null);
   const homologiaPdfScaleRef = useRef(1);
   const homologiaPdfPositionsRef = useRef({});
@@ -1018,12 +1021,12 @@ export default function App() {
       if (activeIds.length || removedIds.length) {
         setJoinedGroupIds((previous) => {
           const filtered = [...new Set([...previous.filter((id) => !removedIds.includes(id)), ...activeIds])];
-          if (removedIds.includes(currentGroupId)) {
+          if (!currentGroupId || removedIds.includes(currentGroupId)) {
             const nextId = filtered[0] || null;
             setCurrentGroupId(nextId);
             if (nextId) syncStorage.setItem(CURRENT_GROUP_KEY, nextId).catch(() => {});
             else AsyncStorage.removeItem(CURRENT_GROUP_KEY).catch(() => {});
-            setScreen('today');
+            if (removedIds.includes(currentGroupId)) setScreen('today');
           }
           const unchanged = filtered.length === previous.length
             && filtered.every((id, index) => id === previous[index]);
@@ -1518,7 +1521,7 @@ export default function App() {
   }, [readerContext, translationId]);
 
   useEffect(() => {
-    if (screen !== 'reader' || readerContext?.type !== 'chapter' || readerContext.verse !== 1 || readerPositions[readerKey] > 0) return undefined;
+    if (translationAnchorRef.current || screen !== 'reader' || readerContext?.type !== 'chapter' || readerContext.verse !== 1 || readerPositions[readerKey] > 0) return undefined;
     pendingTargetY.current = 0;
     lastScrollY.current = 0;
     const scrollToFirstVerse = () => readerRef.current?.scrollTo({ y: 0, animated: false });
@@ -1606,6 +1609,7 @@ export default function App() {
     setReaderContext({ type: 'day', day });
     restoredKey.current = null;
     pendingTargetY.current = null;
+    translationAnchorRef.current = null;
     setScreen('reader');
   };
 
@@ -1623,6 +1627,7 @@ export default function App() {
     });
     restoredKey.current = null;
     pendingTargetY.current = null;
+    translationAnchorRef.current = null;
     setScreen('reader');
   };
 
@@ -2701,6 +2706,22 @@ export default function App() {
     setNoteDraft('');
   };
 
+  const removeSavedRecord = (key, mode) => {
+    const label = mode === 'notes' ? '메모 삭제' : mode === 'highlights' ? '형광펜 해제' : '북마크 해제';
+    Alert.alert(label, '이 기록을 해제할까요? 연결된 기기에도 반영됩니다.', [
+      { text: '취소', style: 'cancel' },
+      { text: '해제', style: 'destructive', onPress: async () => {
+        const [current, setter, storageKey] = mode === 'bookmarks'
+          ? [verseBookmarks, setVerseBookmarks, VERSE_BOOKMARKS_KEY]
+          : mode === 'highlights' ? [verseHighlights, setVerseHighlights, VERSE_HIGHLIGHTS_KEY]
+          : [verseNotes, setVerseNotes, VERSE_NOTES_KEY];
+        const next = { ...current }; delete next[key];
+        try { await syncStorage.setItem(storageKey, JSON.stringify(next), JSON.stringify(current)); setter(next); }
+        catch (error) { Alert.alert('저장 실패', '기록을 해제하지 못했습니다. 다시 시도해 주세요.'); }
+      } },
+    ]);
+  };
+
   const changeFont = async (delta) => {
     const next = Math.min(48, Math.max(15, fontSize + delta));
     setFontSize(next);
@@ -2715,11 +2736,16 @@ export default function App() {
     }
     const idx = enabled.findIndex((t) => t.id === translationId);
     const next = enabled[(idx + 1) % enabled.length];
-    setTranslationId(next.id);
-    await syncStorage.setItem(TRANSLATION_KEY, next.id);
+    await chooseTranslation(next.id);
   };
 
   const chooseTranslation = async (id) => {
+    if (screen === 'reader' && id !== translationId) {
+      translationAnchorRef.current = captureAnchor(readerVerseLayouts.current, readerSectionLayouts.current, readerKey, lastScrollY.current);
+      pendingTargetY.current = null;
+      restoredKey.current = null;
+      readerSectionLayouts.current.clear();
+    }
     setTranslationId(id);
     setTranslationPickerOpen(false);
     await syncStorage.setItem(TRANSLATION_KEY, id);
@@ -2987,7 +3013,7 @@ export default function App() {
       .filter((page) => page.page >= section.startPage && page.page <= section.endPage)
       .flatMap((page) => {
         const boxDefinitions = homologiaBoxes[String(page.page)] || [];
-        return page.blocks.flatMap((block, blockIndex) => {
+        const blocks = page.blocks.flatMap((block, blockIndex) => {
           const boxStart = boxDefinitions.find((box) => box.start === blockIndex);
           if (boxStart) {
             return [{
@@ -3009,9 +3035,11 @@ export default function App() {
             )),
           }];
         });
+        const links = (homologiaPageLinks[String(page.page)] || []).map(link => ({ type: 'navigation', link }));
+        return [...links, ...blocks];
       })
       .filter((block) => {
-        if (block.type === 'boxImage') return true;
+        if (block.type === 'boxImage' || block.type === 'navigation') return true;
         const text = block.spans.map((span) => span.text).join('').trim();
         return text && !text.includes('책 처음으로 이동') && !text.includes('첫페이지로 이동');
       });
@@ -3021,8 +3049,8 @@ export default function App() {
       const previous = flow[flow.length - 1];
       const previousText = previous ? blockText(previous) : '';
       const currentText = blockText(block);
-      const previousIsBody = previous && previous.type !== 'boxImage' && !previous.background && previous.align === 'left' && (previous.baseSize || 28) <= 28.5;
-      const currentIsBody = block.type !== 'boxImage' && !block.background && block.align === 'left' && (block.baseSize || 28) <= 28.5;
+      const previousIsBody = previous && !previous.type && !previous.background && previous.align === 'left' && (previous.baseSize || 28) <= 28.5;
+      const currentIsBody = !block.type && !block.background && block.align === 'left' && (block.baseSize || 28) <= 28.5;
       const sentenceContinues = previousText && !/[.!?。！？…]["'”’）)\]]*$/.test(previousText);
       const similarSize = previous && Math.abs((previous.baseSize || 28) - (block.baseSize || 28)) <= 2;
 
@@ -3061,6 +3089,11 @@ export default function App() {
       if (pageMatch) {
         const targetPage = Number(pageMatch[1]);
         if (targetPage >= 1 && targetPage <= homologiaData.totalPages) {
+          if (homologiaViewMode === 'text') {
+            if (targetPage === 3) { setScreen('homologia'); return; }
+            const targetIndex = homologiaData.sections.findIndex(item => targetPage >= item.startPage && targetPage <= item.endPage);
+            if (targetIndex >= 0) { setHomologiaSectionIndex(targetIndex); homologiaTextRef.current?.scrollToOffset({ offset: 0, animated: false }); return; }
+          }
           setHomologiaPdfStartPage(targetPage);
           setHomologiaPdfJumpKey((value) => value + 1);
         }
@@ -3178,12 +3211,19 @@ export default function App() {
           </View>
         ) : (
         <FlatList
+          key={`homologia-text-${homologiaSectionIndex}`}
+          ref={homologiaTextRef}
           data={sectionBlocks}
           keyExtractor={(_, index) => String(index)}
           contentContainerStyle={styles.homologiaPages}
           initialNumToRender={12}
           windowSize={7}
           renderItem={({ item: block }) => {
+            if (block.type === 'navigation') {
+              const link = block.link;
+              const title = link.type === 'page' ? (link.target === 3 ? '책 처음으로 이동' : `${homologiaData.sections.find(s => s.startPage === link.target)?.title || link.target + '쪽'} 바로가기`) : '동영상 바로가기';
+              return <TouchableOpacity accessibilityRole="link" onPress={() => openHomologiaLink(link.type === 'page' ? `gfbible://homologia/page/${link.target}` : link.target)} style={{ backgroundColor: '#0E5947', padding: 12, marginVertical: 6, borderRadius: 6 }}><Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>{title} ›</Text></TouchableOpacity>;
+            }
             if (block.type === 'boxImage') {
               return (
                 <View style={[styles.homologiaBoxImageWrap, { marginTop: block.paragraphBreak ? Math.max(block.gap || 5, 14) : (block.gap || 5) }]}>
@@ -3216,11 +3256,11 @@ export default function App() {
                       style={{
                         color: span.color || '#67530E',
                         fontSize: Math.round(Math.max(12, Math.min(30, (span.size || block.baseSize || 28) * 0.62)) * homologiaFontScale),
-                        fontWeight: span.bold ? '900' : '600',
+                        fontWeight: span.bold ? '900' : '400',
                         fontStyle: span.italic ? 'italic' : 'normal',
                         textDecorationLine: span.url ? 'underline' : 'none',
                       }}
-                      onPress={span.url ? () => Linking.openURL(span.url).catch(() => Alert.alert('링크 열기 실패', '영상 링크를 열 수 없습니다.')) : undefined}
+                      onPress={span.url ? () => openHomologiaLink(span.url) : undefined}
                     >{span.text}</Text>
                   ))}
                 </Text>
@@ -3243,6 +3283,8 @@ export default function App() {
       if (!readerKey || restoredKey.current === readerKey) return;
       restoredKey.current = readerKey;
       const restorePosition = () => {
+        const anchoredY = resolveAnchor(translationAnchorRef.current, readerVerseLayouts.current, readerSectionLayouts.current, readerKey);
+        if (anchoredY !== null) pendingTargetY.current = anchoredY;
         const target = pendingTargetY.current ?? savedY;
         readerRef.current?.scrollTo({ y: target || 0, animated: false });
         lastScrollY.current = target || 0;
@@ -3293,6 +3335,7 @@ export default function App() {
           ref={readerRef}
           contentContainerStyle={styles.readerContent}
           onContentSizeChange={handleContentReady}
+          onScrollBeginDrag={() => { translationAnchorRef.current = null; }}
           onScroll={(e) => { lastScrollY.current = safePosition(e.nativeEvent.contentOffset.y); if (Date.now() - positionWriteAt.current > 500) { positionWriteAt.current = Date.now(); saveCurrentPosition().catch(console.warn); } }}
           onScrollEndDrag={saveCurrentPosition}
           onMomentumScrollEnd={saveCurrentPosition}
@@ -3315,7 +3358,7 @@ export default function App() {
                     key={`${v.bookKo}-${v.chapter}-${v.verse}`}
                     onLayout={(e) => {
                       readerVerseLayouts.current.set(`${sidx}-${v.chapter}-${v.verse}`, { readerKey, section: sidx, y: e.nativeEvent.layout.y, book: section.passage.book, chapter: v.chapter, verse: v.verse });
-                      if (isTargetVerse && !savedY) {
+                      if (isTargetVerse && !savedY && !translationAnchorRef.current) {
                         const targetY = v.verse === 1 ? 0 : Math.max(0, e.nativeEvent.layout.y - 12);
                         pendingTargetY.current = targetY;
                         setTimeout(() => {
@@ -3636,7 +3679,7 @@ export default function App() {
                   const localBook = savedBible ? getBook(savedBible, savedBookMeta?.book || parts[1], parts[1]) : null;
                   const localVerse = localBook?.chapters?.find(c => Number(c.chapter) === Number(parts[2]))?.verses?.find(v => Number(v.verse) === Number(parts[3]));
                   const body = typeof value === 'string' ? value : (value?.text || localVerse?.text || '이 번역본을 먼저 불러와 주세요.');
-                  return <TouchableOpacity key={key} onPress={() => openSavedVerse(key)} style={[styles.savedVerseCard, moreMode === 'highlights' && { borderLeftWidth: 7, borderLeftColor: value?.color || '#FFF3A8' }]}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}<Text style={styles.savedVerseOpenHint}>본문으로 이동 ›</Text></TouchableOpacity>;
+                  return <TouchableOpacity key={key} onPress={() => openSavedVerse(key)} style={[styles.savedVerseCard, moreMode === 'highlights' && { borderLeftWidth: 7, borderLeftColor: value?.color || '#FFF3A8' }]}><Text style={styles.savedVerseLabel}>{label}</Text><Text style={styles.savedVerseText}>{body}</Text>{value?.savedAt ? <Text style={styles.savedVerseDate}>{value.savedAt}</Text> : null}<Text style={styles.savedVerseOpenHint}>본문으로 이동 ›</Text><TouchableOpacity accessibilityRole="button" onPress={event => { event.stopPropagation(); removeSavedRecord(key, moreMode); }} style={{ alignSelf: 'flex-end', padding: 12 }}><Text style={{ color: '#A32626', fontWeight: '700' }}>{moreMode === 'notes' ? '메모 삭제' : '해제'}</Text></TouchableOpacity></TouchableOpacity>;
                 }) : <View style={styles.emptyCard}><Text style={styles.emptyText}>아직 저장된 내용이 없습니다.</Text></View>}
               </View>
             )}

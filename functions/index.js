@@ -535,3 +535,6 @@ exports.notifyCommunityPostCreated = onDocumentCreated({
 
 // Personal reading sync is isolated from administrator and community permissions.
 Object.assign(exports, require('./device-sync'));
+const communitySync = require('./community-sync');
+exports.syncLinkedCommunity = communitySync.syncLinkedCommunity;
+exports.onLinkedMembershipWritten = communitySync.onLinkedMembershipWritten;
