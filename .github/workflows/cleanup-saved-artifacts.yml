@@ -26,17 +26,19 @@ jobs:
           assert run['conclusion']=='success' and run['head_sha']=='bef6c1094c5d2e648621548ade3123b37a3b3adb'
           final=api('/actions/artifacts/14422173129')
           assert final['name']=='GF-Bible-v1.3.27-release-apk-aab-source' and final['size_in_bytes']==202403652 and not final['expired']
-          # Both the previous release and final original files were durably preserved before this workflow was committed.
+          # Complete source history and current/previous release backups were preserved.
+          # The two older binaries are superseded by the preserved 1.3.26 rollback release.
           deleted=0
-          try: old=api('/actions/artifacts/14103104887')
-          except urllib.error.HTTPError as e:
-              if e.code!=404: raise
-              old=None
-          if old:
-              assert old['name']=='GF-Bible-v1.3.26-release-apk-aab-source' and old['size_in_bytes']==202356089
-              assert old['workflow_run']['id']==43568293062 and old['created_at']<final['created_at']
-              api('/actions/artifacts/14103104887','DELETE')
-              deleted=old['size_in_bytes']
+          candidates=[(13220669003,'GF-Bible-v1.3.19-release-aab',90791758,41614802126),(13215391713,'GF-Bible-v1.3.24-release-apk-aab-source',199646141,41601465581)]
+          for artifact_id,name,size,run_id in candidates:
+              try: old=api('/actions/artifacts/'+str(artifact_id))
+              except urllib.error.HTTPError as e:
+                  if e.code==404: continue
+                  raise
+              assert old['name']==name and old['size_in_bytes']==size and old['workflow_run']['id']==run_id
+              assert old['created_at']<final['created_at'] and artifact_id!=14422173129
+              api('/actions/artifacts/'+str(artifact_id),'DELETE')
+              deleted+=old['size_in_bytes']
           caches=api('/actions/caches?per_page=100')
           assert caches['total_count']<=100
           # Caches are reproducible. Retain any generated after the release artifact.
